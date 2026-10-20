@@ -1,0 +1,2 @@
+export const metadata={title:'문의',description:'콘텐츠 오류, 수정 제안 및 협업 문의 안내'};
+export default function ContactPage(){return <section className="legal-page"><span className="eyebrow">CONTACT</span><h1>문의 및 수정 제안</h1><p className="legal-lead">글의 오류, 코드 개선 제안, 출처 관련 문의가 있다면 운영자에게 연락해 주세요.</p><p>운영 이메일 주소를 준비한 뒤 이 페이지의 <code>your-email@example.com</code>을 실제 수신 가능한 주소로 교체해 주세요.</p><p><a className="inline-link" href="mailto:your-email@example.com">your-email@example.com ↗</a></p></section>}

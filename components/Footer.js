@@ -1,0 +1,2 @@
+import Link from 'next/link';
+export default function Footer() { return <footer className="site-footer"><div className="footer-inner"><div><Link href="/" className="footer-brand">Dev Notes</Link><p>개발 문제를 해결하는 과정을 기록합니다.</p></div><nav aria-label="푸터"><Link href="/about">사이트 소개</Link><Link href="/contact">문의</Link><Link href="/privacy">개인정보 처리방침</Link></nav><small>© {new Date().getFullYear()} Dev Notes. All rights reserved.</small></div></footer>; }

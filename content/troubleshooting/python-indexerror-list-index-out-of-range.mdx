@@ -1,0 +1,80 @@
+---
+title: "[트러블슈팅] Python IndexError: list index out of range 해결"
+publishedAt: "2026-10-20"
+summary: "빈 리스트에 인덱스를 지정해 값을 할당할 때 발생하는 오류의 원인과 해결 방법을 정리합니다."
+tag: "Troubleshooting"
+---
+
+## 현상
+
+빈 리스트에 인덱스를 지정해 값을 할당하면 `IndexError: list assignment index out of range` 오류가 발생합니다.
+
+```python
+i = [1, 2, 3, 5, 8, 13]
+j = []
+k = 0
+
+for value in i:
+    j[k] = value
+    k += 1
+```
+
+`j`의 길이는 0이므로 `j[0]`에 값을 할당할 수 없습니다. 리스트의 인덱스 할당은 이미 존재하는 요소를 교체할 때 사용합니다.
+
+## 원인
+
+Python 리스트는 동적으로 크기가 변하지만, `j[k] = value` 문법 자체가 리스트를 자동으로 확장하지는 않습니다. 빈 리스트에는 유효한 인덱스가 없기 때문에 첫 번째 대입부터 예외가 발생합니다.
+
+## 해결 방법 1: append() 사용
+
+새 요소를 순서대로 추가하려는 목적이라면 `append()`가 가장 간단합니다.
+
+```python
+i = [1, 2, 3, 5, 8, 13]
+j = []
+
+for value in i:
+    j.append(value)
+
+print(j)
+```
+
+단순 복사라면 `j = list(i)` 또는 `j = i.copy()`를 사용할 수도 있습니다.
+
+## 해결 방법 2: 리스트를 미리 초기화
+
+인덱스를 통한 대입이 꼭 필요하다면, 먼저 필요한 길이만큼 요소를 생성합니다.
+
+```python
+i = [1, 2, 3, 5, 8, 13]
+j = [None] * len(i)
+
+for k, value in enumerate(i):
+    j[k] = value
+```
+
+이 방식은 각 인덱스에 값을 덮어쓰는 상황에 적합합니다. 단순히 요소를 추가하려는 상황이라면 `append()`가 더 명확합니다.
+
+## 추가 예방 방법
+
+특정 인덱스에 접근하기 전에 `0 <= index < len(my_list)`인지 확인할 수 있습니다. 다만 예외를 무조건 숨기기보다 인덱스가 잘못 계산된 원인을 먼저 확인하는 편이 좋습니다.
+
+```python
+my_list = [10, 20, 30]
+index = 5
+
+if 0 <= index < len(my_list):
+    print(my_list[index])
+else:
+    print(f"유효하지 않은 인덱스: {index}")
+```
+
+## 핵심 정리
+
+- 새 요소 추가: `append()` 또는 `extend()`
+- 기존 요소 수정: 유효한 인덱스를 통한 대입
+- 반복문에서 인덱스와 값을 함께 사용: `enumerate()`
+
+## 출처
+
+- [Stack Overflow: Why can't I build a list by assigning each element in turn?](https://stackoverflow.com/questions/5653533/why-cant-i-build-a-list-by-assigning-each-element-in-turn-how-can-i-add-appen)
