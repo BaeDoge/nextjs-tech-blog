@@ -1,0 +1,18 @@
+{
+  "content_type": "algorithm",
+  "title": "[코딩테스트] Divisor Game 게임 이론 분석",
+  "tag": "Algorithm",
+  "sources": [
+    {
+      "platform": "LeetCode",
+      "title": "LeetCode 1025 - Divisor Game",
+      "url": "https://leetcode.com/problems/divisor-game/",
+      "author": null
+    }
+  ],
+  "image_files": [],
+  "review_passed": true,
+  "refine_rounds": 1,
+  "chosen_candidate": "LeetCode 1025 - Divisor Game",
+  "chosen_link": "https://leetcode.com/problems/divisor-game/"
+}

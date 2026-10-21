@@ -1,0 +1,35 @@
+{
+  "content_type": "troubleshooting",
+  "title": "[트러블슈팅] Python IndexError: list index out of range 해결",
+  "tag": "Troubleshooting",
+  "sources": [
+    {
+      "platform": "StackOverflow",
+      "title": "Why can't I build a list by assigning each element in turn? How can I add (append) the elements without getting an IndexError?",
+      "url": "https://stackoverflow.com/questions/5653533/why-cant-i-build-a-list-by-assigning-each-element-in-turn-how-can-i-add-appen",
+      "author": "Vladan(질문), Steve Mayne(답변)"
+    },
+    {
+      "platform": "Tistory",
+      "title": "[파이썬 에러] IndexError: list index out of range 해결하기",
+      "url": "https://3-14159.tistory.com/entry/%ED%8C%8C%EC%9D%B4%EC%8D%AC-%EC%97%90%EB%9F%ACIndexErrorlistindexoutofrange%ED%95%B4%EA%B2%B0%ED%95%98%EA%B8%B0",
+      "author": "원근값의 블로그"
+    },
+    {
+      "platform": "Tistory",
+      "title": "[python] IndexError",
+      "url": "https://jojonari.tistory.com/entry/python-IndexError",
+      "author": "하늘과 바람과 별과 코드"
+    }
+  ],
+  "image_files": [
+    {
+      "local_path": "C:\\Users\\User\\Documents\\_Projects\\261007_blog_latest\\261019\\output_files\\troubleshooting\\public\\blogs\\python-indexerror-list-index-out-of-range-1.png",
+      "repo_path": "public/blogs/python-indexerror-list-index-out-of-range-1.png"
+    }
+  ],
+  "review_passed": true,
+  "refine_rounds": 1,
+  "chosen_candidate": "Why can't I build a list by assigning each element in turn? How can I add (append) the elements without getting an IndexError?",
+  "chosen_link": "https://stackoverflow.com/questions/5653533/why-cant-i-build-a-list-by-assigning-each-element-in-turn-how-can-i-add-appen"
+}

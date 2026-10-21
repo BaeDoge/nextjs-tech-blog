@@ -1,0 +1,39 @@
+{
+  "content_type": "troubleshooting",
+  "title": "[트러블슈팅] pip 명령어 인식 불가 해결",
+  "tag": "Troubleshooting",
+  "sources": [
+    {
+      "platform": "StackOverflow",
+      "title": "'pip' is not recognized as an internal or external command",
+      "url": "https://stackoverflow.com/questions/23708898/pip-is-not-recognized-as-an-internal-or-external-command",
+      "author": "user3597950(질문), fr1tz(답변)"
+    },
+    {
+      "platform": "Tistory",
+      "title": "파이썬 pip (명령어 및 에러 해결 방법)",
+      "url": "https://loui3.tistory.com/143",
+      "author": "IT를 좋아하는 루의 기록장"
+    },
+    {
+      "platform": "Tistory",
+      "title": "파이썬 가상환경 활성화가 안 될 때｜운영체제별 해결 순서",
+      "url": "https://neos35.tistory.com/entry/%ED%8C%8C%EC%9D%B4%EC%8D%AC-%EA%B0%80%EC%83%81%ED%99%98%EA%B2%BD-%ED%99%9C%EC%84%B1%ED%99%94%EA%B0%80-%EC%95%88-%EB%90%A0-%EB%95%8C%EF%BD%9C%EC%9A%B4%EC%98%81%EC%B2%B4%EC%A0%9C%EB%B3%84-%ED%95%B4%EA%B2%B0-%EC%88%9C%EC%84%9C",
+      "author": "컴공대생 mr.ko"
+    }
+  ],
+  "image_files": [
+    {
+      "local_path": "C:\\Users\\User\\Documents\\_Projects\\261007_blog_latest\\261019\\output_files\\troubleshooting\\public\\blogs\\troubleshooting-20261021-112153-1.png",
+      "repo_path": "public/blogs/troubleshooting-20261021-112153-1.png"
+    },
+    {
+      "local_path": "C:\\Users\\User\\Documents\\_Projects\\261007_blog_latest\\261019\\output_files\\troubleshooting\\public\\blogs\\troubleshooting-20261021-112153-2.png",
+      "repo_path": "public/blogs/troubleshooting-20261021-112153-2.png"
+    }
+  ],
+  "review_passed": true,
+  "refine_rounds": 5,
+  "chosen_candidate": "'pip' is not recognized as an internal or external command",
+  "chosen_link": "https://stackoverflow.com/questions/23708898/pip-is-not-recognized-as-an-internal-or-external-command"
+}

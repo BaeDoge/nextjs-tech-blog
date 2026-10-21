@@ -1,0 +1,39 @@
+{
+  "content_type": "troubleshooting",
+  "title": "[트러블슈팅] pip 실행 시 No module named pkg_resources",
+  "tag": "Troubleshooting",
+  "sources": [
+    {
+      "platform": "StackOverflow",
+      "title": "No module named pkg_resources",
+      "url": "https://stackoverflow.com/questions/7446187/no-module-named-pkg-resources",
+      "author": "igniteflow(질문), cwc(답변)"
+    },
+    {
+      "platform": "Tistory",
+      "title": "No module named 'numpy' 해결 방법",
+      "url": "https://engineeringcode.tistory.com/entry/No-module-named-numpy-%ED%95%B4%EA%B2%B0-%EB%B0%A9%EB%B2%95",
+      "author": "공학코드 연구노트"
+    },
+    {
+      "platform": "Tistory",
+      "title": "No module named 'sklearn' 해결 방법",
+      "url": "https://engineeringcode.tistory.com/entry/No-module-named-sklearn-%ED%95%B4%EA%B2%B0-%EB%B0%A9%EB%B2%95",
+      "author": "공학코드 연구노트"
+    }
+  ],
+  "image_files": [
+    {
+      "local_path": "C:\\Users\\User\\Documents\\_Projects\\261007_blog_latest\\261019\\output_files\\troubleshooting\\public\\blogs\\pip-no-module-named-pkg-resources-1.png",
+      "repo_path": "public/blogs/pip-no-module-named-pkg-resources-1.png"
+    },
+    {
+      "local_path": "C:\\Users\\User\\Documents\\_Projects\\261007_blog_latest\\261019\\output_files\\troubleshooting\\public\\blogs\\pip-no-module-named-pkg-resources-2.png",
+      "repo_path": "public/blogs/pip-no-module-named-pkg-resources-2.png"
+    }
+  ],
+  "review_passed": false,
+  "refine_rounds": 5,
+  "chosen_candidate": "No module named pkg_resources",
+  "chosen_link": "https://stackoverflow.com/questions/7446187/no-module-named-pkg-resources"
+}

@@ -1,0 +1,18 @@
+{
+  "content_type": "algorithm",
+  "title": "[코딩테스트] 이진트리 최하단 왼쪽 값 찾기",
+  "tag": "Algorithm",
+  "sources": [
+    {
+      "platform": "LeetCode",
+      "title": "LeetCode 513 - Find Bottom Left Tree Value",
+      "url": "https://leetcode.com/problems/find-bottom-left-tree-value/",
+      "author": null
+    }
+  ],
+  "image_files": [],
+  "review_passed": true,
+  "refine_rounds": 1,
+  "chosen_candidate": "LeetCode 513 - Find Bottom Left Tree Value",
+  "chosen_link": "https://leetcode.com/problems/find-bottom-left-tree-value/"
+}

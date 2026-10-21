@@ -1,0 +1,74 @@
+---
+title: "[트러블슈팅] Python IndentationError 및 TabError 해결"
+publishedAt: "2026-10-20"
+summary: "들여쓰기 불일치로 발생하는 IndentationError와 TabError의 원인과 해결 방법을 정리합니다."
+tag: "Troubleshooting"
+---
+
+## 현상
+
+Python은 코드 블록의 구분을 위해 들여쓰기를 사용합니다. 이를 잘못하면 다음과 같은 에러가 발생합니다.
+
+```python
+if True:
+    if False:
+        print('foo')
+   print('bar')
+```
+
+```text
+  File "script.py", line 4
+    print('bar')
+               ^
+IndentationError: unindent does not match any outer indentation level
+```
+
+또는 다음과 같은 에러 메시지가 출력될 수 있습니다.
+* `IndentationError: unexpected indent`
+* `IndentationError: expected an indented block`
+* `TabError: inconsistent use of tabs and spaces in indentation`
+
+## 원인
+
+Python은 코드 블록을 중괄호 대신 들여쓰기로 구분합니다. 각 코드 블록 내의 문장은 동일한 양만큼 들여써야 합니다. `TabError`는 들여쓰기에 탭(Tab) 문자와 스페이스(Space) 문자가 혼용되었을 때 발생합니다. 스페이스와 탭은 화면상으로는 비슷한 간격을 제공하지만, 내부적으로 서로 다른 문자이므로 Python은 이를 일관되지 않은 들여쓰기로 간주하여 에러를 발생시킵니다.
+
+## 해결 방법
+
+에러가 발생한 줄과 그 바로 위 줄의 들여쓰기를 모두 지우고, 스페이스바를 사용하여 PEP 8 기준인 4칸으로 다시 입력합니다.
+
+```python
+# 수정 전 (에러 발생)
+if True:
+    if False:
+        print('foo')
+   print('bar') # 들여쓰기가 불일치
+
+# 수정 후
+if True:
+    if False:
+        print('foo')
+    print('bar') # 스페이스 4칸으로 통일
+```
+
+![해결 방법 스크린샷](/blogs/python-indentationerror-taberror-1.jpg)
+
+## 다른 해결 방법
+
+에디터의 기능을 활용하여 탭과 스페이스를 일괄 변환하거나, 자동 포매터를 사용할 수 있습니다. VS Code를 사용하는 경우 명령 팔레트(`Ctrl+Shift+P`)에서 `Indent Using Spaces`를 실행하여 탭을 스페이스로 변환할 수 있습니다. 또한 `black`이나 `autopep8`과 같은 코드 포매터를 사용하면 코드의 들여쓰기를 자동으로 정리할 수 있습니다.
+
+```bash
+pip install black
+black script.py
+```
+
+## 추가 참고사항
+
+에디터에서 'Render Whitespace' 설정을 활성화하면 스페이스와 탭을 시각적으로 구분할 수 있습니다. VS Code에서는 'Show Invisible Characters'를 켜면 스페이스는 점으로, 탭은 화살표로 표시됩니다. 또한 PEP 8 가이드라인에 따라 Python 코드는 4칸의 스페이스 들여쓰기를 사용하는 것이 권장됩니다.
+
+## 출처
+
+- StackOverflow: [I'm getting an IndentationError (or a TabError). How do I fix it?](https://stackoverflow.com/questions/45621722/im-getting-an-indentationerror-or-a-taberror-how-do-i-fix-it) — 작성자: Chris(질문), Chris(답변) (CC BY-SA)
+- Tistory: [파이썬 오류 해결법: "IndentationError"의 원인과 해결 방법](https://smartmove.tistory.com/1) — 작성자: smartmove 님의 블로그
+- Tistory: [IndentationError 해결 — 파이썬 초보가 막히는 3가지](https://fuerte.tistory.com/566) — 작성자: Daily AI Lab
+
+본문 이미지는 위 출처에서 가져왔습니다.

@@ -1,0 +1,104 @@
+---
+title: "[트러블슈팅] UnboundLocalError local variable referenced before assignment"
+publishedAt: "2026-10-20"
+summary: "함수 내에서 전역 변수의 할당 연산을 수행하기 전에 참조할 때 발생하는 에러를 해결하는 방법입니다."
+tag: "Troubleshooting"
+---
+
+## 현상
+
+함수 내에서 전역 변수를 읽기만 할 때는 문제가 없으나, 값을 수정하는 할당 연산이 포함된 경우 에러가 발생합니다. 에러는 변수에 값이 할당되기 전에 해당 변수가 참조되었다고 알립니다.
+
+```python
+count = 10
+
+def myfunc():
+    count = count + 1
+    print(count)
+
+myfunc()
+```
+
+```text
+UnboundLocalError: local variable 'count' referenced before assignment
+```
+
+![현상 스크린샷](/blogs/unboundlocalerror-local-variable-referenced-before-assignmen-1.png)
+
+## 원인
+
+파이썬은 함수 내에서 변수에 할당 연산(예: `+=`, `-=` 또는 `=`)이 있는 경우, 해당 변수를 전역 변수가 아닌 지역 변수로 간주합니다.
+따라서 할당 연산 전에 해당 변수를 참조하면, 아직 초기화되지 않은 지역 변수를 읽으려 시도하여 에러가 발생합니다.
+
+```python
+Var1 = 1
+Var2 = 0
+
+def function(): 
+    # Var2는 읽기 전용이므로 전역 변수를 정상 참조합니다.
+    if Var2 == 0 and Var1 > 0:
+        print("Result 1")
+    
+    # Var1에 -= 연산이 있으므로 Var1은 지역 변수로 취급됩니다.
+    # 하지만 앞서 Var1을 참조했기 때문에 에러가 발생합니다.
+    Var1 -= 1
+```
+
+## 해결 방법
+
+함수 내에서 수정하려는 변수가 전역 변수임을 명시적으로 선언하여 `global` 키워드를 사용합니다.
+변수 수정 연산 전, 함수 시작 부분에 `global 변수명`을 명시하면 에러가 해결됩니다.
+
+```python
+count = 10
+
+def myfunc():
+    global count
+    count = count + 1
+    print(count)
+
+myfunc()
+```
+
+![해결 방법 스크린샷](/blogs/unboundlocalerror-local-variable-referenced-before-assignmen-2.png)
+
+## 다른 해결 방법
+
+전역 변수의 직접 수정을 피하고, 함수의 파라미터로 값을 전달받은 후 결과값을 `return`으로 반환하는 방식을 사용합니다.
+이 방법은 순수 함수를 구성하여 상태 변경의 추적성을 높이고 유지보수를 용이하게 합니다.
+
+```python
+def increment_pure(current_count):
+    return current_count + 1
+
+count = 10
+count = increment_pure(count)
+print(count)
+```
+
+## 추가 참고사항
+
+중첩 함수(클로저) 내부에서 바깥쪽 함수의 지역 변수를 수정해야 할 때는 `global` 대신 `nonlocal` 키워드를 사용합니다.
+`global`은 모듈 최상단의 전역 변수만 참조하므로, 함수 스코프 내의 변수 수정에는 사용되지 않습니다.
+
+```python
+def outer_function():
+    total = 100
+
+    def inner_function():
+        nonlocal total
+        total -= 10
+        print("남은 수량:", total)
+
+    inner_function()
+
+outer_function()
+```
+
+## 출처
+
+- StackOverflow: [How can I fix "UnboundLocalError: local variable referenced before assignment"?](https://stackoverflow.com/questions/10851906/how-can-i-fix-unboundlocalerror-local-variable-referenced-before-assignment) — 작성자: Eden Crow(질문), Jakob Bowyer(답변) (CC BY-SA)
+- Tistory: [(Python/Pandas) UnboundLocalError: local variable referenced before assignment](https://pylife.tistory.com/entry/PythonPandas-UnboundLocalError-local-variable-referenced-before-assignment) — 작성자: Py Life
+- Tistory: [UnboundLocalError: local variable referenced before assignment: 원인과 해결 방법](https://ksmk.tistory.com/entry/UnboundLocalError-local-variable-referenced-before-assignment-%EC%9B%90%EC%9D%B8%EA%B3%BC-%ED%95%B4%EA%B2%B0-%EB%B0%A9%EB%B2%95) — 작성자: IT 잇슈 | 칼퇴를 부르는 실무 치트키
+
+본문 이미지는 위 출처에서 가져왔습니다.

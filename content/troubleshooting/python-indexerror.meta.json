@@ -1,0 +1,35 @@
+{
+  "content_type": "troubleshooting",
+  "title": "[트러블슈팅] Python IndexError 해결",
+  "tag": "Troubleshooting",
+  "sources": [
+    {
+      "platform": "StackOverflow",
+      "title": "Get value at list/array index or \"None\" if out of range in Python",
+      "url": "https://stackoverflow.com/questions/12186388/get-value-at-list-array-index-or-none-if-out-of-range-in-python",
+      "author": "Chris Dutrow(질문), the wolf(답변)"
+    },
+    {
+      "platform": "Tistory",
+      "title": "Google Python Style Guide",
+      "url": "https://blog-to-study-python.tistory.com/19",
+      "author": "파이썬공부하려고만든블로그"
+    },
+    {
+      "platform": "Tistory",
+      "title": "'Algorithm' 카테고리의 글 목록",
+      "url": "https://freewebsite1028.tistory.com/category/Algorithm",
+      "author": "Sweat100"
+    }
+  ],
+  "image_files": [
+    {
+      "local_path": "C:\\Users\\User\\Documents\\_Projects\\261007_blog_latest\\261019\\output_files\\troubleshooting\\public\\blogs\\python-indexerror-1.png",
+      "repo_path": "public/blogs/python-indexerror-1.png"
+    }
+  ],
+  "review_passed": true,
+  "refine_rounds": 2,
+  "chosen_candidate": "Get value at list/array index or \"None\" if out of range in Python",
+  "chosen_link": "https://stackoverflow.com/questions/12186388/get-value-at-list-array-index-or-none-if-out-of-range-in-python"
+}

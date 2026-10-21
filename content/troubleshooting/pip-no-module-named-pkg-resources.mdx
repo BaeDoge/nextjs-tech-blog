@@ -1,0 +1,74 @@
+---
+title: "[트러블슈팅] pip 실행 시 No module named pkg_resources"
+publishedAt: "2026-10-21"
+summary: "virtualenv 내부에서 pip 실행 시 pkg_resources 모듈 누락으로 발생하는 오류를 복구하는 방법입니다."
+tag: "Troubleshooting"
+---
+
+## 현상
+
+Django 앱 배포 등 `pip install` 명령을 실행할 때 다음과 같은 `ImportError`가 발생합니다. 이 오류는 virtualenv 환경 내부에서 주로 발생하며, 호스트 시스템의 Python에서는 정상 작동할 수 있습니다.
+
+```text
+Traceback (most recent call last):
+  File "/var/www/mydir/virtualenvs/dev/bin/pip", line 5, in <module>
+    from pkg_resources import load_entry_point
+ImportError: No module named pkg_resources
+```
+
+![현상 스크린샷](/blogs/pip-no-module-named-pkg-resources-1.png)
+
+## 원인
+
+`pkg_resources` 모듈은 `setuptools` 패키지에 포함되어 있습니다. Python 환경에서 `setuptools` 패키지가 누락되었거나 손상되었을 경우, pip를 포함한 일부 도구가 내부적으로 호출하는 이 모듈을 로드하지 못하여 오류가 발생합니다. 이는 virtualenv 생성 과정에서 setuptools가 제대로 설치가 되지 않았거나, 수동 삭제로 인해 site-packages에서 해당 패키지가 제거된 경우에 주로 발생합니다.
+
+## 해결 방법
+
+`setuptools` 패키지를 다시 설치하여 복구합니다. virtualenv 내부에서 pip가 실행되지 않는 상태라도, Python 인터프리터를 통해 `setuptools`를 직접 설치하거나 업그레이드할 수 있습니다.
+
+```bash
+# virtualenv 활성화 후 실행
+python -m pip install --upgrade setuptools
+```
+
+만약 위 명령어도 실행되지 않을 경우, Python 스크립트를 사용하여 `ez_setup.py`를 실행하여 복구할 수 있습니다.
+
+```bash
+# wget이 없는 경우 curl 사용
+curl https://bootstrap.pypa.io/ez_setup.py -O | python
+```
+
+![해결 방법 스크린샷](/blogs/pip-no-module-named-pkg-resources-2.png)
+
+## 다른 해결 방법
+
+시스템 패키지 매니저를 통해 `python-setuptools` 패키지를 설치하거나 업데이트하는 방법입니다. 이는 OS 레벨의 Python 패키지를 복구하여 virtualenv의 기반이 되는 패키지를 보강하는 방식입니다.
+
+```bash
+# Ubuntu/Debian 기준
+sudo apt-get install python-setuptools
+
+# CentOS/RHEL 기준
+sudo yum install python-setuptools
+```
+
+또한, Python 3 환경에서 pip가 완전히 누락된 경우 `get-pip.py` 스크립트를 다운로드하여 실행할 수 있습니다.
+
+```bash
+curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+python3 get-pip.py
+```
+
+## 추가 참고사항
+
+- `setuptools`는 Python 2에서 Python 3로 마이그레이션하는 과정에서 호환성 문제로 자주 이슈가 발생합니다.
+- virtualenv 생성 시 `--no-setuptools` 옵션을 사용하지 않았다면 기본으로 포함되므로, 수동 삭제를 피하는 것이 좋습니다.
+- 비슷한 오류로 `No module named distutils`가 발생하면 `python3-dev` 또는 `python3-devel` 패키지가 누락되었을 수 있으므로 확인합니다.
+
+## 출처
+
+- StackOverflow: [No module named pkg_resources](https://stackoverflow.com/questions/7446187/no-module-named-pkg-resources) — 작성자: igniteflow(질문), cwc(답변) (CC BY-SA)
+- Tistory: [No module named 'numpy' 해결 방법](https://engineeringcode.tistory.com/entry/No-module-named-numpy-%ED%95%B4%EA%B2%B0-%EB%B0%A9%EB%B2%95) — 작성자: 공학코드 연구노트
+- Tistory: [No module named 'sklearn' 해결 방법](https://engineeringcode.tistory.com/entry/No-module-named-sklearn-%ED%95%B4%EA%B2%B0-%EB%B0%A9%EB%B2%95) — 작성자: 공학코드 연구노트
+
+본문 이미지는 위 출처에서 가져왔습니다.

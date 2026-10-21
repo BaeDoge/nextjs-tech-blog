@@ -1,0 +1,30 @@
+{
+  "content_type": "troubleshooting",
+  "title": "[트러블슈팅] IndexError 해결",
+  "tag": "Troubleshooting",
+  "sources": [
+    {
+      "platform": "StackOverflow",
+      "title": "I want to exception handle 'list index out of range.'",
+      "url": "https://stackoverflow.com/questions/11902458/i-want-to-exception-handle-list-index-out-of-range",
+      "author": "H.Choi(질문), ThiefMaster(답변)"
+    },
+    {
+      "platform": "Tistory",
+      "title": "[파이썬][Error] 041. IndexError - list index out of range",
+      "url": "https://about-ittt.tistory.com/370",
+      "author": "about_IT"
+    },
+    {
+      "platform": "Tistory",
+      "title": "[python] IndexError",
+      "url": "https://jojonari.tistory.com/entry/python-IndexError",
+      "author": "하늘과 바람과 별과 코드"
+    }
+  ],
+  "image_files": [],
+  "review_passed": true,
+  "refine_rounds": 2,
+  "chosen_candidate": "I want to exception handle 'list index out of range.'",
+  "chosen_link": "https://stackoverflow.com/questions/11902458/i-want-to-exception-handle-list-index-out-of-range"
+}

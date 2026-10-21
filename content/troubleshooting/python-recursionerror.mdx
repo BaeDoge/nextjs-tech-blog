@@ -1,0 +1,95 @@
+---
+title: "[트러블슈팅] Python RecursionError: 재귀 깊이 제한 초과 해결"
+publishedAt: "2026-10-20"
+summary: "Python의 기본 재귀 깊이 제한을 확인하고, 임시로 증가시키거나 반복문으로 대체하는 방법을 설명합니다."
+tag: "Troubleshooting"
+---
+
+## 현상
+
+재귀 함수 호출 시 `RecursionError: maximum recursion depth exceeded` 오류가 발생하며 프로그램이 종료됩니다.
+기본 재귀 깊이 제한은 보통 1000 수준으로, 이를 초과하는 깊이로 호출하면 이 에러가 발생합니다.
+
+```python
+def recursive_function(n, total):
+    if n < 1:
+        return total
+    else:
+        return recursive_function(n - 1, total + n)
+
+# 기본 제한(1000)을 초과하여 에러 재현
+c = 1001
+print(recursive_function(c, 0))
+```
+
+```text
+Traceback (most recent call last):
+  File "test.py", line 10, in <module>
+    print(recursive_function(c, 0))
+  ...
+RecursionError: maximum recursion depth exceeded in comparison
+```
+
+![현상 스크린샷](/blogs/python-recursionerror-1.jpg)
+
+## 원인
+
+Python은 재귀 호출 시 스택 프레임을 생성하며, 이는 메모리 소모가 크고 스택 오버플로우 위험이 있어 CPython은 재귀 깊이를 제한합니다.
+CPython 구현은 꼬리 재귀(Tail Recursion)를 자동으로 최적화하지 않으므로, 재귀가 반복될수록 호출 스택이 계속 쌓입니다.
+이러한 설계적 제한으로 인해 임계점을 넘으면 `RecursionError`가 발생하여 실행을 중단시킵니다.
+
+## 해결 방법
+
+`sys` 모듈을 사용하여 재귀 제한 값을 명시적으로 증가시켜 에러를 우회할 수 있습니다.
+이 방법은 재귀 함수의 로직을 변경하지 않고 제한만 늘리는 방식입니다.
+
+```python
+import sys
+
+# 재귀 제한 확인 (기본값은 보통 1000)
+print(sys.getrecursionlimit())
+
+# 재귀 제한 증가 (경고: 스택 오버플로우 위험)
+sys.setrecursionlimit(1500)
+
+def recursive_function(n, total):
+    if n < 1:
+        return total
+    else:
+        return recursive_function(n - 1, total + n)
+
+c = 1001
+print(recursive_function(c, 0))
+```
+
+![해결 방법 스크린샷](/blogs/python-recursionerror-2.png)
+
+## 다른 해결 방법
+
+재귀를 반복문으로 변환하는 것은 메모리 효율적이며 근본적인 해결책입니다.
+함수형 언어의 꼬리 재귀와 유사한 형태를 반복문으로 구현하면 스택 오버플로우 걱정 없이 안전한 실행이 가능합니다.
+
+```python
+def iterative_function(n, total):
+    while n >= 1:
+        total += n
+        n -= 1
+    return total
+
+c = 1001
+print(iterative_function(c, 0))
+```
+
+## 추가 참고사항
+
+재귀 제한 증가(`sys.setrecursionlimit`)는 스택 오버플로우로 인해 운영 체제 수준에서 프로그램이 강제 종료될 수 있으므로 위험합니다.
+일반적으로 재귀가 필요한 트리 순회 등 특수한 경우를 제외하고는 반복문 사용을 권장합니다.
+재귀를 사용할 때는 재귀 깊이가 제한 내에 있는지 반드시 확인하고, 필요 시 제한값을 동적으로 관리하는 것이 좋습니다.
+
+## 출처
+
+- StackOverflow: [What is the maximum recursion depth, and how to increase it?](https://stackoverflow.com/questions/3323001/what-is-the-maximum-recursion-depth-and-how-to-increase-it) — 작성자: quantumSoup(질문), Thomas Wouters(답변) (CC BY-SA)
+- Tistory: [PyInstaller로 파이썬 실행파일 만들기 및 에러 해결](https://humber.tistory.com/entry/PyInstaller%EB%A1%9C-%ED%8C%8C%EC%9D%B4%EC%8D%AC-%EC%8B%A4%ED%96%89%ED%8C%8C%EC%9D%BC-%EB%A7%8C%EB%93%A4%EA%B8%B0-%EB%B0%8F-%EC%97%90%EB%9F%AC-%ED%95%B4%EA%B2%B0) — 작성자: 성공은 선택의 문제다
+- Tistory: [VS Code 에서 파이썬 No module named 'PIL' 오류 해결 방법](https://avs-won.tistory.com/entry/VS-Code-%EC%97%90%EC%84%9C-%ED%8C%8C%EC%9D%B4%EC%8D%AC-No-module-named-PIL-%EC%98%A4%EB%A5%98-%ED%95%B4%EA%B2%B0-%EB%B0%A9%EB%B2%95) — 작성자: Project AVS
+
+본문 이미지는 위 출처에서 가져왔습니다.

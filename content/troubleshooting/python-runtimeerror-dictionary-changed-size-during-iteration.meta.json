@@ -1,0 +1,35 @@
+{
+  "content_type": "troubleshooting",
+  "title": "[트러블슈팅] Python RuntimeError: dictionary changed size during iteration",
+  "tag": "Troubleshooting",
+  "sources": [
+    {
+      "platform": "StackOverflow",
+      "title": "How to avoid \"RuntimeError: dictionary changed size during iteration\" error?",
+      "url": "https://stackoverflow.com/questions/11941817/how-to-avoid-runtimeerror-dictionary-changed-size-during-iteration-error",
+      "author": "user1530318(질문), Mark Byers(답변)"
+    },
+    {
+      "platform": "Tistory",
+      "title": "RuntimeError: dictionary changed size during iteration 해결",
+      "url": "https://inpages.tistory.com/186",
+      "author": "page hit"
+    },
+    {
+      "platform": "Tistory",
+      "title": "[PYTHON] Dictionary 조건 하에 key, value 삭제",
+      "url": "https://hyunhp.tistory.com/511",
+      "author": "START_101"
+    }
+  ],
+  "image_files": [
+    {
+      "local_path": "C:\\Users\\User\\Documents\\_Projects\\261007_blog_latest\\261019\\output_files\\troubleshooting\\public\\blogs\\python-runtimeerror-dictionary-changed-size-during-iteration-1.png",
+      "repo_path": "public/blogs/python-runtimeerror-dictionary-changed-size-during-iteration-1.png"
+    }
+  ],
+  "review_passed": true,
+  "refine_rounds": 3,
+  "chosen_candidate": "How to avoid \"RuntimeError: dictionary changed size during iteration\" error?",
+  "chosen_link": "https://stackoverflow.com/questions/11941817/how-to-avoid-runtimeerror-dictionary-changed-size-during-iteration-error"
+}

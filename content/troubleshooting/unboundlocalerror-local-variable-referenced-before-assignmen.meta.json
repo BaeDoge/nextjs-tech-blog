@@ -1,0 +1,39 @@
+{
+  "content_type": "troubleshooting",
+  "title": "[트러블슈팅] UnboundLocalError local variable referenced before assignment",
+  "tag": "Troubleshooting",
+  "sources": [
+    {
+      "platform": "StackOverflow",
+      "title": "How can I fix \"UnboundLocalError: local variable referenced before assignment\"?",
+      "url": "https://stackoverflow.com/questions/10851906/how-can-i-fix-unboundlocalerror-local-variable-referenced-before-assignment",
+      "author": "Eden Crow(질문), Jakob Bowyer(답변)"
+    },
+    {
+      "platform": "Tistory",
+      "title": "(Python/Pandas) UnboundLocalError: local variable referenced before assignment",
+      "url": "https://pylife.tistory.com/entry/PythonPandas-UnboundLocalError-local-variable-referenced-before-assignment",
+      "author": "Py Life"
+    },
+    {
+      "platform": "Tistory",
+      "title": "UnboundLocalError: local variable referenced before assignment: 원인과 해결 방법",
+      "url": "https://ksmk.tistory.com/entry/UnboundLocalError-local-variable-referenced-before-assignment-%EC%9B%90%EC%9D%B8%EA%B3%BC-%ED%95%B4%EA%B2%B0-%EB%B0%A9%EB%B2%95",
+      "author": "IT 잇슈 | 칼퇴를 부르는 실무 치트키"
+    }
+  ],
+  "image_files": [
+    {
+      "local_path": "C:\\Users\\User\\Documents\\_Projects\\261007_blog_latest\\261019\\output_files\\troubleshooting\\public\\blogs\\unboundlocalerror-local-variable-referenced-before-assignmen-1.png",
+      "repo_path": "public/blogs/unboundlocalerror-local-variable-referenced-before-assignmen-1.png"
+    },
+    {
+      "local_path": "C:\\Users\\User\\Documents\\_Projects\\261007_blog_latest\\261019\\output_files\\troubleshooting\\public\\blogs\\unboundlocalerror-local-variable-referenced-before-assignmen-2.png",
+      "repo_path": "public/blogs/unboundlocalerror-local-variable-referenced-before-assignmen-2.png"
+    }
+  ],
+  "review_passed": true,
+  "refine_rounds": 2,
+  "chosen_candidate": "How can I fix \"UnboundLocalError: local variable referenced before assignment\"?",
+  "chosen_link": "https://stackoverflow.com/questions/10851906/how-can-i-fix-unboundlocalerror-local-variable-referenced-before-assignment"
+}

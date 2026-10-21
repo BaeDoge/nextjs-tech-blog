@@ -1,0 +1,18 @@
+{
+  "content_type": "algorithm",
+  "title": "[코딩테스트] 스택을 활용한 다음 큰 수 찾기",
+  "tag": "Algorithm",
+  "sources": [
+    {
+      "platform": "LeetCode",
+      "title": "LeetCode 496 - Next Greater Element I",
+      "url": "https://leetcode.com/problems/next-greater-element-i/",
+      "author": null
+    }
+  ],
+  "image_files": [],
+  "review_passed": true,
+  "refine_rounds": 2,
+  "chosen_candidate": "LeetCode 496 - Next Greater Element I",
+  "chosen_link": "https://leetcode.com/problems/next-greater-element-i/"
+}

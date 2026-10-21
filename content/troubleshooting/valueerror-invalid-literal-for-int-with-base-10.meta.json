@@ -1,0 +1,35 @@
+{
+  "content_type": "troubleshooting",
+  "title": "[트러블슈팅] ValueError invalid literal for int with base 10 해결",
+  "tag": "Troubleshooting",
+  "sources": [
+    {
+      "platform": "StackOverflow",
+      "title": "ValueError: invalid literal for int () with base 10",
+      "url": "https://stackoverflow.com/questions/13861594/valueerror-invalid-literal-for-int-with-base-10",
+      "author": "user1901162(질문), Gareth Latty(답변)"
+    },
+    {
+      "platform": "Tistory",
+      "title": "[파이썬 에러] ValueError: invalid literal for int() with base 10",
+      "url": "https://adanacoding.tistory.com/10",
+      "author": "아단아 코딩일지"
+    },
+    {
+      "platform": "Tistory",
+      "title": "[Python/파이썬] ValueError: invalid literal for int() with base 10: '' 에러 발생 -해결 solved",
+      "url": "https://mrnoobiest.tistory.com/entry/Python%ED%8C%8C%EC%9D%B4%EC%8D%AC-ValueError-invalid-literal-for-int-with-base-10-%EC%97%90%EB%9F%AC-%EB%B0%9C%EC%83%9D-%ED%95%B4%EA%B2%B0-solved",
+      "author": "Aminora 블로그"
+    }
+  ],
+  "image_files": [
+    {
+      "local_path": "C:\\Users\\User\\Documents\\_Projects\\261007_blog_latest\\261019\\output_files\\troubleshooting\\public\\blogs\\valueerror-invalid-literal-for-int-with-base-10-1.png",
+      "repo_path": "public/blogs/valueerror-invalid-literal-for-int-with-base-10-1.png"
+    }
+  ],
+  "review_passed": false,
+  "refine_rounds": 5,
+  "chosen_candidate": "ValueError: invalid literal for int () with base 10",
+  "chosen_link": "https://stackoverflow.com/questions/13861594/valueerror-invalid-literal-for-int-with-base-10"
+}

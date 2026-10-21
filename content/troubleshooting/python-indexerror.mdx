@@ -1,0 +1,71 @@
+---
+title: "[트러블슈팅] Python IndexError 해결"
+publishedAt: "2026-10-20"
+summary: "Python에서 리스트 또는 배열의 인덱스 범위를 초과할 때 발생하는 IndexError를 처리하여 범위 밖 접근 시 None을 반환하는 방법을 정리합니다."
+tag: "Troubleshooting"
+---
+
+## 현상
+
+파이썬에서 리스트나 배열의 유효하지 않은 인덱스를 접근하려고 시도하면 `IndexError: list index out of range` 예외가 발생합니다. 이 에러는 코드의 실행을 중단시키며, 특정 인덱스에 데이터가 존재하지 않을 때 빈 값이나 대체값을 반환하고 싶은 상황에 불편함을 줍니다.
+
+```python
+l = list(range(5))
+print(l[6])
+# Traceback (most recent call last):
+#   File "<stdin>", line 1, in <module>
+# IndexError: list index out of range
+```
+
+## 원인
+
+파이썬은 리스트나 배열과 같은 시퀀스 자료구조에 접근할 때, 제공된 인덱스가 해당 자료구조의 유효한 범위(`0 <= index < len`) 내에 있는지 내부적으로 확인합니다. 인덱스가 음수거나 길이를 초과하는 경우, 해당 위치에 대응하는 객체가 없으므로 인터프리터는 `IndexError`를 발생시켜 잘못된 접근을 방지합니다.
+
+## 해결 방법
+
+가장 명확하고 파이썬스러운(Pythonic) 접근법은 `try-except` 블록을 사용하여 예외를 캐치하는 것입니다. 인덱스 접근 코드를 `try` 블록에 넣고, 발생 가능한 `IndexError`를 `except` 블록에서 처리하여 원하는 기본값(None)을 반환합니다.
+
+```python
+def get_value_or_none(lst, index):
+    try:
+        return lst[index]
+    except IndexError:
+        return None
+
+l = list(range(5))
+print(get_value_or_none(l, 6))  # None
+print(get_value_or_none(l, 2))  # 2
+```
+
+![해결 방법 스크린샷](/blogs/python-indexerror-1.png)
+
+## 다른 해결 방법
+
+조건부 평가(ternary operator)를 사용하여 인덱스가 유효한지 먼저 확인한 후 값을 반환하거나 None을 반환하는 일관된 한 줄 구문을 사용할 수 있습니다. 이 방법은 예외 처리 오버헤드가 없는 대신 조건식이 약간 길어질 수 있습니다.
+
+```python
+l = list(range(5))
+i = 6
+
+# 인덱스가 범위 내에 있으면 값 반환, 아니면 None
+result = l[i] if i < len(l) else None
+print(result)  # None
+
+i = 2
+result = l[i] if i < len(l) else None
+print(result)  # 2
+```
+
+## 추가 참고사항
+
+- 이 패턴은 데이터 파싱이나 API 응답 처리 등에서 외부 데이터의 구조가 불완전할 때 유용하게 사용됩니다.
+- 반복문 내에서 인덱스를 사용할 때 인덱스 오류를 피하려면 인덱스 번호 대신 `for item in lst:` 구문을 사용하는 것이 더 안전하고 간결합니다.
+- `collections.defaultdict`는 키 기반 접근 시 기본값을 설정하는 데 유용하지만, 인덱스 기반 접근에는 직접적인 적용이 불가능하므로 본 케이스에는 적합하지 않습니다.
+
+## 출처
+
+- StackOverflow: [Get value at list/array index or "None" if out of range in Python](https://stackoverflow.com/questions/12186388/get-value-at-list-array-index-or-none-if-out-of-range-in-python) — 작성자: Chris Dutrow(질문), the wolf(답변) (CC BY-SA)
+- Tistory: [Google Python Style Guide](https://blog-to-study-python.tistory.com/19) — 작성자: 파이썬공부하려고만든블로그
+- Tistory: ['Algorithm' 카테고리의 글 목록](https://freewebsite1028.tistory.com/category/Algorithm) — 작성자: Sweat100
+
+본문 이미지는 위 출처에서 가져왔습니다.

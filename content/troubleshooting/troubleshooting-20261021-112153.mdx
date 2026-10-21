@@ -1,0 +1,77 @@
+---
+title: "[트러블슈팅] pip 명령어 인식 불가 해결"
+publishedAt: "2026-10-21"
+summary: "Windows 환경에서 pip 명령어가 인식되지 않을 때 PATH 변수 설정을 통한 해결 방법을 안내합니다."
+tag: "Troubleshooting"
+---
+
+## 현상
+
+Windows 환경에서 Python을 설치한 후 명령 프롬프트에서 `pip` 명령어를 실행하면 해당 명령어를 인식하지 못한다는 에러가 발생합니다. Python 설치가 완료되었음에도 불구하고 패키지를 설치하거나 업그레이드하는 과정에서 아래 에러가 반복됩니다.
+
+```cmd
+C:\> pip install Django
+'pip' is not recognized as an internal or external command,
+operable program or batch file.
+```
+
+`echo %PATH%` 명령어를 통해 현재 환경 변수를 확인했을 때, Python이나 pip가 설치된 경로가 포함되어 있지 않은 것이 주요 원인입니다.
+
+![현상 스크린샷](/blogs/troubleshooting-20261021-112153-1.png)
+
+## 원인
+
+Windows 명령 프롬프트(CMD)는 명령어를 실행할 때 시스템의 PATH 환경 변수에 등록된 디렉토리들을 순서대로 검색합니다. pip가 설치된 폴더가 이 PATH 목록에 등록되어 있지 않으면, OS는 해당 명령어를 찾을 수 없으므로 실행을 거부합니다. 즉, Python 설치가 완료되어도 실행 파일이 있는 폴더가 시스템의 검색 경로에 포함되지 않으면 명령어를 사용할 수 없습니다.
+
+## 해결 방법
+
+pip가 설치된 폴더를 PATH 환경 변수에 추가하여 명령어 접근이 가능하도록 설정합니다. 일반적으로 pip는 Python 설치 디렉토리 하위의 `Scripts` 폴더에 설치됩니다.
+
+현재 사용 중인 Python 버전과 설치 경로에 맞게 다음 명령어를 실행합니다. 아래 예시는 `C:\Python34`에 설치된 경우이며, 실제 환경에 맞게 경로를 수정해야 합니다.
+
+```cmd
+setx PATH "%PATH%;C:\Python34\Scripts"
+```
+
+**중요:** `setx` 명령으로 설정된 변수는 현재 실행 중인 명령 프롬프트 세션에는 즉시 반영되지 않습니다. 반드시 새 명령 프롬프트 창을 새로 열어주어야 설정이 적용됩니다.
+
+```cmd
+pip install Django
+```
+
+새 창에서 위 명령을 실행하여 정상적으로 실행되는지 확인합니다.
+
+![해결 방법 스크린샷](/blogs/troubleshooting-20261021-112153-2.png)
+
+## 다른 해결 방법
+
+PATH 설정이 아닌 경우, Python 모듈로 직접 pip를 호출하는 방법을 사용할 수 있습니다. 이 방법은 PATH 경로가 불명확하거나 시스템 변수 설정 권한이 없는 경우 유용합니다.
+
+```cmd
+python -m pip install Django
+```
+
+또는 현재 사용 중인 Python 인터프리터의 위치를 확인한 후, 그 경로의 하위 `Scripts` 폴더에 있는 `pip.exe`를 직접 실행할 수도 있습니다. Python 설치 위치가 `C:\Python34`라면 다음과 같이 실행합니다.
+
+```cmd
+C:\Python34\Scripts\pip.exe install Django
+```
+
+## 추가 참고사항
+
+- Python 3.4 이상 버전에서 공식 설치 프로그램(Installer)을 사용하면 pip가 함께 번들로 제공되지만, Zip 파일이나 다른 설치 방식을 사용한 경우 `get-pip.py` 스크립트를 통해 수동으로 설치해야 할 수 있습니다.
+- pip 업그레이드 시 `[WinError 5] 액세스가 거부되었습니다` 오류가 발생하면, `--user` 옵션을 추가하여 현재 사용자 권한으로 설치하거나 관리자 권한으로 명령 프롬프트를 실행해야 합니다.
+
+```cmd
+python -m pip install --upgrade pip --user
+```
+
+- 환경 변수 변경이 적용되지 않는다면, 시스템 재부팅 후 다시 확인하거나 시스템 속성 > 고급 > 환경 변수에서 직접 PATH 값을 수정하는 것을 권장합니다.
+
+## 출처
+
+- StackOverflow: ['pip' is not recognized as an internal or external command](https://stackoverflow.com/questions/23708898/pip-is-not-recognized-as-an-internal-or-external-command) — 작성자: user3597950(질문), fr1tz(답변) (CC BY-SA)
+- Tistory: [파이썬 pip (명령어 및 에러 해결 방법)](https://loui3.tistory.com/143) — 작성자: IT를 좋아하는 루의 기록장
+- Tistory: [파이썬 가상환경 활성화가 안 될 때｜운영체제별 해결 순서](https://neos35.tistory.com/entry/%ED%8C%8C%EC%9D%B4%EC%8D%AC-%EA%B0%80%EC%83%81%ED%99%98%EA%B2%BD-%ED%99%9C%EC%84%B1%ED%99%94%EA%B0%80-%EC%95%88-%EB%90%A0-%EB%95%8C%EF%BD%9C%EC%9A%B4%EC%98%81%EC%B2%B4%EC%A0%9C%EB%B3%84-%ED%95%B4%EA%B2%B0-%EC%88%9C%EC%84%9C) — 작성자: 컴공대생 mr.ko
+
+본문 이미지는 위 출처에서 가져왔습니다.

@@ -1,0 +1,18 @@
+{
+  "content_type": "algorithm",
+  "title": "[코딩테스트] 연속 문자 최대 길이 계산",
+  "tag": "Algorithm",
+  "sources": [
+    {
+      "platform": "LeetCode",
+      "title": "LeetCode 1446 - Consecutive Characters",
+      "url": "https://leetcode.com/problems/consecutive-characters/",
+      "author": null
+    }
+  ],
+  "image_files": [],
+  "review_passed": true,
+  "refine_rounds": 1,
+  "chosen_candidate": "LeetCode 1446 - Consecutive Characters",
+  "chosen_link": "https://leetcode.com/problems/consecutive-characters/"
+}

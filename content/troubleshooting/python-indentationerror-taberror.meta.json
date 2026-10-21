@@ -1,0 +1,35 @@
+{
+  "content_type": "troubleshooting",
+  "title": "[트러블슈팅] Python IndentationError 및 TabError 해결",
+  "tag": "Troubleshooting",
+  "sources": [
+    {
+      "platform": "StackOverflow",
+      "title": "I'm getting an IndentationError (or a TabError). How do I fix it?",
+      "url": "https://stackoverflow.com/questions/45621722/im-getting-an-indentationerror-or-a-taberror-how-do-i-fix-it",
+      "author": "Chris(질문), Chris(답변)"
+    },
+    {
+      "platform": "Tistory",
+      "title": "파이썬 오류 해결법: \"IndentationError\"의 원인과 해결 방법",
+      "url": "https://smartmove.tistory.com/1",
+      "author": "smartmove 님의 블로그"
+    },
+    {
+      "platform": "Tistory",
+      "title": "IndentationError 해결 — 파이썬 초보가 막히는 3가지",
+      "url": "https://fuerte.tistory.com/566",
+      "author": "Daily AI Lab"
+    }
+  ],
+  "image_files": [
+    {
+      "local_path": "C:\\Users\\User\\Documents\\_Projects\\261007_blog_latest\\261019\\output_files\\troubleshooting\\public\\blogs\\python-indentationerror-taberror-1.jpg",
+      "repo_path": "public/blogs/python-indentationerror-taberror-1.jpg"
+    }
+  ],
+  "review_passed": true,
+  "refine_rounds": 2,
+  "chosen_candidate": "I'm getting an IndentationError (or a TabError). How do I fix it?",
+  "chosen_link": "https://stackoverflow.com/questions/45621722/im-getting-an-indentationerror-or-a-taberror-how-do-i-fix-it"
+}

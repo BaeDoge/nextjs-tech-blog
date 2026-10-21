@@ -1,0 +1,18 @@
+{
+  "content_type": "algorithm",
+  "title": "[코딩테스트] 정수 배열의 2배 수 존재 여부 확인",
+  "tag": "Algorithm",
+  "sources": [
+    {
+      "platform": "LeetCode",
+      "title": "LeetCode 1346 - Check If N and Its Double Exist",
+      "url": "https://leetcode.com/problems/check-if-n-and-its-double-exist/",
+      "author": null
+    }
+  ],
+  "image_files": [],
+  "review_passed": true,
+  "refine_rounds": 1,
+  "chosen_candidate": "LeetCode 1346 - Check If N and Its Double Exist",
+  "chosen_link": "https://leetcode.com/problems/check-if-n-and-its-double-exist/"
+}

@@ -1,0 +1,57 @@
+---
+title: "[트러블슈팅] IndexError 해결"
+publishedAt: "2026-10-20"
+summary: "리스트 인덱스 범위를 벗어나는 오류를 예외 처리와 조건 확인으로 안전하게 해결합니다."
+tag: "Troubleshooting"
+---
+
+## 현상
+
+```python
+my_list = [10, 20, 30]
+print(my_list[3])
+```
+
+```
+IndexError: list index out of range
+```
+
+## 원인
+
+파이썬의 리스트는 0부터 시작하는 인덱스를 가지며, 접근하려는 인덱스가 리스트의 길이(`len()`)를 초과하면 런타임 오류가 발생합니다. 이는 존재하지 않는 요소에 접근하려고 시도했을 때 시스템이 강제 종료하는 방어 기제입니다.
+
+## 해결 방법
+
+```python
+my_list = [10, 20, 30]
+
+try:
+    value = my_list[3]
+except IndexError:
+    value = 'null'
+    print(f"인덱스 3은 범위를 벗어났습니다. 기본값으로 대체합니다.")
+```
+
+## 다른 해결 방법
+
+```python
+my_list = [10, 20, 30]
+index = 3
+
+if 0 <= index < len(my_list):
+    value = my_list[index]
+else:
+    value = 'null'
+    print(f"인덱스 {index}는 유효하지 않습니다.")
+```
+
+## 추가 참고사항
+
+- 빈 리스트에 접근할 때도 동일한 오류가 발생하므로 `len() == 0` 확인이 필요할 수 있습니다.
+- 반복문에서 `range(len(my_list) + 2)`처럼 범위를 초과할 경우에도 주의해야 합니다.
+
+## 출처
+
+- StackOverflow: [I want to exception handle 'list index out of range.'](https://stackoverflow.com/questions/11902458/i-want-to-exception-handle-list-index-out-of-range) — 작성자: H.Choi(질문), ThiefMaster(답변) (CC BY-SA)
+- Tistory: [[파이썬][Error] 041. IndexError - list index out of range](https://about-ittt.tistory.com/370) — 작성자: about_IT
+- Tistory: [[python] IndexError](https://jojonari.tistory.com/entry/python-IndexError) — 작성자: 하늘과 바람과 별과 코드

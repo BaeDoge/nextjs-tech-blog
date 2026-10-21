@@ -1,0 +1,93 @@
+---
+title: "[트러블슈팅] IndentationError: unexpected indent"
+publishedAt: "2026-10-21"
+summary: "코드 블록 내 불필요하거나 일관성 없는 들여쓰기, 특히 탭과 공백 혼용으로 발생하는 인덴스 오류를 해결하는 방법입니다."
+tag: "Troubleshooting"
+---
+
+## 현상
+
+파이썬 인터프리터가 코드 실행 중 예상치 못한 위치에서 들여쓰기가 발견되면 `IndentationError: unexpected indent`를 발생시킵니다. 이는 코드 블록의 시작을 알리는 콜론(`:`) 뒤에 이어지는 줄이나, 기존 블록 내부에서 불필요하게 들여쓰기가 추가된 경우에 주로 발생합니다.
+
+에러가 재현되는 최소 예시 코드는 다음과 같습니다.
+
+```python
+def greet():
+    print("Hello")
+        print("World")  # 들여쓰기 수준이 일치하지 않음
+```
+
+이 코드를 실행하면 다음과 같은 traceback이 출력됩니다.
+
+```
+  File "test.py", line 3
+    print("World")
+    ^
+IndentationError: unexpected indent
+```
+
+## 원인
+
+파이썬은 중괄호({})나 키워드 대신 들여쓰기를 사용하여 코드 블록의 범위를 구분합니다. 따라서 문법적으로 허용되는 들여쓰기 규칙을 따르지 않으면 해석 단계에서 오류로 간주합니다.
+
+주요 원인은 다음과 같습니다.
+1. 코드 블록 외부나 비어 있는 줄에 불필요한 공백이나 탭이 존재합니다.
+2. 들여쓰기 수준이 일관되지 않습니다. 예를 들어, 함수 정의 다음 줄은 4칸 들여쓰기해야 하지만, 그 안의 문장은 8칸 이상 들여쓰기했을 때 발생합니다.
+3. 탭(`Tab`)과 공백(`Space`)을 혼용하여 작성했습니다. 파이썬은 이 둘을 다른 문자로 인식하므로, 겉보기에는 정렬된 것처럼 보여도 실제 문자 코드가 달라지면 오류가 발생합니다.
+
+## 해결 방법
+
+가장 확실한 방법은 코드 에디터의 자동 정렬 기능을 사용하여 들여쓰기를 일관된 공백(보통 4칸)으로 변환하는 것입니다.
+
+에디터에서 전체 코드를 선택한 후 자동 정렬 명령을 실행하면 불필요한 들여쓰기가 제거되고 탭이 공백으로 변환됩니다.
+
+```python
+# 수정 전 (잠재적 문제 포함)
+def greet():
+	print("Hello")  # 탭 사용
+
+# 수정 후 (에디터 자동 정렬 적용)
+def greet():
+    print("Hello")  # 4칸 공백으로 변환 및 불필요한 들여쓰기 제거
+```
+
+에디터 설정에서 '탭을 공백으로 변환(Convert Indentation to Spaces)' 옵션을 활성화하면 미래의 오류를 예방할 수 있습니다.
+
+![해결 방법 스크린샷](/blogs/indentationerror-unexpected-indent-1.png)
+
+## 다른 해결 방법
+
+에디터의 자동 정렬 기능을 사용하지 않고, 스크립트 실행 시 경고 모드를 활용하거나 정적 분석 도구를 사용하여 문제를 찾는 방법이 있습니다.
+
+첫째, Python 인터프리터에서 `-t` 옵션을 사용하면 탭과 공백의 혼용으로 인한 잠재적 문제를 경고할 수 있습니다. (참고: 이 옵션은 Python 3.10 이후 Deprecated되었으며 3.12에서 제거되었습니다.)
+
+```bash
+python -t script.py
+```
+
+둘째, `py_compile` 모듈을 사용하여 문법 오류를 사전에 검증할 수 있습니다.
+
+```python
+import py_compile
+py_compile.compile('script.py', doraise=True)
+```
+
+셋째, `autopep8`과 같은 자동 포맷터를 사용하여 파일 내 모든 들여쓰기 스타일을 PEP 8 기준에 맞게 통일할 수 있습니다.
+
+```bash
+autopep8 --in-place --aggressive script.py
+```
+
+## 추가 참고사항
+
+들여쓰기 오류를 예방하기 위해 항상 전문 코드 에디터(Vim, Emacs, VS Code 등)를 사용해야 합니다. 워드 프로세서의 자동 들여쓰기 기능은 파이썬 코드에 적합하지 않아 문제를 일으킬 수 있습니다.
+
+또한 비슷한 현상으로 `IndentationError: unindent does not match any outer indentation level`이 발생할 수 있습니다. 이는 탭과 공백이 섞여 들여쓰기 단계가 명확하지 않을 때 발생하므로, 에디터 설정에서 '보이지 않는 문자 표시'를 켜고 공백/탭 일관성을 확인하는 것이 좋습니다.
+
+## 출처
+
+- StackOverflow: [Python IndentationError: unexpected indent](https://stackoverflow.com/questions/8634700/python-indentationerror-unexpected-indent) — 작성자: miguelfg(질문), unutbu(답변) (CC BY-SA)
+- Tistory: [[파이썬][Error] 104. IndentationError - unexpected indent](https://about-ittt.tistory.com/431) — 작성자: about_IT
+- Tistory: [파이썬 들여쓰기 오류, 원인부터 해결법까지 완벽 정리](https://post.tistory.com/entry/%ED%8C%8C%EC%9D%B4%EC%8D%AC-%EB%93%A4%EC%97%AC%EC%93%B0%EA%B8%B0-%EC%98%A4%EB%A5%98-%EC%9B%90%EC%9D%B8%EB%B6%80%ED%84%B0-%ED%95%B4%EA%B2%B0%EB%B2%95%EA%B9%8C%EC%A7%80-%EC%99%84%EB%B2%BD-%EC%A0%95%EB%A6%AC) — 작성자: post
+
+본문 이미지는 위 출처에서 가져왔습니다.
