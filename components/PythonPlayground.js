@@ -4,13 +4,38 @@ import { useEffect, useRef, useState } from 'react';
 
 const DEFAULT_CODE = 'cookies = [1, 3, 2]\ncookies.sort()\nprint(cookies)';
 
+// Keep one worker for the lifetime of the browser tab so route changes do not
+// repeatedly initialize Pyodide. The worker is created only when Run is pressed.
+let sharedWorker = null;
+const workerSubscribers = new Set();
+
+function getSharedWorker() {
+  if (!sharedWorker) {
+    sharedWorker = new Worker('/python-worker.js');
+    sharedWorker.onmessage = (event) => {
+      workerSubscribers.forEach((subscriber) => subscriber(event));
+    };
+    sharedWorker.onerror = () => {
+      const errorEvent = { data: { type: 'fatal', error: 'Python 실행 환경을 불러오지 못했습니다. 네트워크 연결 또는 브라우저의 CDN 접근을 확인해 주세요.' } };
+      workerSubscribers.forEach((subscriber) => subscriber(errorEvent));
+      sharedWorker?.terminate();
+      sharedWorker = null;
+    };
+  }
+  return sharedWorker;
+}
+
+function terminateSharedWorker() {
+  sharedWorker?.terminate();
+  sharedWorker = null;
+}
+
 export default function PythonPlayground({ title = 'Python 실험실', initialOpen = false }) {
   const [open, setOpen] = useState(initialOpen);
   const [code, setCode] = useState(DEFAULT_CODE);
   const [output, setOutput] = useState('');
   const [status, setStatus] = useState('idle');
   const [hasRun, setHasRun] = useState(false);
-  const workerRef = useRef(null);
   const timeoutRef = useRef(null);
   const keyRef = useRef('python-playground:global');
 
@@ -26,26 +51,7 @@ export default function PythonPlayground({ title = 'Python 실험실', initialOp
   }, [title]);
 
   useEffect(() => {
-    if (!open || !initialOpen) return;
-    setOpen(true);
-  }, [initialOpen, open]);
-
-  useEffect(() => {
-    return () => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      if (workerRef.current) workerRef.current.terminate();
-    };
-  }, []);
-
-  function saveCode(nextCode) {
-    setCode(nextCode);
-    try { window.localStorage.setItem(keyRef.current, nextCode); } catch {}
-  }
-
-  function getWorker() {
-    if (workerRef.current) return workerRef.current;
-    const worker = new Worker('/python-worker.js');
-    worker.onmessage = (event) => {
+    const subscriber = (event) => {
       const data = event.data || {};
       if (data.type === 'loading-runtime') {
         setStatus('loading');
@@ -56,8 +62,8 @@ export default function PythonPlayground({ title = 'Python 실험실', initialOp
         setStatus('running');
         if (timeoutRef.current) clearTimeout(timeoutRef.current);
         timeoutRef.current = setTimeout(() => {
-          worker.terminate();
-          workerRef.current = null;
+          terminateSharedWorker();
+          timeoutRef.current = null;
           setStatus('error');
           setOutput('실행 시간이 너무 길어 실행을 중단했어요. 무한 반복문이 있는지 확인해 주세요.');
         }, 5000);
@@ -74,16 +80,16 @@ export default function PythonPlayground({ title = 'Python 실험실', initialOp
         setStatus('error');
       }
     };
-    worker.onerror = () => {
+    workerSubscribers.add(subscriber);
+    return () => {
+      workerSubscribers.delete(subscriber);
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
-      worker.terminate();
-      workerRef.current = null;
-      setOutput('Python 실행 환경을 불러오지 못했습니다. 네트워크 연결 또는 브라우저의 CDN 접근을 확인해 주세요.');
-      setStatus('error');
     };
-    workerRef.current = worker;
-    return worker;
+  }, []);
+
+  function saveCode(nextCode) {
+    setCode(nextCode);
+    try { window.localStorage.setItem(keyRef.current, nextCode); } catch {}
   }
 
   function runCode() {
@@ -91,10 +97,11 @@ export default function PythonPlayground({ title = 'Python 실험실', initialOp
     setHasRun(true);
     setOutput('실행 준비 중...');
     setStatus('loading');
-    getWorker().postMessage({ type: 'run', code });
+    getSharedWorker().postMessage({ type: 'run', code });
   }
 
   function resetCode() {
+    if (status === 'loading' || status === 'running') return;
     const next = DEFAULT_CODE;
     saveCode(next);
     setOutput('');
@@ -144,7 +151,7 @@ export default function PythonPlayground({ title = 'Python 실험실', initialOp
               <button type="button" className="button-primary" onClick={runCode} disabled={status === 'loading' || status === 'running'}>
                 {status === 'loading' || status === 'running' ? '실행 중…' : '▶ 실행'}
               </button>
-              <button type="button" className="button-secondary" onClick={resetCode}>초기화</button>
+              <button type="button" className="button-secondary" onClick={resetCode} disabled={status === 'loading' || status === 'running'}>초기화</button>
               <button type="button" className="button-secondary" onClick={copyCode}>코드 복사</button>
               <span className="python-status" aria-live="polite">{status === 'loading' ? '환경 준비 중' : status === 'running' ? '실행 중' : status === 'done' ? '완료' : status === 'error' ? '오류' : status === 'copied' ? '복사됨' : '대기 중'}</span>
             </div>
@@ -152,7 +159,7 @@ export default function PythonPlayground({ title = 'Python 실험실', initialOp
               <div className="python-output-title"><strong>실행 결과</strong>{hasRun && <button type="button" onClick={() => { setOutput(''); setHasRun(false); setStatus('idle'); }}>지우기</button>}</div>
               <pre className={`python-playground-output ${status === 'error' ? 'is-error' : ''}`} aria-live="polite">{output || '실행 결과가 여기에 표시됩니다.'}</pre>
             </div>
-            <p className="python-playground-note">처음 실행할 때만 Python 런타임을 다운로드합니다. 일반적인 알고리즘 연습용이며, 오래 실행되는 코드는 자동으로 중단됩니다.</p>
+            <p className="python-playground-note">페이지를 열 때 Python 런타임을 불러오지 않습니다. 첫 실행 때만 다운로드하며, 같은 탭에서 페이지를 이동해도 실행 환경을 재사용합니다. 오래 실행되는 코드는 자동으로 중단됩니다.</p>
           </section>
         </div>
       )}
