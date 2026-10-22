@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-const DEFAULT_CODE = 'cookies = [1, 3, 2]\\ncookies.sort()\\nprint(cookies)';
+const DEFAULT_CODE = 'cookies = [1, 3, 2]\ncookies.sort()\nprint(cookies)';
 const PYTHON_COMPLETIONS = [
   'and','as','assert','async','await','break','class','continue','def','del','elif','else','except','False','finally','for','from','global','if','import','in','is','lambda','None','nonlocal','not','or','pass','raise','return','True','try','while','with','yield',
   'abs','all','any','bool','dict','enumerate','filter','float','int','isinstance','len','list','map','max','min','print','range','reversed','round','set','sorted','str','sum','tuple','type','zip',
@@ -156,11 +156,11 @@ export default function PythonPlayground({ title = 'Python 실험실', initialOp
       const start = editor.selectionStart;
       const end = editor.selectionEnd;
       if (event.shiftKey) {
-        const lineStart = code.lastIndexOf('\\n', Math.max(0, start - 1)) + 1;
-        const lineEndRaw = code.indexOf('\\n', end);
+        const lineStart = code.lastIndexOf('\n', Math.max(0, start - 1)) + 1;
+        const lineEndRaw = code.indexOf('\n', end);
         const lineEnd = lineEndRaw === -1 ? code.length : lineEndRaw;
         const block = code.slice(lineStart, lineEnd);
-        const nextBlock = block.replace(/^( {1,4}|\\t)/gm, '');
+        const nextBlock = block.replace(/^( {1,4}|\t)/gm, '');
         const nextCode = code.slice(0, lineStart) + nextBlock + code.slice(lineEnd);
         saveCode(nextCode);
         requestAnimationFrame(() => {
@@ -182,11 +182,11 @@ export default function PythonPlayground({ title = 'Python 실험실', initialOp
       event.preventDefault();
       const start = editor.selectionStart;
       const end = editor.selectionEnd;
-      const lineStart = code.lastIndexOf('\\n', start - 1) + 1;
+      const lineStart = code.lastIndexOf('\n', start - 1) + 1;
       const currentLine = code.slice(lineStart, start);
-      const indent = currentLine.match(/^\\s*/)?.[0] || '';
-      const extraIndent = /:\\s*$/.test(currentLine) ? '    ' : '';
-      const insertion = '\\n' + indent + extraIndent;
+      const indent = currentLine.match(/^\s*/)?.[0] || '';
+      const extraIndent = /:\s*$/.test(currentLine) ? '    ' : '';
+      const insertion = '\n' + indent + extraIndent;
       const nextCode = code.slice(0, start) + insertion + code.slice(end);
       saveCode(nextCode);
       setSuggestions([]);
