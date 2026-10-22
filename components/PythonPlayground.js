@@ -74,8 +74,8 @@ export default function PythonPlayground({ title = 'Python 실험실', initialOp
         setOutput(combined || '(출력 결과가 없습니다. print()를 사용해 결과를 확인해 보세요.)');
         setStatus(data.error ? 'error' : 'done');
       } else if (data.type === 'fatal') {
-        if (timeoutRef.current) clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
+        if (sharedExecutionTimeout) clearTimeout(sharedExecutionTimeout);
+        sharedExecutionTimeout = null;
         setOutput(data.error || 'Python 실행 중 오류가 발생했습니다.');
         setStatus('error');
       }
