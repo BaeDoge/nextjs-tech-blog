@@ -1,4 +1,0 @@
-# JupyterLite static site + in-browser Python kernel
-jupyterlite-core==0.8.6
-jupyterlite-pyodide-kernel==0.8.6
-jupyter-server
