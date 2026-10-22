@@ -94,14 +94,14 @@ export default function PythonPlayground({ title = 'Python 실험실', initialOp
     };
   }, []);
 
-  function updateSuggestions(nextCode, cursor) {
+  function updateSuggestions(nextCode, cursor, force = false) {
     const beforeCursor = nextCode.slice(0, cursor);
     const match = beforeCursor.match(/[A-Za-z_][A-Za-z0-9_]*$/);
-    if (!match || match[0].length < 1) {
+    if (!match && !force) {
       setSuggestions([]);
       return;
     }
-    const token = match[0];
+    const token = match?.[0] || '';
     const matches = PYTHON_COMPLETIONS.filter((item) => item.startsWith(token) && item !== token).slice(0, 8);
     setSuggestions(matches);
     setSuggestionIndex(0);
@@ -148,7 +148,7 @@ export default function PythonPlayground({ title = 'Python 실험실', initialOp
     }
     if (event.ctrlKey && event.code === 'Space') {
       event.preventDefault();
-      updateSuggestions(code, editor.selectionStart);
+      updateSuggestions(code, editor.selectionStart, true);
       return;
     }
     if (event.key === 'Tab') {
