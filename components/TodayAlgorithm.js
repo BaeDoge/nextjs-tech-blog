@@ -6,10 +6,18 @@ import { getAllPosts } from '@/lib/posts';
 
 const mdxOptions = { mdxOptions: { remarkPlugins: [remarkGfm], rehypePlugins: [rehypeSlug] } };
 
+function getKoreaDayNumber() {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Seoul', year: 'numeric', month: 'numeric', day: 'numeric',
+  }).formatToParts(new Date());
+  const part = (type) => Number(parts.find((item) => item.type === type)?.value);
+  return Math.floor(Date.UTC(part('year'), part('month') - 1, part('day')) / 86400000);
+}
+
 function getDailyPost(posts) {
   const algorithms = posts.filter((post) => post.category === 'algorithm');
   if (!algorithms.length) return null;
-  const dayNumber = Math.floor(Date.now() / 86400000);
+  const dayNumber = getKoreaDayNumber();
   return algorithms[((dayNumber % algorithms.length) + algorithms.length) % algorithms.length];
 }
 
@@ -25,7 +33,7 @@ export default function TodayAlgorithm() {
 
   const problemBody = extractProblem(post.content);
   const leetcodeMatch = post.content.match(/https?:\/\/leetcode\.com\/problems\/[^\s)]+/i);
-  const problemUrl = leetcodeMatch ? leetcodeMatch[0].replace(/[.,]+$/, '') : `https://leetcode.com/problemset/`;
+  const problemUrl = leetcodeMatch ? leetcodeMatch[0].replace(/[.,]+$/, '') : 'https://leetcode.com/problemset/';
 
   return (
     <section className="today-algorithm" aria-labelledby="today-algorithm-title">
