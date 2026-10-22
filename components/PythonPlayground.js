@@ -2,7 +2,12 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-const DEFAULT_CODE = 'cookies = [1, 3, 2]\ncookies.sort()\nprint(cookies)';
+const DEFAULT_CODE = 'cookies = [1, 3, 2]\\ncookies.sort()\\nprint(cookies)';
+const PYTHON_COMPLETIONS = [
+  'and','as','assert','async','await','break','class','continue','def','del','elif','else','except','False','finally','for','from','global','if','import','in','is','lambda','None','nonlocal','not','or','pass','raise','return','True','try','while','with','yield',
+  'abs','all','any','bool','dict','enumerate','filter','float','int','isinstance','len','list','map','max','min','print','range','reversed','round','set','sorted','str','sum','tuple','type','zip',
+  'append','clear','copy','count','extend','get','index','items','keys','pop','remove','reverse','sort','values'
+];
 
 // Keep one worker for the lifetime of the browser tab so route changes do not
 // repeatedly initialize Pyodide. The worker is created only when Run is pressed.
@@ -41,6 +46,9 @@ export default function PythonPlayground({ title = 'Python 실험실', initialOp
   const [output, setOutput] = useState('');
   const [status, setStatus] = useState('idle');
   const [hasRun, setHasRun] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
+  const [suggestionIndex, setSuggestionIndex] = useState(0);
+  const editorRef = useRef(null);
   const keyRef = useRef('python-playground:global');
 
   useEffect(() => {
@@ -85,6 +93,110 @@ export default function PythonPlayground({ title = 'Python 실험실', initialOp
       workerSubscribers.delete(subscriber);
     };
   }, []);
+
+  function updateSuggestions(nextCode, cursor) {
+    const beforeCursor = nextCode.slice(0, cursor);
+    const match = beforeCursor.match(/[A-Za-z_][A-Za-z0-9_]*$/);
+    if (!match || match[0].length < 1) {
+      setSuggestions([]);
+      return;
+    }
+    const token = match[0];
+    const matches = PYTHON_COMPLETIONS.filter((item) => item.startsWith(token) && item !== token).slice(0, 8);
+    setSuggestions(matches);
+    setSuggestionIndex(0);
+  }
+
+  function applySuggestion(value) {
+    const editor = editorRef.current;
+    if (!editor) return;
+    const cursor = editor.selectionStart;
+    const before = code.slice(0, cursor);
+    const after = code.slice(editor.selectionEnd);
+    const match = before.match(/[A-Za-z_][A-Za-z0-9_]*$/);
+    const prefix = match ? before.slice(0, match.index) : before;
+    const nextCode = prefix + value + after;
+    saveCode(nextCode);
+    setSuggestions([]);
+    requestAnimationFrame(() => {
+      editor.focus();
+      const nextCursor = prefix.length + value.length;
+      editor.setSelectionRange(nextCursor, nextCursor);
+    });
+  }
+
+  function handleEditorKeyDown(event) {
+    const editor = event.currentTarget;
+    if (suggestions.length && event.key === 'ArrowDown') {
+      event.preventDefault();
+      setSuggestionIndex((index) => (index + 1) % suggestions.length);
+      return;
+    }
+    if (suggestions.length && event.key === 'ArrowUp') {
+      event.preventDefault();
+      setSuggestionIndex((index) => (index - 1 + suggestions.length) % suggestions.length);
+      return;
+    }
+    if (suggestions.length && (event.key === 'Tab' || event.key === 'Enter') && !event.shiftKey) {
+      event.preventDefault();
+      applySuggestion(suggestions[suggestionIndex]);
+      return;
+    }
+    if (event.key === 'Escape') {
+      setSuggestions([]);
+      return;
+    }
+    if (event.ctrlKey && event.code === 'Space') {
+      event.preventDefault();
+      updateSuggestions(code, editor.selectionStart);
+      return;
+    }
+    if (event.key === 'Tab') {
+      event.preventDefault();
+      const start = editor.selectionStart;
+      const end = editor.selectionEnd;
+      if (event.shiftKey) {
+        const lineStart = code.lastIndexOf('\\n', Math.max(0, start - 1)) + 1;
+        const lineEndRaw = code.indexOf('\\n', end);
+        const lineEnd = lineEndRaw === -1 ? code.length : lineEndRaw;
+        const block = code.slice(lineStart, lineEnd);
+        const nextBlock = block.replace(/^( {1,4}|\\t)/gm, '');
+        const nextCode = code.slice(0, lineStart) + nextBlock + code.slice(lineEnd);
+        saveCode(nextCode);
+        requestAnimationFrame(() => {
+          editor.focus();
+          editor.setSelectionRange(Math.max(lineStart, start - 4), Math.max(lineStart, end - (block.length - nextBlock.length)));
+        });
+      } else {
+        const nextCode = code.slice(0, start) + '    ' + code.slice(end);
+        saveCode(nextCode);
+        setSuggestions([]);
+        requestAnimationFrame(() => {
+          editor.focus();
+          editor.setSelectionRange(start + 4, start + 4);
+        });
+      }
+      return;
+    }
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      const start = editor.selectionStart;
+      const end = editor.selectionEnd;
+      const lineStart = code.lastIndexOf('\\n', start - 1) + 1;
+      const currentLine = code.slice(lineStart, start);
+      const indent = currentLine.match(/^\\s*/)?.[0] || '';
+      const extraIndent = /:\\s*$/.test(currentLine) ? '    ' : '';
+      const insertion = '\\n' + indent + extraIndent;
+      const nextCode = code.slice(0, start) + insertion + code.slice(end);
+      saveCode(nextCode);
+      setSuggestions([]);
+      requestAnimationFrame(() => {
+        editor.focus();
+        const nextCursor = start + insertion.length;
+        editor.setSelectionRange(nextCursor, nextCursor);
+      });
+    }
+  }
 
   function saveCode(nextCode) {
     setCode(nextCode);
@@ -136,16 +248,40 @@ export default function PythonPlayground({ title = 'Python 실험실', initialOp
               <button type="button" className="python-icon-button" onClick={() => setOpen(false)} aria-label="실험실 닫기">×</button>
             </header>
             <label className="python-editor-label" htmlFor="python-playground-editor">Python 코드</label>
-            <textarea
-              id="python-playground-editor"
-              className="python-playground-editor"
-              spellCheck={false}
-              autoCapitalize="off"
-              autoCorrect="off"
-              value={code}
-              onChange={(event) => saveCode(event.target.value)}
-              aria-label="Python 코드 입력"
-            />
+            <div className="python-editor-shell">
+              <textarea
+                ref={editorRef}
+                id="python-playground-editor"
+                className="python-playground-editor"
+                spellCheck={false}
+                autoCapitalize="off"
+                autoCorrect="off"
+                value={code}
+                onChange={(event) => {
+                  saveCode(event.target.value);
+                  updateSuggestions(event.target.value, event.target.selectionStart);
+                }}
+                onKeyDown={handleEditorKeyDown}
+                onKeyUp={(event) => {
+                  if (['ArrowLeft','ArrowRight','Home','End'].includes(event.key)) updateSuggestions(code, event.currentTarget.selectionStart);
+                }}
+                aria-label="Python 코드 입력"
+                aria-describedby="python-editor-help"
+              />
+              {suggestions.length > 0 && (
+                <div className="python-completion-list" role="listbox" aria-label="Python 자동완성">
+                  {suggestions.map((item, index) => (
+                    <button key={item} type="button" role="option" aria-selected={index === suggestionIndex}
+                      className={index === suggestionIndex ? 'is-active' : ''}
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={() => applySuggestion(item)}>
+                      <code>{item}</code><span>{PYTHON_COMPLETIONS.indexOf(item) < 34 ? 'keyword' : 'Python'}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <p id="python-editor-help" className="python-editor-help">Tab 들여쓰기 · Shift+Tab 내어쓰기 · Enter 자동 들여쓰기 · Ctrl+Space 자동완성</p>
             <div className="python-playground-actions">
               <button type="button" className="button-primary" onClick={runCode} disabled={status === 'loading' || status === 'running'}>
                 {status === 'loading' || status === 'running' ? '실행 중…' : '▶ 실행'}
