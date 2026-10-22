@@ -8,6 +8,7 @@ const DEFAULT_CODE = 'cookies = [1, 3, 2]\ncookies.sort()\nprint(cookies)';
 // repeatedly initialize Pyodide. The worker is created only when Run is pressed.
 let sharedWorker = null;
 const workerSubscribers = new Set();
+let sharedExecutionTimeout = null;
 
 function getSharedWorker() {
   if (!sharedWorker) {
@@ -18,6 +19,8 @@ function getSharedWorker() {
     sharedWorker.onerror = () => {
       const errorEvent = { data: { type: 'fatal', error: 'Python 실행 환경을 불러오지 못했습니다. 네트워크 연결 또는 브라우저의 CDN 접근을 확인해 주세요.' } };
       workerSubscribers.forEach((subscriber) => subscriber(errorEvent));
+      if (sharedExecutionTimeout) clearTimeout(sharedExecutionTimeout);
+      sharedExecutionTimeout = null;
       sharedWorker?.terminate();
       sharedWorker = null;
     };
@@ -26,6 +29,8 @@ function getSharedWorker() {
 }
 
 function terminateSharedWorker() {
+  if (sharedExecutionTimeout) clearTimeout(sharedExecutionTimeout);
+  sharedExecutionTimeout = null;
   sharedWorker?.terminate();
   sharedWorker = null;
 }
@@ -36,7 +41,6 @@ export default function PythonPlayground({ title = 'Python 실험실', initialOp
   const [output, setOutput] = useState('');
   const [status, setStatus] = useState('idle');
   const [hasRun, setHasRun] = useState(false);
-  const timeoutRef = useRef(null);
   const keyRef = useRef('python-playground:global');
 
   useEffect(() => {
@@ -45,9 +49,6 @@ export default function PythonPlayground({ title = 'Python 실험실', initialOp
       const saved = window.localStorage.getItem(keyRef.current);
       if (saved !== null) setCode(saved);
     } catch {}
-    return () => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    };
   }, [title]);
 
   useEffect(() => {
@@ -60,16 +61,15 @@ export default function PythonPlayground({ title = 'Python 실험실', initialOp
         setStatus('running');
       } else if (data.type === 'started') {
         setStatus('running');
-        if (timeoutRef.current) clearTimeout(timeoutRef.current);
-        timeoutRef.current = setTimeout(() => {
+        if (sharedExecutionTimeout) clearTimeout(sharedExecutionTimeout);
+        sharedExecutionTimeout = setTimeout(() => {
           terminateSharedWorker();
-          timeoutRef.current = null;
-          setStatus('error');
-          setOutput('실행 시간이 너무 길어 실행을 중단했어요. 무한 반복문이 있는지 확인해 주세요.');
+          const timeoutEvent = { data: { type: 'fatal', error: '실행 시간이 너무 길어 실행을 중단했어요. 무한 반복문이 있는지 확인해 주세요.' } };
+          workerSubscribers.forEach((listener) => listener(timeoutEvent));
         }, 5000);
       } else if (data.type === 'result') {
-        if (timeoutRef.current) clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
+        if (sharedExecutionTimeout) clearTimeout(sharedExecutionTimeout);
+        sharedExecutionTimeout = null;
         const combined = [data.output, data.error].filter(Boolean).join(data.output && data.error ? '\n' : '');
         setOutput(combined || '(출력 결과가 없습니다. print()를 사용해 결과를 확인해 보세요.)');
         setStatus(data.error ? 'error' : 'done');
@@ -83,7 +83,6 @@ export default function PythonPlayground({ title = 'Python 실험실', initialOp
     workerSubscribers.add(subscriber);
     return () => {
       workerSubscribers.delete(subscriber);
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
   }, []);
 
