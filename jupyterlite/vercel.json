@@ -1,0 +1,6 @@
+{
+  "framework": null,
+  "buildCommand": "python -m pip install --disable-pip-version-check -r requirements.txt && jupyter lite build --contents content --output-dir dist",
+  "outputDirectory": "dist",
+  "installCommand": "python -m pip install --disable-pip-version-check -r requirements.txt"
+}

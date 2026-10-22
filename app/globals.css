@@ -87,3 +87,32 @@
   .post-reactions{padding:17px}.reaction-options{gap:7px}.reaction-button{padding:8px 10px}.reaction-button small{font-size:9px}
 }
 @media(prefers-reduced-motion:reduce){.message-bottle{animation:none}*{scroll-behavior:auto!important;transition:none!important}}
+/* JupyterLite algorithm practice lab */
+.lab-page{padding:52px 0 84px}
+.lab-hero{padding:44px 0 48px;border-bottom:1px solid var(--line)}
+.lab-hero h1,.lab-topbar h1{margin:12px 0 14px;font-size:clamp(32px,5vw,52px);line-height:1.16;letter-spacing:-1.8px}
+.lab-hero h1 span{color:#43843b}
+.lab-hero p,.lab-topbar p{max-width:700px;margin:0;color:var(--muted);font-size:15px}
+.lab-setup-notice{margin:28px 0;padding:20px 22px;border:1px solid #d7e7cb;background:#f0f8e9;border-radius:16px}
+.lab-setup-notice strong{display:block;margin-bottom:5px}
+.lab-setup-notice p{margin:0 0 8px;color:#52634f;font-size:13px}
+.lab-setup-notice a{font-weight:700;font-size:13px;color:#36732e}
+.lab-section-heading{margin-top:42px}
+.lab-exercise-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.lab-exercise-card{padding:25px;border:1px solid var(--line);border-radius:18px;background:var(--paper);box-shadow:0 8px 28px #182d2507}
+.lab-exercise-meta{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:18px}
+.lab-exercise-meta span{padding:3px 9px;border-radius:999px;background:#eef4eb;color:#4d6d46;font-size:11px;font-weight:700}
+.lab-exercise-card h2{margin:0 0 8px;font-size:22px;letter-spacing:-.5px}
+.lab-exercise-card p{margin:0;color:var(--muted);font-size:13px}
+.lab-exercise-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:24px}
+.lab-exercise-actions>span{font-size:11px;color:var(--muted)}
+.lab-topbar{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:26px}
+.lab-topbar .button-secondary{flex-shrink:0}
+.lab-frame-wrap{overflow:hidden;border:1px solid var(--line);border-radius:16px;background:white}
+.lab-frame{display:block;width:100%;height:min(78vh,1000px);min-height:680px;border:0;background:white}
+.lab-note{margin:12px 2px 0;color:var(--muted);font-size:12px}
+.article-notebook-cta{display:flex;align-items:center;justify-content:space-between;gap:24px;margin:30px 0;padding:24px;border:1px solid var(--line);border-radius:16px;background:linear-gradient(135deg,#f2f8ec,#fff)}
+.article-notebook-cta h2{margin:5px 0;font-size:20px;letter-spacing:-.5px}
+.article-notebook-cta p{margin:0;color:var(--muted);font-size:13px}
+.article-notebook-cta .button-secondary{flex-shrink:0}
+@media(max-width:760px){.lab-page{padding:32px 0 56px}.lab-exercise-list{grid-template-columns:1fr}.lab-topbar{align-items:flex-start;flex-direction:column}.lab-frame{height:72vh;min-height:560px}.article-notebook-cta{align-items:flex-start;flex-direction:column}}
