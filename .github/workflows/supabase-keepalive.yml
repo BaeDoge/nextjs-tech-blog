@@ -28,7 +28,6 @@ jobs:
           STATUS="$(curl --silent --show-error --output /dev/null --write-out "%{http_code}" \
             --max-time 20 \
             --header "apikey: ${SUPABASE_SECRET_KEY}" \
-            --header "Authorization: Bearer ${SUPABASE_SECRET_KEY}" \
             --header "Accept: application/json" \
             "$URL")"
           case "$STATUS" in
