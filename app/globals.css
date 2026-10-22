@@ -150,3 +150,14 @@
 .lab-note-card ul{padding-left:20px;color:#65736a;font-size:12px}
 .lab-note-card p{font-size:11px;color:#89938e;margin:16px 0 0}
 @media(max-width:760px){.python-playground-panel{padding:20px 16px}.python-playground-editor{min-height:230px}.python-status{width:100%;margin-left:0}.article-sidebar{position:static}.lab-note-card{padding:22px}}
+
+
+/* Lightweight editor keyboard support and autocomplete */
+.python-editor-shell{position:relative}
+.python-editor-help{margin:7px 1px 0;font-size:10px;line-height:1.6;color:var(--muted)}
+.python-completion-list{position:absolute;z-index:5;left:14px;top:48px;width:min(310px,calc(100% - 28px));max-height:220px;overflow:auto;border:1px solid #49685a;border-radius:9px;background:#203a32;box-shadow:0 12px 30px #07150f55}
+.python-completion-list button{width:100%;display:flex;justify-content:space-between;gap:14px;padding:7px 11px;border:0;border-bottom:1px solid #3b5549;background:transparent;color:#e1eee4;text-align:left;cursor:pointer}
+.python-completion-list button:last-child{border-bottom:0}
+.python-completion-list button.is-active,.python-completion-list button:hover{background:#36594a}
+.python-completion-list code{font:12px var(--mono)}
+.python-completion-list span{font:9px var(--mono);color:#9ab3a3}
