@@ -1,0 +1,90 @@
+---
+title: "[코딩테스트] 짝수-홀수 인덱스 정렬"
+publishedAt: "2026-10-23"
+summary: "짝수 인덱스에는 짝수를, 홀수 인덱스에는 홀수를 배치하는 배열을 반환합니다."
+tag: "Algorithm"
+---
+
+## 문제
+
+입력 `nums`는 짝수 길이를 가지며, 모든 정수는 `0` 이상 `1000` 이하입니다. 이 배열에서 정확히 절반은 홀수이고, 나머지 절반은 짝수입니다. `nums[i]`의 패리티(홀수/짝수)가 인덱스 `i`의 패리티와 일치하도록 배열을 재정렬해야 합니다. 조건을 만족하는 배열 중 아무거나 반환해도 됩니다.
+
+```python
+# 함수 시그니처 (예시)
+def sortArrayByParityII(nums):
+    # 구현은 풀이 섹션에 설명됨
+    pass
+```
+
+## 접근 방법
+
+`even_idx`를 짝수 인덱스(`0`, `2`, …)를 가리키도록, `odd_idx`를 홀수 인덱스(`1`, `3`, …)를 가리키도록 초기화합니다. `even_idx`가 배열 길이 미만이고 `odd_idx`가 배열 길이 미만인 동안 다음을 반복합니다:
+
+* `nums[even_idx]`가 이미 짝수이면 `even_idx += 2`로 진행합니다.
+* `nums[odd_idx]`가 이미 홀수이면 `odd_idx += 2`로 진행합니다.
+* 그렇지 않으면 `nums[even_idx]`와 `nums[odd_idx]`를 교환하고 두 포인터를 모두 2만큼 이동합니다.
+
+이 과정은 모든 짝수 인덱스가 짝수를, 모든 홀수 인덱스가 홀수를 포함할 때까지 계속됩니다. 두 포인터는 각 단계에서 최대 한 번씩 이동하므로 전체 복잡도는 선형입니다.
+
+```python
+def sortArrayByParityII(nums):
+    n = len(nums)
+    even, odd = 0, 1
+    while even < n and odd < n:
+        if nums[even] % 2 == 0:
+            even += 2
+        elif nums[odd] % 2 == 1:
+            odd += 2
+        else:
+            nums[even], nums[odd] = nums[odd], nums[even]
+            even += 2
+            odd += 2
+    return nums
+```
+
+## 풀이
+
+위에서 설명한 두 포인터 로직을 구현한 `sortArrayByParityII` 함수는 주어진 배열을 제자리에서 수정합니다. 각 포인터는 최대 `O(N)`번 이동하므로 전체 시간 복잡도는 `O(N)`입니다. 추가 배열을 사용하지 않고 입력 배열만 수정하므로 공간 복잡도는 `O(1)`입니다. 알고리즘은 짝수/홀수 개수가 같다는 제약 조건에 의존하며, 조건을 만족하는 배열을 반환합니다.
+
+```python
+def sortArrayByParityII(nums):
+    n = len(nums)
+    even, odd = 0, 1
+    while even < n and odd < n:
+        if nums[even] % 2 == 0:
+            even += 2
+        elif nums[odd] % 2 == 1:
+            odd += 2
+        else:
+            nums[even], nums[odd] = nums[odd], nums[even]
+            even += 2
+            odd += 2
+    return nums
+```
+
+## 다른 풀이 방법
+
+짝수 요소와 홀수 요소를 각각 저장한 후 재구성하는 방법이 있습니다. `evens`와 `odds` 리스트를 생성하고 `nums`를 순회하며 짝수/홀수 값을 각각 저장합니다. 그 후 `i`가 짝수이면 `evens[i//2]`를, `i`가 홀수이면 `odds[i//2]`를 결과 배열에 할당합니다. 이 방법은 `O(N)` 시간 내에 작동하지만, 추가 리스트를 사용하므로 공간 복잡도는 `O(N)`입니다. 이는 제자리 해결 방법과 비교할 때 공간과 시간의 명확한 트레이드오프를 보여줍니다.
+
+```python
+def sortArrayByParityII_extra(nums):
+    evens = [x for x in nums if x % 2 == 0]
+    odds = [x for x in nums if x % 2 == 1]
+    result = []
+    for i in range(len(nums)):
+        if i % 2 == 0:
+            result.append(evens[i//2])
+        else:
+            result.append(odds[i//2])
+    return result
+```
+
+## 추가 참고사항
+
+* 제약 조건에 따라 짝수와 홀수의 개수가 동일하므로, 두 포인터는 항상 유효한 짝수/홀수 쌍을 찾을 수 있습니다.
+* 인플레이스 해결 방법은 추가 메모리를 할당하지 않으므로 대규모 입력에 적합합니다.
+* 다른 접근법으로, 각 패리티에 대한 카운트를 계산한 후 순회하며 올바른 위치에 값을 배치할 수도 있지만, 이는 두 포인터 방법보다 복잡합니다.
+
+## 출처
+
+- LeetCode: [LeetCode 922 - Sort Array By Parity II](https://leetcode.com/problems/sort-array-by-parity-ii/)
