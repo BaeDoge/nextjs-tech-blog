@@ -1,0 +1,87 @@
+---
+title: "[코딩테스트] 증가하는 삼중 부분수열 탐지"
+publishedAt: "2026-10-23"
+summary: "배열에서 인덱스가 증가하며 값도 증가하는 세 수의 존재 여부를 O(n) 시간에 확인하는 알고리즘입니다."
+tag: "Algorithm"
+---
+
+## 문제
+
+정수 배열 `nums`가 주어졌을 때, 인덱스 `i < j < k`를 만족하면서 `nums[i] < nums[j] < nums[k]`를 만족하는 세 수의 부분수열(Increasing Triplet Subsequence)이 존재하면 `true`, 그렇지 않으면 `false`를 반환해야 합니다. 배열의 길이는 최대 $5 \times 10^5$이며, 요소의 값은 32비트 정수 범위를 가집니다. 문제의 Follow-up에서는 $O(n)$ 시간 복잡도와 $O(1)$ 공간 복잡도를 만족하는 해법의 구현을 요구합니다.
+
+## 접근 방법
+
+이 문제는 부분수열의 길이가 정확히 3인 특수한 경우이므로, 일반적인 LIS(Longest Increasing Subsequence) 알고리즘보다 더 효율적인 그리디(Greedy) 접근이 가능합니다. `first`와 `second`라는 두 개의 변수를 유지하며 순회합니다. `first`는 현재까지 발견된 가장 작은 첫 번째 수를, `second`는 `first`보다 큰 두 번째 수 중 가장 작은 값을 저장합니다.
+
+새로운 수 `num`이 들어올 때 세 가지 경우로 나뉩니다.
+1. `num`이 `first`보다 작거나 같으면: `first`를 `num`으로 갱신합니다. 이는 더 작은 시작점을 확보하여 이후에 올 수 있는 두 번째, 세 번째 수의 조건을 완화하기 위함입니다.
+2. `num`이 `first`보다 크고 `second`보다 작거나 같으면: `second`를 `num`으로 갱신합니다. `first`는 고정된 상태에서, 더 작은 두 번째 수를 확보하여 세 번째 수를 찾을 확률을 높입니다.
+3. `num`이 `second`보다 크면: `first < second < num`인 삼중 수열이 존재함이 확정되므로 즉시 `true`를 반환합니다.
+
+이러한 상태 전이는 부분수열의 순서를 해치지 않으면서도 필요한 최소한의 정보만 유지합니다.
+
+## 풀이
+
+두 변수를 사용하여 한 번의 순회로 해결합니다. 초기화 시 `first`와 `second`는 정수형 최댓값으로 설정합니다.
+
+```python
+class Solution:
+    def increasingTriplet(self, nums: List[int]) -> bool:
+        first = float('inf')
+        second = float('inf')
+        
+        for num in nums:
+            if num <= first:
+                first = num
+            elif num <= second:
+                second = num
+            else:
+                return True
+                
+        return False
+```
+
+시간 복잡도: 배열을 한 번만 순회하므로 $O(n)$입니다.
+공간 복잡도: 두 개의 변수만 사용하므로 $O(1)$입니다.
+
+## 다른 풀이 방법
+
+일반적인 LIS 알고리즘(이분 탐색 활용)을 사용할 수 있습니다. `tails` 배열에 현재까지 찾은 길이 $k$인 증가 부분수열의 가장 작은 끝값을 저장합니다. 이분 탐색을 통해 새로운 수가 삽입될 위치를 찾아 배열을 유지하며, `tails`의 길이가 3 이상이 되면 `true`를 반환합니다.
+
+```python
+import bisect
+
+class Solution:
+    def increasingTriplet(self, nums: List[int]) -> bool:
+        tails = []
+        for num in nums:
+            idx = bisect.bisect_left(tails, num)
+            if idx == len(tails):
+                tails.append(num)
+                if len(tails) >= 3:
+                    return True
+            else:
+                tails[idx] = num
+        return False
+```
+
+시간 복잡도: 각 요소마다 이분 탐색($O(\log k)$)을 수행하므로 전체 $O(n \log n)$입니다.
+공간 복잡도: `tails` 배열을 사용하므로 $O(n)$입니다.
+
+이 방법은 길이 3이 아닌 $k$ 이상의 증가 부분수열을 찾는 범용적인 접근법입니다. 본 문제에서는 길이 3이라는 제약이 명확하므로, 상태 변수 두 개만 유지하는 그리디 접근($O(n)$)이 이분 탐색 기반 LIS($O(n \log n)$)보다 시간적으로 더 효율적입니다.
+
+## 추가 참고사항
+
+`second` 갱신 로직의 핵심은 '더 작은 두 번째 수 확보'입니다.
+예를 들어 입력 `[5, 1, 5, 5, 2, 5, 4]`를 순회할 때:
+- `5`를 만나면 `first=5`, `second=inf`
+- `1`을 만나면 `first=1` (더 작은 시작점)
+- `5`를 만나면 `second=5` (`1 < 5`이므로)
+- 다음 `5`는 `second`와 같으므로 무시
+- `2`를 만나면 `second=2` (`1 < 2`이므로)
+
+여기서 `second`가 5에서 2로 바뀌는 것이 올바른 이유는, `first=1`이 고정된 상태에서 두 번째 수로 5를 고정한 채로 기다리는 것보다, 두 번째 수로 2를 고정한 채로 기다리는 것이 이후에 올 수 있는 세 번째 수(2보다 큰 수)를 찾을 조건을 훨씬 더 쉽게 만들기 때문입니다. 즉, `second`를 최소화함으로써 '삼중 수열 완성'의 문턱을 낮추는 그리디 전략이 적용됩니다.
+
+## 출처
+
+- LeetCode: [LeetCode 334 - Increasing Triplet Subsequence](https://leetcode.com/problems/increasing-triplet-subsequence/)
