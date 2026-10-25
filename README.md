@@ -1,57 +1,96 @@
-# Dev Notes — MDX 기술 블로그 스타터
+# 함께 공부합시다
 
-Next.js App Router + MDX로 만든 한국어 기술 블로그입니다. Vercel 배포를 기준으로 구성했습니다.
+개발 과정에서 마주친 문제와 해결 방법, 알고리즘 풀이를 기록하는 한국어 기술 블로그입니다. Next.js App Router와 MDX를 기반으로 구성했으며, Vercel 배포를 지원합니다.
 
-## 포함 기능
+- **운영 사이트:** https://baejoon.vercel.app
+- **콘텐츠:** 알고리즘 풀이, 개발 트러블슈팅
+- **배포:** GitHub push를 통한 Vercel 자동 배포
 
-- 반응형 메인, 카테고리 목록, 글 상세 페이지
-- `content/algorithm/*.mdx`, `content/troubleshooting/*.mdx` 파일 자동 로딩
-- 제목/요약/날짜 기반 메타데이터 및 canonical URL
-- 자동 `sitemap.xml`, `robots.txt`, TechArticle JSON-LD
+## 주요 기능
+
+- 반응형 블로그 메인, 카테고리 목록, 글 상세 페이지
+- 카테고리별 MDX 콘텐츠 관리
+- 제목, 요약, 발행일 기반 메타데이터
 - 사이트 내 검색, 관련 글, 읽기 시간 표시
-- AdSense 승인 후 연결할 광고 슬롯 자리표시자
-- 소개, 문의, 개인정보 처리방침 기본 페이지
+- canonical URL, sitemap, robots.txt, TechArticle 구조화 데이터
+- 소개, 문의, 개인정보 처리방침 페이지
 
-## 실행 방법
+## 기술 스택
 
-Node.js 20 이상 권장.
+- Next.js App Router
+- React
+- MDX
+- JavaScript
+- Vercel
+
+## 로컬 실행
+
+Node.js 20 이상을 권장합니다.
 
 ```bash
 npm install
+```
+
+환경 변수 파일을 만들고 사이트 URL을 설정합니다.
+
+Windows PowerShell:
+
+```powershell
+Copy-Item .env.example .env.local
+```
+
+macOS / Linux:
+
+```bash
 cp .env.example .env.local
+```
+
+`.env.local`의 `NEXT_PUBLIC_SITE_URL`에 실제 운영 도메인을 입력한 뒤 실행합니다.
+
+```bash
 npm run dev
 ```
 
-Windows PowerShell에서는 `Copy-Item .env.example .env.local`을 사용하세요. `.env.local`의 `NEXT_PUBLIC_SITE_URL`을 실제 도메인으로 설정합니다.
+배포 빌드 확인:
 
-## 새 글 발행
+```bash
+npm run build
+```
 
-1. `content/algorithm/` 또는 `content/troubleshooting/`에 `.mdx` 파일을 추가합니다.
-2. 아래 frontmatter 형식을 유지합니다.
+## 콘텐츠 추가
+
+1. `content/algorithm/` 또는 `content/troubleshooting/`에 MDX 파일을 추가합니다.
+2. 아래 frontmatter 형식을 사용합니다.
 
 ```yaml
 ---
 title: "글 제목"
 publishedAt: "2026-10-20"
-summary: "검색 결과와 목록에 노출할 구체적인 요약"
+summary: "글의 핵심 내용을 설명하는 요약"
 tag: "Troubleshooting"
 ---
 ```
 
-3. `npm run build`로 빌드를 확인하고 GitHub에 push하면 Vercel이 재배포합니다.
+3. 로컬에서 빌드를 확인한 뒤 변경사항을 GitHub에 push합니다.
+4. 저장소와 연결된 Vercel 프로젝트가 새 버전을 배포합니다.
 
-## 배포 전 꼭 바꿀 항목
+## 프로젝트 구조
 
-- `.env.local`의 사이트 도메인
-- `Dev Notes` 브랜딩/사이트 이름
-- `app/contact/page.js`, `app/privacy/page.js`의 운영자 이메일 및 실제 정책
-- 광고 승인 후 `components/AdSlot.js`를 실제 AdSense 광고 코드로 교체
-- Google Search Console에 사이트 등록 후 sitemap 제출
+```text
+app/                  페이지 및 라우팅
+components/           공통 UI 컴포넌트
+content/
+  algorithm/          알고리즘 풀이
+  troubleshooting/    개발 트러블슈팅
+public/               정적 자산
+```
 
-## 광고 관련 주의
+## 운영 설정 확인
 
-현재 광고 박스는 레이아웃 확인용 자리표시자이며 광고를 실제로 송출하지 않습니다. AdSense 승인 전에는 광고 스크립트를 임의로 넣지 말고, 승인 후 발급받은 publisher ID와 광고 단위 코드를 적용하세요. 콘텐츠는 자동 생성만으로 대량 발행하기보다 정확성, 독창성, 코드 실행 여부, 출처를 확인한 후 발행하는 것을 권장합니다. 광고 승인은 보장되지 않습니다.
+- `.env.local`의 사이트 URL이 실제 운영 도메인과 일치하는지 확인합니다.
+- 문의 페이지의 연락처와 개인정보 처리방침을 실제 운영 방식에 맞게 유지합니다.
+- 새 콘텐츠를 배포하기 전에 코드 예제, 링크, 출처와 빌드 결과를 확인합니다.
 
-## MDX 보안
+## 라이선스
 
-MDX는 JSX를 포함할 수 있으므로 신뢰할 수 있는 작성자가 만든 파일만 저장소에 추가하세요. 외부 사용자가 임의로 제출한 MDX를 검증 없이 빌드/렌더링하지 마세요.
+저장소의 `LICENSE` 파일을 참고하세요.
