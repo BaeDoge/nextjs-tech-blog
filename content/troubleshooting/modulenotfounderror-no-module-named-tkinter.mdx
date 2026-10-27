@@ -1,0 +1,74 @@
+---
+title: "[트러블슈팅] ModuleNotFoundError: No module named 'tkinter'"
+publishedAt: "2026-10-27"
+summary: "Python 3에서 Tkinter 모듈을 import할 때 발생하는 ModuleNotFoundError의 원인과 시스템 패키지 설치 해결 방법을 정리합니다."
+tag: "Troubleshooting"
+---
+
+## 현상
+
+Python 3 환경에서 `tkinter` 모듈을 import하려고 하면 `ModuleNotFoundError: No module named 'tkinter'` 오류가 발생합니다. Python 2 환경에서는 `Tkinter`(대문자 T)를 import할 때 동일한 오류가 나타납니다. 이는 해당 GUI 라이브러리가 시스템에 설치되지 않았거나 Python 인터프리터에서 접근할 수 없는 상태임을 의미합니다.
+
+```python
+import tkinter
+# ModuleNotFoundError: No module named 'tkinter'
+```
+
+## 원인
+
+Tkinter는 Tcl/Tk GUI 툴킷에 대한 Python의 표준 인터페이스로, Python 설치 시 기본 포함되지만 운영체제 수준에서 Tcl/Tk 라이브러리가 빌드되지 않은 경우 접근이 불가능합니다. 특히 Linux 배포판에서는 Python 패키지가 시스템의 Tcl/Tk 개발 라이브러리와 분리되어 관리되는 경우가 많습니다. 따라서 Python 인터프리터만 설치되어 있고 호스트 시스템의 GUI 관련 시스템 패키지가 누락되면, Python은 해당 모듈을 찾을 수 없게 됩니다.
+
+## 해결 방법
+
+대부분의 Linux 배포판에서는 시스템 패키지 매니저를 통해 Python 버전에 맞는 Tkinter 패키지를 설치해야 합니다. Ubuntu나 Debian 계열에서는 `python3-tk` 패키지를 설치하면 됩니다. Fedora 계열에서는 `python3-tkinter` 또는 `python3-tk` 패키지를 설치합니다.
+
+```bash
+# Ubuntu/Debian 계열
+sudo apt-get install python3-tk
+
+# Fedora 계열
+sudo dnf install python3-tkinter
+```
+
+설치 후 Python 스크립트에서 다음 코드로 정상 import가 가능한지 확인합니다.
+
+```python
+import tkinter as tk
+print(tk.TkVersion)
+```
+
+![해결 방법 스크린샷](/blogs/modulenotfounderror-no-module-named-tkinter-1.png)
+
+## 다른 해결 방법
+
+가상 환경(virtualenv/venv)을 사용하는 경우, 시스템 패키지 설치 후 가상 환경을 새로 생성하거나 시스템 패키지를 가상 환경에 링크하는 과정이 필요할 수 있습니다. Python 패키지 매니저인 pip를 통해 `tkinter` 패키지를 직접 설치하는 것은 일반적으로 지원되지 않습니다. Tkinter는 C 확장 모듈로서 시스템 라이브러리에 의존하므로, pip install로 해결되지 않습니다.
+
+```bash
+# pip를 통한 직접 설치는 지원되지 않음
+pip install tkinter  # 오류 발생 또는 무시됨
+
+# 시스템 패키지가 이미 설치되어 있다면,
+# 가상 환경 내에서도 import가 가능해야 함
+```
+
+Python 2와 3의 호환성을 위해 버전 체크 후 import하는 패턴을 사용할 수 있습니다.
+
+```python
+import sys
+if sys.version_info[0] == 3:
+    import tkinter as tk
+else:
+    import Tkinter as tk
+```
+
+## 추가 참고사항
+
+macOS의 경우 Homebrew를 통해 Python을 설치하면 Tcl/Tk가 함께 설치되는 경우가 많으나, 공식 Python 인스톨러를 사용할 경우 추가 설정이 필요할 수 있습니다. Windows에서는 Python 설치 시 'tcl/tk and IDLE' 옵션을 체크하여 설치하면 기본 포함됩니다. matplotlib와 같은 시각화 라이브러리 사용 시에도 Tkinter 백엔드가 필요하므로, 위와 같은 오류가 발생하면 GUI 패키지를 먼저 설치해야 합니다.
+
+## 출처
+
+- StackOverflow: [ImportError: No module named 'Tkinter'](https://stackoverflow.com/questions/25905540/importerror-no-module-named-tkinter) — 작성자: RasmusGP(질문), d-coder(답변) (CC BY-SA)
+- Tistory: [[Tkinter, Python] ImportError: No module named tkinter](https://hydroponicglass.tistory.com/entry/Tkinter-Python-ImportError-No-module-named-tkinter) — 작성자: 코드 다이어리
+- Tistory: [ImportError: No module named '_tkinter', please install the python3-tk package](https://intuitive-robotics.tistory.com/100) — 작성자: Intuitive-Robotics
+
+본문 이미지는 위 출처에서 가져왔습니다.
