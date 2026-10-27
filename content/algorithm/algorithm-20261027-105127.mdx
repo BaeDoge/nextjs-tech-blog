@@ -1,0 +1,75 @@
+---
+title: "[코딩테스트] 피벗 인덱스 찾기"
+publishedAt: "2026-10-27"
+summary: "배열의 왼쪽 합과 오른쪽 합이 같은 인덱스를 찾는 알고리즘"
+tag: "Algorithm"
+---
+
+## 문제
+
+정수 배열 `nums`가 주어졌을 때, 피벗 인덱스를 계산해야 합니다. 피벗 인덱스는 해당 인덱스의 왼쪽에 있는 모든 숫자의 합과 오른쪽에 있는 모든 숫자의 합이 같은 인덱스를 의미합니다. 인덱스가 배열의 왼쪽 가장자리에 있으면 왼쪽 합은 0이며, 오른쪽 가장자리인 경우에도 오른쪽 합은 0입니다. 조건을 만족하는 가장 왼쪽 인덱스를 반환하고, 존재하지 않으면 -1을 반환합니다.
+
+## 접근 방법
+
+먼저 배열의 전체 합을 계산합니다. 이후 배열을 왼쪽부터 순회하며 현재 인덱스의 왼쪽 합을 유지합니다. 현재 인덱스의 오른쪽 합은 `전체 합 - 왼쪽 합 - 현재 인덱스의 값`으로 구할 수 있습니다. 왼쪽 합과 오른쪽 합이 일치하는지 확인하며, 일치하는 첫 번째 인덱스를 반환하면 됩니다.
+
+## 풀이
+
+전체 합을 구한 후 한 번의 순회로 조건을 만족하는 인덱스를 찾습니다.
+
+```python
+class Solution:
+    def pivotIndex(self, nums: List[int]) -> int:
+        total_sum = sum(nums)
+        left_sum = 0
+        
+        for i, num in enumerate(nums):
+            # 오른쪽 합 = 전체 합 - 왼쪽 합 - 현재 값
+            right_sum = total_sum - left_sum - num
+            
+            if left_sum == right_sum:
+                return i
+            
+            left_sum += num
+            
+        return -1
+```
+
+시간복잡도: O(N), 공간복잡도: O(1)
+
+## 다른 풀이 방법
+
+누적합(Prefix Sum) 배열을 미리 구축하여 접근할 수 있습니다. 왼쪽 누적합 배열과 오른쪽 누적합 배열을 각각 생성한 후, 인덱스별로 두 합이 같은지 비교합니다. 이 방법은 코드가 직관적이지만, 추가적인 배열을 사용하므로 공간복잡도가 O(N)으로 증가합니다.
+
+```python
+class Solution:
+    def pivotIndex(self, nums: List[int]) -> int:
+        n = len(nums)
+        if n == 0:
+            return -1
+            
+        left_sum = [0] * n
+        right_sum = [0] * n
+        
+        for i in range(1, n):
+            left_sum[i] = left_sum[i-1] + nums[i-1]
+            
+        for i in range(n-2, -1, -1):
+            right_sum[i] = right_sum[i+1] + nums[i+1]
+            
+        for i in range(n):
+            if left_sum[i] == right_sum[i]:
+                return i
+                
+        return -1
+```
+
+시간복잡도: O(N), 공간복잡도: O(N)
+
+## 추가 참고사항
+
+이 문제는 LeetCode 1991번과 동일한 문제입니다. 제약 조건에서 배열의 길이는 최대 10^4이며, 각 요소의 값은 -1000에서 1000 사이이므로 정수 오버플로우를 고려하지 않아도 됩니다. 첫 번째 풀이 방식이 공간 효율성 측면에서 더 우수합니다.
+
+## 출처
+
+- LeetCode: [LeetCode 724 - Find Pivot Index](https://leetcode.com/problems/find-pivot-index/)
