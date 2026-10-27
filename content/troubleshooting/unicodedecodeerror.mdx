@@ -1,0 +1,68 @@
+---
+title: "[트러블슈팅] UnicodeDecodeError 인코딩 오류 해결"
+publishedAt: "2026-10-27"
+summary: "파일 읽기 시 UTF-8 디코딩 실패 시 인코딩 지정 또는 바이너리 모드 사용법"
+tag: "Troubleshooting"
+---
+
+## 현상
+
+`open()` 함수로 파일을 읽을 때, 파일 내용 중 UTF-8 규격에 맞지 않는 바이트가 발견되면 `UnicodeDecodeError`가 발생합니다.
+
+```python
+for line in open('u.item'):
+    # Read each line
+```
+
+```
+UnicodeDecodeError: 'utf-8' codec can't decode byte 0xe9 in position 2892: invalid continuation byte
+```
+
+## 원인
+
+Python 3의 `open()` 함수는 기본적으로 시스템의 인코딩(보통 UTF-8)을 사용하여 파일을 읽습니다. 만약 대상 파일이 UTF-8이 아닌 다른 인코딩(예: ISO-8859-1, Windows-1252 등)으로 저장되어 있다면, UTF-8 디코더는 해당 바이트를 해석하지 못해 에러를 발생시킵니다. 예를 들어, Windows-1252 인코딩에서 `0xe9` 바이트는 문자 `é`를 나타내지만, UTF-8에서는 유효한 연속 바이트가 아니기 때문에 오류를 유발합니다.
+
+## 해결 방법
+
+파일의 실제 인코딩을 명시적으로 지정하여 해결합니다. 해당 파일이 `ISO-8859-1` 인코딩으로 작성된 경우, `encoding` 파라미터를 추가하여 명시합니다.
+
+```python
+for line in open('u.item', encoding='ISO-8859-1'):
+    # Read each line
+```
+
+## 다른 해결 방법
+
+파일의 정확한 인코딩을 알 수 없거나, 디코딩 오류가 발생해도 무시하고 읽고자 할 때는 `errors='ignore'` 옵션을 사용할 수 있습니다. 또한, 인코딩 문제를 완전히 우회하여 바이너리 데이터로 읽고 싶다면 `'rb'` 모드를 사용할 수 있습니다.
+
+```python
+# 디코딩 오류 무시
+for line in open('u.item', encoding='utf8', errors='ignore'):
+    pass
+
+# 바이너리 모드 읽기
+for line in open('u.item', 'rb'):
+    pass
+```
+
+## 추가 참고사항
+
+파일의 인코딩을 확인하려면 Linux 환경에서 `file` 명령어를 사용할 수 있습니다.
+
+```bash
+file --mime-encoding <filename>
+```
+
+또한, `pandas` 라이브러리를 사용하여 CSV 파일을 읽을 때도 인코딩 문제를 자주 겪으므로, 이 경우 `encoding='latin-1'` 또는 `encoding='ISO-8859-1'`을 지정하는 것이 효과적입니다.
+
+```python
+import pandas as pd
+
+pd.read_csv('u.item', sep='|', names=m_cols, encoding='latin-1')
+```
+
+## 출처
+
+- StackOverflow: ["for line in..." results in UnicodeDecodeError: 'utf-8' codec can't decode byte](https://stackoverflow.com/questions/19699367/for-line-in-results-in-unicodedecodeerror-utf-8-codec-cant-decode-byte) — 작성자: SujitS(질문), SujitS(답변) (CC BY-SA)
+- Tistory: [줄을 서야 한다." 결과 UnicodeDecodeError: 'utf-8' 코덱이 바이트를 디코딩할 수 없습니다.](https://bestcode.tistory.com/866) — 작성자: bestcode
+- Tistory: [【Python】 파이썬 주요 트러블슈팅 [41-60]](https://nate9389.tistory.com/2292) — 작성자: 정빈이의 공부방
