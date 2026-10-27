@@ -1,0 +1,68 @@
+---
+title: "[트러블슈팅] 내장함수 이름과 변수명 충돌로 인한 TypeError"
+publishedAt: "2026-10-27"
+summary: "내장 함수와 동일한 이름의 변수를 사용하여 함수 호출 시 발생하는 에러를 해결합니다."
+tag: "Troubleshooting"
+---
+
+## 현상
+
+`TypeError: 'int' object is not callable` 또는 `'sum' object is not callable` 등의 에러가 발생합니다.
+내장 함수를 호출하는 코드에서 실행 시 에러가 터지며, traceback은 해당 함수 호출 라인에서 시작됩니다.
+
+```python
+# 예시: round 함수 호출 시 에러 발생
+round((a/b)*0.9*c)
+# TypeError: 'int' object is not callable
+
+# 예시: sum 함수 호출 시 에러 발생
+sum(list(map(int, str(x))))
+# TypeError: 'int' object is not callable
+```
+
+## 원인
+
+내장 함수(`round`, `sum`, `int` 등)와 동일한 이름을 가진 변수가 이미 정의되어 있기 때문입니다.
+파이썬은 이름(`name`)을 통해 객체를 참조하므로, 내장 함수 이름을 변수명으로 재할당하면 해당 이름은 더 이상 함수를 가리키지 않고 변수를 가리킵니다.
+따라서 `이름()` 구문으로 호출할 때, 파이썬은 함수가 아닌 변수(예: 정수형 객체)를 호출하려고 시도하여 에러를 발생시킵니다.
+
+## 해결 방법
+
+내장 함수와 충돌하는 변수명을 변경하여 내장 함수의 이름을 되돌립니다.
+변수명을 다른 이름으로 바꾸고, 해당 변수를 사용하는 모든 코드를 수정합니다.
+
+```python
+# 수정 전 (오류 발생)
+# int = int(input("숫자를 입력하세요: "))
+# message = print("%s은 짝수 입니다." % int) if int % 2 == 0 else ("%s은 홀수 입니다." % int)
+
+# 수정 후 (변수명 변경)
+num = int(input("숫자를 입력하세요: "))
+message = "%s은 짝수 입니다." % num if num % 2 == 0 else "%s은 홀수 입니다." % num
+print(message)
+```
+
+## 다른 해결 방법
+
+내장 함수를 직접 참조하는 모듈(`builtins`)을 통해 함수를 호출하는 방법입니다.
+변수명을 변경하는 것이 가장 좋으나, 기존 코드의 변수명 변경이 어렵거나 긴급한 상황에서는 이 방법을 사용할 수 있습니다.
+
+```python
+import builtins
+
+# builtins 모듈을 통해 내장 함수 직접 호출
+result = builtins.round(3.14)
+digit_sum = builtins.sum([1, 2, 3])
+```
+
+## 추가 참고사항
+
+- 변수명을 지을 때 `int`, `sum`, `round`, `list`, `dict` 등 파이썬 내장 함수 이름을 사용하지 않도록 주의해야 합니다.
+- 유사한 에러로 `TypeError: 'list' object is not callable`이 발생할 수 있으며, 이는 `list` 변수가 할당되어 내장 리스트 생성 함수를 호출하지 못해서입니다.
+- 에러가 발생하면 해당 이름의 변수가 전역 또는 로컬 스코프에 할당되어 있는지 확인하는 것이 첫 번째 단계입니다.
+
+## 출처
+
+- StackOverflow: [TypeError: 'int' object is not callable](https://stackoverflow.com/questions/9767391/typeerror-int-object-is-not-callable) — 작성자: rob(질문), David Heffernan(답변) (CC BY-SA)
+- Tistory: [[Python] 오류 코드 - TypeError: 'int' object is not callable](https://gill07.tistory.com/8) — 작성자: 비전문 전문가
+- Tistory: [[Python] TypeError: 'int' object is not callable](https://jjuha-dev.tistory.com/entry/Python-TypeError-int-object-is-not-callable) — 작성자: 하루한줄 코딩일기
