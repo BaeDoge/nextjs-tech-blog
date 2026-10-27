@@ -1,0 +1,79 @@
+---
+title: "[코딩테스트] 단일 연결 리스트 역순 변환"
+publishedAt: "2026-10-27"
+summary: "단일 연결 리스트의 노드 순서를 뒤집는 이터레이션 및 재귀적 접근법을 정리합니다."
+tag: "Algorithm"
+---
+
+## 문제
+
+단일 연결 리스트의 `head`가 주어졌을 때, 리스트의 순서를 역순으로 바꾸고 새로운 `head`를 반환해야 합니다.
+입력 예시는 `[1,2,3,4,5]`가 `[5,4,3,2,1]`로 변환되는 형태입니다.
+빈 리스트(`[]`)인 경우 빈 리스트를 반환합니다.
+노드의 개수는 0부터 5,000까지이며, 각 노드의 값은 -5,000부터 5,000 사이의 정수입니다.
+이 문제는 이터레이션(반복문)과 재귀(Recursion) 두 가지 방식으로 해결할 수 있습니다.
+
+## 접근 방법
+
+연결 리스트를 역순으로 만들기 위해서는 각 노드가 다음 노드를 가리키는 방향을 반대로 전환해야 합니다.
+현재 노드를 가리키는 `prev` 변수와 다음 노드를 가리키는 `next` 변수를 사용하여 순회하며 포인터를 재배치합니다.
+루프가 종료될 때 `prev`는 원래 리스트의 마지막 노드를 가리키게 되며, 이것이 역순 리스트의 새로운 `head`가 됩니다.
+재귀적 접근의 경우, 리스트의 끝까지 재귀 호출을 진행한 후, 호출 스택이 반환되는 과정에서 포인터 방향을 뒤집는 방식입니다.
+
+## 풀이
+
+이터레이션(반복문)을 사용하여 구현한 코드입니다.
+세 개의 포인터(`prev`, `curr`, `next`)를 사용하여 노드의 연결 방향을 한 번에 뒤집습니다.
+
+```python
+class Solution:
+    def reverseList(self, head: Optional[ListNode]) -> Optional[ListNode]:
+        prev = None
+        curr = head
+        
+        while curr:
+            next_node = curr.next
+            curr.next = prev
+            prev = curr
+            curr = next_node
+            
+        return prev
+```
+
+시간 복잡도: $O(N)$ (모든 노드를 한 번씩 방문합니다.)
+공간 복잡도: $O(1)$ (추가적인 메모리 공간을 사용하지 않습니다.)
+
+## 다른 풀이 방법
+
+재귀(Recursion)를 사용하여 리스트를 역순으로 만들 수 있습니다.
+재귀 함수는 현재 노드(`curr`)의 다음 노드(`curr.next`)를 기준으로 재귀 호출을 수행합니다.
+기저 조건(Base case)으로 `curr`가 `None`이거나 `curr.next`가 `None`인 경우, 해당 노드를 새로운 `head`로 반환합니다.
+재귀 호출이 반환되면, `curr.next`의 다음 노드를 `curr`로 설정하여 방향을 뒤집습니다.
+마지막으로 `curr.next`를 `None`으로 설정하여 순환 링크를 방지합니다.
+
+```python
+class Solution:
+    def reverseList(self, head: Optional[ListNode]) -> Optional[ListNode]:
+        if not head or not head.next:
+            return head
+        
+        new_head = self.reverseList(head.next)
+        head.next.next = head
+        head.next = None
+        
+        return new_head
+```
+
+시간 복잡도: $O(N)$
+공간 복잡도: $O(N)$ (재귀 호출 스택의 깊이만큼 메모리를 사용합니다.)
+
+## 추가 참고사항
+
+이터레이션 방식은 스택 오버플로우 위험이 없고 공간 효율이 좋아 일반적으로 선호됩니다.
+재귀 방식은 코드가 간결하지만, 노드 개수가 매우 많을 경우 호출 스택의 한계로 인해 오류가 발생할 수 있습니다.
+LeetCode 문제에서는 두 방식 모두 정답으로 인정되나, 실무에서는 이터레이션 방식을 더 권장합니다.
+노드 값의 범위나 개수 제한은 알고리즘 로직에 큰 영향을 주지 않으며, 포인터 조작의 정확성이 핵심입니다.
+
+## 출처
+
+- LeetCode: [LeetCode 206 - Reverse Linked List](https://leetcode.com/problems/reverse-linked-list/)
