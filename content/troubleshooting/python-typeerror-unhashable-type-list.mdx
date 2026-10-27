@@ -1,0 +1,71 @@
+---
+title: "[트러블슈팅] Python TypeError: unhashable type: 'list'"
+publishedAt: "2026-10-27"
+summary: "리스트를 딕셔너리 키나 집합 원소로 사용할 때 발생하는 해시 불가 에러의 원인과 해결 방법을 정리합니다."
+tag: "Troubleshooting"
+---
+
+## 현상
+
+파이썬에서 `list` 타입을 딕셔너리의 키로 사용하거나 `set`의 원소로 포함하려고 할 때 `TypeError: unhashable type: 'list'`가 발생합니다. 이는 리스트가 가변형(mutable) 객체이기 때문에 해시 함수를 적용할 수 없기 때문에 발생합니다.
+
+```python
+# 예시: 리스트를 딕셔너리 키로 사용 시도
+d = {}
+d[[1, 2]] = "value"
+# TypeError: unhashable type: 'list'
+
+# 예시: 리스트를 집합 원소로 포함 시도
+s = set()
+s.add([1, 2])
+# TypeError: unhashable type: 'list'
+```
+
+## 원인
+
+파이썬의 `dict`와 `set`은 내부적으로 해시 테이블을 사용하여 데이터를 관리합니다. 해시 테이블의 키가 되려면 객체가 해시 가능(hashable)해야 하며, 이는 객체가 변경 불가능(immutable)해야 함을 의미합니다. `list`는 요소의 추가, 삭제, 수정이 가능한 가변형 객체이므로 해시 값을 고정할 수 없습니다. 따라서 키나 집합 원소로 사용할 수 없습니다.
+
+## 해결 방법
+
+가변형인 `list`를 불변형인 `tuple`로 변환하여 사용합니다. `tuple`은 생성 후 변경이 불가능하므로 해시 가능하여 딕셔너리 키나 집합 원소로 사용 가능합니다.
+
+```python
+# 수정 전: 리스트 사용 (에러 발생)
+my_list = [1, 2]
+d = {}
+# d[my_list] = "value" 
+
+# 수정 후: 튜플로 변환하여 사용
+my_tuple = tuple(my_list)
+d[my_tuple] = "value"
+print(d)  # {(1, 2): 'value'}
+```
+
+## 다른 해결 방법
+
+딕셔너리 키로 리스트의 고유한 순서를 유지해야 하거나, 리스트 자체를 키로 사용해야 하는 특수한 경우(예: 그래프 인접 리스트의 경로 추적 등)에는 리스트를 문자열로 직렬화하여 키로 사용할 수 있습니다. 하지만 이 방법은 숫자 타입의 표현 차이(예: `1`과 `1.0`)나 공백 처리 등으로 인해 논리적으로 동일한 데이터가 다른 키로 인식될 수 있어 주의가 필요합니다.
+
+```python
+# 문자열 직렬화 방식 (주의 필요)
+my_list = [1, 2]
+key_str = str(my_list)
+d = {key_str: "value"}
+
+# 더 안전한 직렬화 (JSON 사용 시 정렬 옵션 활용)
+import json
+my_list = [1, 2]
+key_str = json.dumps(my_list, sort_keys=True)
+d = {key_str: "value"}
+```
+
+## 추가 참고사항
+
+- `tuple`도 내부에 가변형 객체(예: `list`)를 포함하고 있다면 해시 불가능합니다. `tuple`의 모든 요소가 불변형이어야 해시 가능합니다.
+- 비슷한 에러로 `TypeError: unhashable type: 'dict'`가 있습니다. `dict` 또한 가변형이므로 키나 집합 원소로 사용할 수 없습니다.
+- 리스트의 중복 제거가 필요할 경우, `set`을 직접 사용하면 에러가 발생하므로 `tuple`로 변환한 후 `set`에 포함하거나, `list`를 반복하며 중복을 제거하는 로직을 작성해야 합니다.
+
+## 출처
+
+- StackOverflow: [Python, TypeError: unhashable type: 'list'](https://stackoverflow.com/questions/19371358/python-typeerror-unhashable-type-list) — 작성자: Rex(질문), Brendan Long(답변) (CC BY-SA)
+- Tistory: [[Python] TypeError: unhashable type: 'list'](https://herjh0405.tistory.com/68) — 작성자: 호기심 많은 분석가
+- Tistory: [어떻게 TypeError: unhashable type: 'list'를 해결할 수 있을까요? [중복]](https://stack-queue.tistory.com/1007) — 작성자: 스택큐힙리스트
