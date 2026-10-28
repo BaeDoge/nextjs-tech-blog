@@ -1,0 +1,58 @@
+---
+title: "[트러블슈팅] pip 업그레이드 후 main import 에러"
+publishedAt: "2026-10-28"
+summary: "pip 업그레이드 후 시스템 스크립트와 패키지 간 호환성 불일치로 발생하는 에러를 해결합니다."
+tag: "Troubleshooting"
+---
+
+## 현상
+
+`pip` 또는 `pip3` 명령어를 실행할 때 `ImportError: cannot import name 'main'` 에러가 발생합니다. 이는 주로 `sudo pip install --upgrade pip`와 같이 시스템 pip를 직접 업그레이드한 직후에 나타납니다.
+
+```bash
+$ pip3 install numpy
+Traceback (most recent call last):
+  File "/usr/bin/pip3", line 9, in <module>
+    from pip import main
+ImportError: cannot import name 'main'
+```
+
+![현상 스크린샷](/blogs/pip-main-import-1.png)
+
+## 원인
+
+pip 10.0 이상 버전부터 내부 구조가 변경되며, 진입점(entry point) 스크립트의 import 경로가 달라졌습니다. 시스템 패키지 관리자(apt 등)가 생성한 `/usr/bin/pip3` 스크립트는 변경된 pip 패키지의 API를 참조하지 못해 에러를 발생시킵니다.
+
+## 해결 방법
+
+가장 안전한 방법은 시스템 pip를 제거하고 `get-pip.py`를 통해 일관된 상태로 재설치하는 것입니다.
+
+```bash
+# 1. 기존 pip 패키지 제거
+sudo python3 -m pip uninstall pip
+
+# 2. get-pip.py 다운로드 및 실행
+curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+sudo python3 get-pip.py
+```
+
+## 다른 해결 방법
+
+`python3 -m pip` 명령어를 사용하여 pip를 호출하면 시스템 스크립트 경로의 영향을 받지 않습니다.
+
+```bash
+# pip3 대신 python3 -m pip 사용
+python3 -m pip install numpy
+```
+
+## 추가 참고사항
+
+시스템 파일 직접 수정은 권장되지 않으며, `python3 -m pip` 명령어를 사용하는 것이 가장 안전한 우회 방법입니다.
+
+## 출처
+
+- StackOverflow: [Error after upgrading pip: cannot import name 'main'](https://stackoverflow.com/questions/49836676/error-after-upgrading-pip-cannot-import-name-main) — 작성자: g_p(질문), anthony sottile(답변) (CC BY-SA)
+- Tistory: [[Ubuntu 16.04~] pip upgrade 후 에러 해결 (ImportError: cannot import name 'main' )](https://tablefi.tistory.com/128) — 작성자: RoboticsFacility
+- Tistory: [[python]pip 업데이트하다가 에러 날 때 해결](https://qingfro9.tistory.com/entry/pythonpip-%EC%97%85%EB%8D%B0%EC%9D%B4%ED%8A%B8%ED%95%98%EB%8B%A4%EA%B0%80-%EC%97%90%EB%9F%AC-%EB%82%A0-%EB%95%8C-%ED%95%B4%EA%B2%B0) — 작성자: qingfro9님의 블로그 입니다.
+
+본문 이미지는 위 출처에서 가져왔습니다.
