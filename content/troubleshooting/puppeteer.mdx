@@ -1,0 +1,88 @@
+---
+title: "[오픈소스 분석] Puppeteer를 통한 브라우저 자동화와 제어"
+publishedAt: "2026-10-29"
+summary: "Puppeteer는 Chrome 및 Firefox 브라우저를 DevTools Protocol 또는 WebDriver BiDi를 통해 제어할 수 있는 Node.js 기반의 고수준 자동화 라이브러리입니다."
+tag: "OpenSource"
+---
+
+## 한눈에 보는 프로젝트와 해결하려는 문제
+
+Puppeteer는 구글에서 관리하는 오픈소스 프로젝트로, 브라우저를 프로그래밍 방식으로 제어하기 위한 고수준 API를 제공하는 라이브러리입니다. 개발자가 수동으로 브라우저를 조작하지 않고도 웹 페이지 탐색, 스크린샷 캡처, PDF 생성, UI 테스트 자동화, 성능 분석 등을 수행할 수 있도록 돕습니다.
+
+이 프로젝트가 해결하려는 핵심 문제는 '브라우저 자동화의 복잡성'입니다. 과거에는 브라우저마다 다른 드라이버 설정과 파편화된 API로 인해 자동화 스크립트를 작성하는 데 큰 비용이 들었습니다. Puppeteer는 Chrome과 Firefox를 직접 제어하는 통합된 인터페이스를 제공함으로써, 개발자가 브라우저의 내부 동작을 깊이 이해하지 않아도 일관된 방식으로 웹 자동화 환경을 구축할 수 있게 합니다.
+
+## 이해에 필요한 핵심 개념
+
+Puppeteer를 이해하기 위해서는 다음의 세 가지 핵심 개념을 파악해야 합니다.
+
+1. **DevTools Protocol (CDP)**: Puppeteer가 Chrome을 제어하는 기본 통신 방식입니다. 브라우저의 내부 상태를 조회하고 명령을 내리는 저수준 프로토콜로, Puppeteer는 이를 추상화하여 사용하기 쉬운 JavaScript API로 변환합니다.
+2. **Headless 모드**: Puppeteer는 기본적으로 UI가 없는(Headless) 상태로 브라우저를 실행합니다. 이는 서버 환경에서 리소스를 최소화하며 자동화 작업을 수행하는 데 최적화되어 있습니다.
+3. **WebDriver BiDi**: 최근 추가된 표준 프로토콜로, 브라우저 간 호환성을 높이기 위해 도입되었습니다. `packages/puppeteer-core/src/bidi/core/core.ts`와 같은 경로에서 확인할 수 있듯, Puppeteer는 기존 CDP뿐만 아니라 표준화된 BiDi 프로토콜을 지원하여 Firefox 등 다양한 브라우저와의 연동성을 강화하고 있습니다.
+
+## 저장소 구조와 실제 동작 흐름
+
+저장소는 모노레포(Monorepo) 구조를 채택하고 있으며, 각 패키지는 명확한 책임을 가집니다.
+
+* `packages/puppeteer`: 사용자에게 제공되는 메인 패키지로, 브라우저 설치 및 실행을 포함한 전체 기능을 포함합니다.
+* `packages/puppeteer-core`: 브라우저 설치 로직을 제외한 핵심 API만을 담고 있습니다. 환경에 따라 브라우저를 직접 관리하고 싶을 때 사용합니다.
+* `packages/browsers`: 브라우저 다운로드, 설치, 경로 관리 등을 담당하는 독립적인 모듈입니다. `packages/browsers/src/main.ts`를 보면 브라우저 실행 경로 계산(`computeExecutablePath`)이나 플랫폼 감지(`detectBrowserPlatform`)와 같은 유틸리티가 정의되어 있습니다.
+* `packages/puppeteer-core/src/api/`: 브라우저, 페이지, 요소 핸들 등 Puppeteer의 핵심 추상화 객체들이 정의되어 있습니다.
+
+사용자가 `puppeteer.launch()`를 호출하면, 내부적으로 `packages/browsers`를 통해 호환되는 브라우저를 확인하고, `packages/puppeteer-core`의 API를 통해 브라우저 프로세스를 생성한 뒤 CDP/BiDi 세션을 연결하여 명령을 주고받는 흐름으로 동작합니다.
+
+## 구체적인 예제로 보는 설계 선택
+
+Puppeteer의 API 설계는 '비동기적 제어'와 '선언적 요소 탐색'에 집중되어 있습니다. README에서 제시된 예제를 통해 이를 확인할 수 있습니다.
+
+```ts
+// 요소 탐색 및 상호작용 예제
+await page.locator('::-p-aria(Search)').fill('automate beyond recorder');
+await page.locator('.devsite-result-item-link').click();
+```
+
+위 코드에서 `locator`는 Puppeteer가 지향하는 현대적인 설계 선택을 보여줍니다. 과거에는 `page.$()`를 사용하여 요소가 나타날 때까지 기다리는 로직을 개발자가 직접 구현해야 했으나, `locator` API는 요소가 존재할 때까지 기다리고 상호작용하는 과정을 내부적으로 처리합니다. 이는 테스트 코드의 안정성(Flakiness 감소)을 높이는 중요한 설계적 진화입니다.
+
+## 대안과 비교했을 때의 장단점
+
+브라우저 자동화 도구 중 Playwright나 Selenium과 자주 비교됩니다.
+
+* **Playwright**: Puppeteer 팀의 핵심 개발자들이 주축이 되어 만든 프로젝트로, 다중 브라우저 지원과 자동 대기(Auto-waiting) 기능이 더 강력하게 통합되어 있습니다. Puppeteer는 Chrome 환경에 가장 최적화되어 있으며, 오랜 기간 축적된 생태계와 안정적인 CDP 지원이 강점입니다.
+* **Selenium**: WebDriver 표준을 따르며 매우 다양한 언어(Java, Python, C# 등)를 지원합니다. Puppeteer는 Node.js 환경에 특화되어 있어 JavaScript/TypeScript 개발자에게 훨씬 직관적인 경험을 제공하지만, 언어 선택의 폭은 좁습니다.
+
+Puppeteer는 Chrome/Chromium 생태계 내에서 가장 빠르고 정확한 제어를 원할 때, 그리고 Node.js 환경에서 가볍게 자동화 도구를 통합하고자 할 때 가장 적합한 선택지입니다.
+
+## 보안·라이선스·도입 시 확인할 점
+
+* **보안**: `SECURITY.md`에 명시된 바와 같이, Puppeteer는 브라우저를 제어하는 강력한 도구이므로 신뢰할 수 없는 스크립트를 실행하지 않도록 주의해야 합니다. 파일 시스템 접근이나 확장 프로그램 로드 기능은 의도된 기능이며, 이를 안전하게 사용하는 것은 호출하는 코드의 책임입니다.
+* **라이선스**: Apache-2.0 라이선스를 따르며, 상업적 이용을 포함한 폭넓은 자유도를 제공합니다.
+* **도입 시 확인**: 패키지 매니저의 보안 정책으로 인해 브라우저 자동 다운로드가 차단될 수 있습니다. 이 경우 `npx puppeteer browsers install`을 통해 수동으로 브라우저를 설치해야 한다는 점을 운영 환경 배포 시 고려해야 합니다.
+
+## 한계와 추천 대상
+
+Puppeteer는 다음과 같은 사용자에게 추천합니다.
+* Chrome/Chromium 기반의 자동화가 주된 업무인 웹 개발자 및 QA 엔지니어.
+* Node.js 환경에서 브라우저 기반의 스크래핑이나 테스트 자동화를 구축하려는 팀.
+
+반면, 다음과 같은 경우에는 한계가 있을 수 있습니다.
+* 여러 브라우저(Safari 등)를 동시에 지원해야 하는 복잡한 크로스 브라우저 테스트 환경.
+* JavaScript/TypeScript 이외의 언어로 자동화 스크립트를 작성해야 하는 경우.
+
+Puppeteer는 브라우저 제어의 표준을 제시하는 도구로서, 특히 Chrome 환경에서의 자동화 작업에 있어 가장 신뢰할 수 있는 도구 중 하나입니다.
+
+---
+**핵심 출처:**
+- [Puppeteer GitHub Repository](https://github.com/puppeteer/puppeteer)
+- [README.md](https://github.com/puppeteer/puppeteer/blob/main/README.md)
+- [SECURITY.md](https://github.com/puppeteer/puppeteer/blob/main/SECURITY.md)
+- [packages/browsers/src/main.ts](https://github.com/puppeteer/puppeteer/blob/main/packages/browsers/src/main.ts)
+- [packages/puppeteer-core/src/api/api.ts](https://github.com/puppeteer/puppeteer/blob/main/packages/puppeteer-core/src/api/api.ts)
+
+## 출처
+
+- GitHub: [puppeteer/puppeteer](https://github.com/puppeteer/puppeteer) — 작성자: puppeteer
+- GitHub: [puppeteer/puppeteer / LICENSE](https://github.com/puppeteer/puppeteer/blob/main/LICENSE) — 작성자: puppeteer
+- GitHub: [puppeteer/puppeteer / SECURITY.md](https://github.com/puppeteer/puppeteer/blob/main/SECURITY.md) — 작성자: puppeteer
+- GitHub: [puppeteer/puppeteer / package.json](https://github.com/puppeteer/puppeteer/blob/main/package.json) — 작성자: puppeteer
+- GitHub: [puppeteer/puppeteer / packages/browsers/src/main.ts](https://github.com/puppeteer/puppeteer/blob/main/packages/browsers/src/main.ts) — 작성자: puppeteer
+- GitHub: [puppeteer/puppeteer / packages/puppeteer-core/src/api/api.ts](https://github.com/puppeteer/puppeteer/blob/main/packages/puppeteer-core/src/api/api.ts) — 작성자: puppeteer
+- GitHub: [puppeteer/puppeteer / packages/puppeteer-core/src/bidi/core/core.ts](https://github.com/puppeteer/puppeteer/blob/main/packages/puppeteer-core/src/bidi/core/core.ts) — 작성자: puppeteer
