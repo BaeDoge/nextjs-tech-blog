@@ -1,0 +1,219 @@
+---
+title: "[오픈소스 분석] SGLang: LLM 서빙 프레임워크 구조 분석"
+publishedAt: "2026-10-30"
+summary: "SGLang는 LLM 서빙을 위한 Python 기반 오픈소스 프레임워크로, WASM 게이트웨이 확장과 커스텀 라우팅을 핵심 설계로 삼고 있다."
+tag: "OpenSource"
+---
+
+## 한눈에 보는 프로젝트와 해결하려는 문제
+
+SGLang는 LLM(Large Language Model)과 멀티모달 모델을 위한 고성능 서빙 프레임워크입니다. 이 프로젝트는 텍스트 생성, 비전-텍스트(VLM), 그리고 디퓨전 모델(Diffusion Models)을 위한 추론 엔진을 통합하여 제공합니다. 주요 목표는 에이전트(Agentic) 워크로드, 대규모 서빙, 그리고 RL(RLHF 등) 롤아웃에서 요구하는 높은 처리량과 유연한 라우팅을 해결하는 것입니다.
+
+이 프로젝트는 단순한 모델 서빙을 넘어, 복잡한 프롬프트 처리와 다중 모델 간 라우팅을 위한 커스텀 라우팅 언어(SGLang)를 내장하고 있습니다. 이를 통해 개발자는 모델의 내부 동작을 직접 제어하거나, 여러 모델을 조합하는 복잡한 파이프라인을 구성할 수 있습니다.
+
+## 이해에 필요한 핵심 개념
+
+SGLang의 동작을 이해하기 위해 두 가지 핵심 개념을 살펴볼 수 있습니다.
+
+첫째, **WASM 기반 모델 게이트웨이**입니다. SGLang는 서버의 확장성을 위해 WASM(WebAssembly) 컴포넌트 모델을 활용합니다. 이를 통해 외부에서 작성된 미들웨어 코드를 호스트 환경에 안전하게 삽입할 수 있습니다.
+
+둘째, **커스텀 라우팅 언어**입니다. SGLang는 모델의 추론 과정을 제어하기 위해 자체적인 라우팅 언어를 제공합니다. 이는 개발자가 모델의 동작을 더 세밀하게 제어할 수 있게 해주며, 복잡한 에이전트 워크로드를 효율적으로 처리할 수 있도록 돕습니다.
+
+## 저장소 구조와 실제 동작 흐름
+
+SGLang의 저장소 구조는 핵심 서빙 엔진과 WASM 기반 확장을 위한 게이트웨이로 나뉩니다.
+
+핵심 서빙 엔진은 Python으로 작성되어 있으며, 주요 기능은 `sglang` 패키지로 제공됩니다. 이 엔진은 다양한 하드웨어(NVIDIA GPU, AMD GPU, Apple Silicon 등)를 지원하며, 모델의 가중치를 로드하고 추론을 수행하는 역할을 합니다.
+
+WASM 기반 모델 게이트웨이는 `sgl-model-gateway` 하위에 위치하며, 미들웨어 확장을 위한 인터페이스를 제공합니다. 이 구조는 서버의 핵심 로직을 건드리지 않고도 인증, 로깅, 속도 제한(Rate Limiting) 등의 기능을 확장할 수 있게 해줍니다.
+
+## 구체적인 예제로 보는 설계 선택
+
+WASM 미들웨어 확장을 위한 예제 코드를 통해 SGLang의 설계 선택을 살펴볼 수 있습니다.
+
+`sgl-model-gateway/examples/wasm/wasm-guest-auth/src/lib.rs` 파일은 API 키 인증 미들웨어의 예제를 보여줍니다. 이 코드는 `wit_bindgen::generate!` 매크로를 사용하여 WASM 컴포넌트 모델을 구현하며, `OnRequestGuest` 인터페이스를 구현하여 요청 처리 로직을 정의합니다.
+
+```rust
+wit_bindgen::generate!({
+    path: "../../../src/wasm/interface",
+    world: "sgl-model_gateway",
+});
+
+use exports::sgl::model_gateway::{
+    middleware_on_request::Guest as OnRequestGuest,
+    middleware_on_response::Guest as OnResponseGuest,
+};
+use sgl::model_gateway::middleware_types::{Action, Request, Response};
+
+/// Expected API Key (in production, this should be passed as configuration)
+const EXPECTED_API_KEY: &str = "secret-api-key-12345";
+
+/// Main middleware implementation
+struct Middleware;
+
+// Helper function to find header value
+fn find_header_value(
+    headers: &[sgl::model_gateway::middleware_types::Header],
+    name: &str,
+) -> Option<String> {
+    headers
+        .iter()
+        .find(|h| h.name.eq_ignore_ascii_case(name))
+        .map(|h| h.value.clone())
+}
+
+// Implement on-request interface
+impl OnRequestGuest for Middleware {
+    fn on_request(req: Request) -> Action {
+        // API Key Authentication
+        // Check for API key in Authorization header for /api routes
+        if req.path.starts_with("/api") || req.path.starts_with("/v1") {
+            let api_key = find_header_value(&req.headers, "authorization")
+                .and_then(|h| {
+                    h.strip_prefix("Bearer ")
+                        .or_else(|| h.strip_prefix("ApiKey "))
+                        .map(|s| s.to_string())
+                })
+                .or_else(|| find_header_value(&req.headers, "x-api-key"));
+
+            // Reject if API key is missing or invalid
+            if api_key.as_deref() != Some(EXPECTED_API_KEY) {
+                return Action::Reject(401);
+            }
+        }
+
+        // Authentication passed, continue processing
+        Action::Continue
+    }
+}
+
+// Implement on-response interface (empty - not used for auth)
+impl OnResponseGuest for Middleware {
+    fn on_response(_resp: Response) -> Action {
+        Action::Continue
+    }
+}
+
+// Export the component
+export!(Middleware);
+```
+
+이 예제 코드는 `req.path`가 `/api` 또는 `/v1`로 시작하는 요청에 대해 `Authorization` 헤더 또는 `x-api-key` 헤더에서 API 키를 추출하여 검증합니다. 검증에 실패하면 `Action::Reject(401)`을 반환하여 요청을 차단합니다. 이는 WASM 컴포넌트가 요청의 흐름을 제어하는 방식을 잘 보여줍니다.
+
+또한, `sgl-model-gateway/examples/wasm/wasm-guest-logging/src/lib.rs` 파일은 요청 로깅과 상태 코드 변환의 예제를 제공합니다. 이 코드는 요청에 대해 `x-request-id`, `x-wasm-processed`, `x-processed-at` 등의 커스텀 헤더를 추가하고, 응답 상태 코드가 500인 경우 503으로 변환하여 클라이언트에게 더 명확한 오류 정보를 제공합니다.
+
+```rust
+wit_bindgen::generate!({
+    path: "../../../src/wasm/interface",
+    world: "sgl-model_gateway",
+});
+
+use exports::sgl::model_gateway::{
+    middleware_on_request::Guest as OnRequestGuest,
+    middleware_on_response::Guest as OnResponseGuest,
+};
+use sgl::model_gateway::middleware_types::{Action, Header, ModifyAction, Request, Response};
+
+/// Main middleware implementation
+struct Middleware;
+
+// Helper function to create header
+fn create_header(name: &str, value: &str) -> Header {
+    Header {
+        name: name.to_string(),
+        value: value.to_string(),
+    }
+}
+
+// Implement on-request interface
+impl OnRequestGuest for Middleware {
+    fn on_request(req: Request) -> Action {
+        let mut modify_action = ModifyAction {
+            status: None,
+            headers_set: vec![],
+            headers_add: vec![],
+            headers_remove: vec![],
+            body_replace: None,
+        };
+
+        // Request Logging and Tracing
+        // Add tracing headers with request ID
+        modify_action
+            .headers_add
+            .push(create_header("x-request-id", &req.request_id));
+        modify_action
+            .headers_add
+            .push(create_header("x-wasm-processed", "true"));
+        modify_action.headers_add.push(create_header(
+            "x-processed-at",
+            &req.now_epoch_ms.to_string(),
+        ));
+
+        // Add custom header for API requests
+        if req.path.starts_with("/api") || req.path.starts_with("/v1") {
+            modify_action
+                .headers_add
+                .push(create_header("x-api-route", "true"));
+        }
+
+        Action::Modify(modify_action)
+    }
+}
+
+// Implement on-response interface
+impl OnResponseGuest for Middleware {
+    fn on_response(resp: Response) -> Action {
+        // Status code conversion: Convert 500 to 503 for better client handling
+        if resp.status == 500 {
+            let modify_action = ModifyAction {
+                status: Some(503),
+                headers_set: vec![],
+                headers_add: vec![],
+                headers_remove: vec![],
+                body_replace: None,
+            };
+            Action::Modify(modify_action)
+        } else {
+            // No modification needed
+            Action::Continue
+        }
+    }
+}
+
+// Export the component
+export!(Middleware);
+```
+
+이 예제 코드는 `req.request_id` 필드를 사용하여 요청 ID를 추출하고, `req.now_epoch_ms` 필드를 사용하여 현재 시간을 추출합니다. 이는 WASM 컴포넌트가 요청과 응답의 데이터를 수정할 수 있는 방법을 보여줍니다.
+
+## 대안과 비교했을 때의 장단점
+
+SGLang는 vLLM, LightLLM, Guidance, Outlines, LMQL 등의 프로젝트에서 디자인을 학습하고 코드를 재사용했습니다. 이는 SGLang가 기존 프로젝트들의 장점을 통합하여 더 강력한 서빙 프레임워크를 제공하려는 의도를 보여줍니다.
+
+SGLang의 주요 장점은 WASM 기반 확장과 커스텀 라우팅 언어를 통해 높은 유연성과 확장성을 제공한다는 점입니다. 또한, 다양한 하드웨어를 지원하여 배포의 유연성을 높였습니다.
+
+단점으로는, WASM 기반 확장을 위한 학습 곡선이 있을 수 있으며, 커스텀 라우팅 언어의 사용이 초기 설정을 복잡하게 할 수 있다는 점이 있습니다. 또한, 다양한 하드웨어 지원을 위해 각 플랫폼에 대한 최적화가 필요할 수 있습니다.
+
+## 보안·라이선스·도입 시 확인할 점
+
+SGLang는 Apache 2.0 라이선스를 따릅니다. 이는 상업적 사용, 수정, 배포를 허용하는 관대한 라이선스입니다.
+
+WASM 게이트웨이 예제를 통해 API 키 인증, 요청 로깅, 상태 코드 변환 등 보안 및 모니터링 관련 미들웨어 확장이 가능함을 알 수 있습니다. 그러나 제공된 원문 예제들은 단순한 인증 및 로깅 예제일 뿐, 실제 운영 환경에서의 보안 검증이나 신뢰성 검증에 대한 내용은 포함하지 않습니다. 따라서 실제 도입 시에는 추가적인 보안 검증이 필요합니다.
+
+## 한계와 추천 대상
+
+SGLang는 복잡한 에이전트 워크로드, 대규모 서빙, RL 롤아웃이 필요한 프로젝트에 적합합니다. WASM 기반 확장과 커스텀 라우팅 언어를 통해 높은 유연성과 확장성을 요구하는 개발자에게 유용할 수 있습니다.
+
+반면, 단순한 LLM 서빙만 필요한 경우, vLLM이나 LightLLM과 같은 더 가벼운 프레임워크가 적합할 수 있습니다. 또한, WASM 기반 확장을 위한 학습 곡선을 고려해야 합니다.
+
+SGLang를 도입하기 전에, 공식 문서와 Cookbook을 통해 모델 호환성과 설정 방법을 확인하는 것이 좋습니다.
+
+## 출처
+
+- GitHub: [sgl-project/sglang](https://github.com/sgl-project/sglang) — 작성자: sgl-project
+- GitHub: [sgl-project/sglang / LICENSE](https://github.com/sgl-project/sglang/blob/main/LICENSE) — 작성자: sgl-project
+- GitHub: [sgl-project/sglang / sgl-model-gateway/examples/wasm/wasm-guest-auth/src/lib.rs](https://github.com/sgl-project/sglang/blob/main/sgl-model-gateway/examples/wasm/wasm-guest-auth/src/lib.rs) — 작성자: sgl-project
+- GitHub: [sgl-project/sglang / sgl-model-gateway/examples/wasm/wasm-guest-logging/src/lib.rs](https://github.com/sgl-project/sglang/blob/main/sgl-model-gateway/examples/wasm/wasm-guest-logging/src/lib.rs) — 작성자: sgl-project
+- GitHub: [sgl-project/sglang / sgl-model-gateway/examples/wasm/wasm-guest-ratelimit/src/lib.rs](https://github.com/sgl-project/sglang/blob/main/sgl-model-gateway/examples/wasm/wasm-guest-ratelimit/src/lib.rs) — 작성자: sgl-project
+- GitHub: [sgl-project/sglang / docs/docs/references/faq.mdx](https://github.com/sgl-project/sglang/blob/main/docs/docs/references/faq.mdx) — 작성자: sgl-project
+- GitHub: [sgl-project/sglang / docs/docs/supported-models.mdx](https://github.com/sgl-project/sglang/blob/main/docs/docs/supported-models.mdx) — 작성자: sgl-project
