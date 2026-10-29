@@ -1,0 +1,88 @@
+---
+title: "[오픈소스 분석] 분산 시스템의 신뢰를 지키는 etcd"
+publishedAt: "2026-10-29"
+summary: "etcd는 Raft 합의 알고리즘을 기반으로 분산 시스템의 핵심 데이터를 일관성 있게 저장하고 관리하는 고가용성 키-값 저장소입니다."
+tag: "OpenSource"
+---
+
+## 한눈에 보는 프로젝트와 해결하려는 문제
+
+`etcd`는 분산 시스템에서 가장 중요한 데이터를 안전하게 저장하기 위해 설계된 분산 키-값 저장소입니다. 이 프로젝트는 단순한 데이터 저장소를 넘어, 분산 환경에서 발생할 수 있는 데이터 불일치 문제를 해결하는 데 집중합니다. 2013년에 시작된 이 프로젝트는 현재 CNCF(Cloud Native Computing Foundation)의 핵심 프로젝트로, 특히 쿠버네티스(Kubernetes)의 상태 정보를 저장하는 백엔드로 널리 알려져 있습니다.
+
+이 프로젝트는 실행 가능한 서버 애플리케이션이자, Go 언어로 작성된 라이브러리 형태를 모두 갖추고 있습니다. 사용자는 `etcd` 서버를 직접 배포하여 클러스터를 운영하거나, 제공되는 클라이언트 라이브러리를 통해 자신의 애플리케이션에 분산 합의 기능을 통합할 수 있습니다.
+
+## 이해에 필요한 핵심 개념
+
+`etcd`를 이해하기 위해서는 다음 세 가지 개념이 필수적입니다.
+
+1. **Raft 합의 알고리즘**: `etcd`의 핵심 엔진입니다. 여러 노드가 하나의 상태를 공유할 때, 네트워크 장애나 노드 고장 상황에서도 데이터의 일관성을 유지하게 합니다. `go.etcd.io/raft/v3` 패키지를 통해 구현되어 있습니다.
+2. **gRPC API**: 클라이언트와 서버 간의 통신은 gRPC를 기반으로 합니다. `api/etcdserverpb/rpc.proto`에 정의된 인터페이스를 통해 키-값 읽기, 쓰기, 감시(Watch) 등의 작업을 수행합니다.
+3. **MVCC (Multi-Version Concurrency Control)**: `etcd`는 키의 변경 이력을 버전별로 관리합니다. 이를 통해 특정 시점의 데이터를 조회하거나, 데이터 변경 사항을 실시간으로 추적하는 Watch 기능을 효율적으로 제공합니다.
+
+## 저장소 구조와 실제 동작 흐름
+
+저장소는 역할에 따라 명확하게 분리되어 있습니다.
+
+* `api/`: gRPC 정의 파일(`.proto`)과 생성된 Go 코드가 위치합니다. 외부 애플리케이션이 `etcd`와 통신하기 위한 계약서 역할을 합니다.
+* `server/`: `etcd` 서버의 핵심 로직이 담겨 있습니다. `server/main.go`는 진입점이며, 실제 서버 구동은 `etcdmain` 패키지를 통해 이루어집니다.
+* `etcdctl/`: 사용자가 명령줄에서 서버를 제어할 수 있게 돕는 도구입니다. `etcdctl/main.go`를 통해 `ctlv3` 패키지를 호출합니다.
+* `cache/`: 최근 추가된 컴포넌트로, 성능 향상을 위해 데이터를 메모리에 캐싱하는 로직을 담고 있습니다. `cache/cache.go`를 보면 gRPC 프록시와는 호환되지 않는다는 제약 사항이 명시되어 있습니다.
+
+동작 흐름은 클라이언트가 `etcdctl`이나 라이브러리를 통해 요청을 보내면, 서버의 gRPC 엔드포인트가 이를 수신하고, Raft 알고리즘을 통해 클러스터 내 다른 노드들과 합의를 거친 뒤, 최종적으로 `bbolt` 저장소에 데이터를 기록하는 방식입니다.
+
+## 구체적인 예제로 보는 설계 선택
+
+`cache/cache.go`에 구현된 캐시 로직은 `etcd`가 성능 최적화를 위해 어떤 고민을 하는지 보여줍니다.
+
+```go
+// Note: gRPC proxy is not supported. Cache relies on RequestProgress RPCs,
+// which the gRPC proxy does not forward.
+func New(client *clientv3.Client, prefix string, opts ...Option) (*Cache, error) {
+    // ... 설정 검증 및 초기화
+}
+```
+
+이 코드는 특정 기능을 구현할 때 인프라 구성(gRPC 프록시 사용 여부)에 따라 제약이 발생할 수 있음을 명확히 문서화하고 있습니다. 이는 `etcd`가 단순한 기능 구현을 넘어, 분산 시스템의 복잡한 네트워크 토폴로지 속에서 발생할 수 있는 부작용을 사전에 경고하는 설계 철학을 가지고 있음을 보여줍니다.
+
+## 대안과 비교했을 때의 장단점
+
+`etcd`는 `ZooKeeper`나 `Consul`과 자주 비교됩니다.
+
+* **etcd vs ZooKeeper**: `etcd`는 gRPC와 HTTP/2를 기본으로 사용하여 현대적인 API 환경에 더 적합합니다. 반면 `ZooKeeper`는 Java 기반으로 오랜 기간 검증된 안정성을 자랑하지만, API 사용성이 상대적으로 복잡하다는 평가를 받습니다.
+* **etcd vs Consul**: `Consul`은 서비스 디스커버리와 상태 체크 기능이 내장되어 있어 마이크로서비스 아키텍처에 특화되어 있습니다. `etcd`는 순수하게 '신뢰할 수 있는 데이터 저장'이라는 본연의 기능에 더 집중합니다.
+
+`etcd`의 가장 큰 장점은 쿠버네티스와의 강력한 결합도와 Raft 알고리즘의 직관적인 구현입니다. 단점으로는 클러스터 구성과 운영이 다소 까다로우며, 대규모 데이터 저장보다는 메타데이터와 같은 '핵심 데이터' 저장에 최적화되어 있다는 점입니다.
+
+## 보안·라이선스·도입 시 확인할 점
+
+* **라이선스**: `Apache-2.0` 라이선스를 따르며, 상업적 이용과 수정이 자유롭습니다.
+* **보안**: `THREAT_MODEL.md`를 통해 보안 위협을 관리하고 있습니다. 클라이언트 인증을 위한 TLS 설정이 필수적이며, `api/authpb`를 통해 권한 관리를 지원합니다.
+* **도입 시 주의**: `README.md`에서 언급하듯 `main` 브랜치는 불안정할 수 있습니다. 반드시 `release` 페이지에서 안정화된 버전을 선택해야 합니다. 또한, `etcd`는 디스크 I/O 성능에 매우 민감하므로 운영 환경에서는 고성능 SSD 사용이 권장됩니다.
+
+## 한계와 추천 대상
+
+`etcd`는 일반적인 데이터베이스처럼 수 테라바이트의 데이터를 저장하는 용도가 아닙니다. 데이터 크기가 커질수록 성능이 급격히 저하될 수 있습니다.
+
+* **추천 대상**: 쿠버네티스 클러스터를 운영하거나, 분산 락(Distributed Lock), 서비스 디스커버리, 설정 관리 등 일관성이 보장되어야 하는 핵심 메타데이터를 다루는 시스템을 구축하는 개발자.
+* **부적합한 경우**: 단순한 캐시 저장소, 대용량 로그 저장, 복잡한 쿼리가 필요한 관계형 데이터베이스가 필요한 경우.
+
+이 프로젝트는 분산 시스템의 복잡성을 이해하고, 데이터의 신뢰성을 최우선으로 하는 엔지니어에게 훌륭한 학습 자료이자 강력한 도구가 될 것입니다.
+
+---
+**출처:**
+- [etcd GitHub Repository](https://github.com/etcd-io/etcd)
+- [etcd README.md](https://github.com/etcd-io/etcd/blob/main/README.md)
+- [etcd LICENSE](https://github.com/etcd-io/etcd/blob/main/LICENSE)
+- [etcd cache/cache.go](https://github.com/etcd-io/etcd/blob/main/cache/cache.go)
+- [etcd go.mod](https://github.com/etcd-io/etcd/blob/main/go.mod)
+
+## 출처
+
+- GitHub: [etcd-io/etcd](https://github.com/etcd-io/etcd) — 작성자: etcd-io
+- GitHub: [etcd-io/etcd / LICENSE](https://github.com/etcd-io/etcd/blob/main/LICENSE) — 작성자: etcd-io
+- GitHub: [etcd-io/etcd / Dockerfile](https://github.com/etcd-io/etcd/blob/main/Dockerfile) — 작성자: etcd-io
+- GitHub: [etcd-io/etcd / go.mod](https://github.com/etcd-io/etcd/blob/main/go.mod) — 작성자: etcd-io
+- GitHub: [etcd-io/etcd / CONTRIBUTING.md](https://github.com/etcd-io/etcd/blob/main/CONTRIBUTING.md) — 작성자: etcd-io
+- GitHub: [etcd-io/etcd / cache/cache.go](https://github.com/etcd-io/etcd/blob/main/cache/cache.go) — 작성자: etcd-io
+- GitHub: [etcd-io/etcd / server/main.go](https://github.com/etcd-io/etcd/blob/main/server/main.go) — 작성자: etcd-io
+- GitHub: [etcd-io/etcd / etcdctl/main.go](https://github.com/etcd-io/etcd/blob/main/etcdctl/main.go) — 작성자: etcd-io
