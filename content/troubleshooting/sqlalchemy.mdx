@@ -1,0 +1,67 @@
+---
+title: "[오픈소스 분석] SQLAlchemy 데이터베이스 툴킷"
+publishedAt: "2026-10-30"
+summary: "파이썬 환경에서 데이터베이스와의 상호작용을 추상화하고 객체-관계 매핑(ORM)을 제공하는 데이터베이스 툴킷 라이브러리입니다."
+tag: "OpenSource"
+---
+
+## 한눈에 보는 프로젝트와 해결하려는 문제
+
+SQLAlchemy는 파이썬 애플리케이션 개발자가 SQL 데이터베이스를 효율적으로 다룰 수 있도록 돕는 데이터베이스 툴킷이자 ORM(Object Relational Mapper)입니다. 이 프로젝트는 데이터베이스의 관계형 구조와 파이썬의 객체 지향 모델 사이의 불일치(Impedance Mismatch)를 해결하는 것을 목표로 합니다. 개발자가 SQL을 직접 작성하는 대신 파이썬 코드로 데이터베이스 스키마를 정의하고 쿼리를 생성할 수 있게 하여, 데이터베이스 종류에 구애받지 않는 일관된 인터페이스를 제공합니다.
+
+## 이해에 필요한 핵심 개념
+
+SQLAlchemy의 동작을 이해하기 위해서는 다음 두 가지 핵심 개념이 중요합니다.
+
+1. **SQLAlchemy Core**: ORM과 분리된 데이터베이스 추상화 계층입니다. `lib/sqlalchemy/sql/type_api.py`에 정의된 `TypeEngine`과 같은 클래스들을 통해 데이터베이스의 데이터 타입을 파이썬 타입으로 매핑하고, SQL 표현식을 파이썬 객체로 구성할 수 있게 합니다.
+2. **이벤트 시스템(Event System)**: `lib/sqlalchemy/event/api.py`에서 제공하는 시스템으로, 데이터베이스 연결, 매핑 설정, 데이터 변경 등 특정 시점에 사용자 정의 로직을 실행할 수 있습니다. 예를 들어, `listens_for` 데코레이터를 사용하여 특정 이벤트에 반응하는 리스너를 등록할 수 있습니다.
+
+```python
+# lib/sqlalchemy/event/api.py의 listens_for 예시
+@event.listens_for(Mapper, "before_configure", once=True)
+def on_config():
+    do_config()
+```
+
+## 저장소 구조와 실제 동작 흐름
+
+저장소는 크게 `lib/sqlalchemy/` 하위의 소스 코드와 `doc/` 하위의 문서로 구성됩니다. `lib/sqlalchemy/` 내부는 데이터베이스 연결을 관리하는 `engine`, SQL 표현식을 생성하는 `sql`, 그리고 ORM 기능을 담당하는 `orm` 모듈 등으로 나뉩니다. 사용자가 쿼리를 실행하면 `engine`을 통해 DBAPI와 통신하며, `sql` 모듈의 컴파일러가 파이썬 표현식을 해당 데이터베이스 방언(Dialect)에 맞는 SQL 문자열로 변환합니다.
+
+## 구체적인 예제로 보는 설계 선택
+
+`lib/sqlalchemy/sql/type_api.py`의 `TypeEngine` 클래스는 데이터베이스 타입 시스템의 기초를 제공합니다. 이 클래스는 `adapt` 메서드를 통해 특정 데이터베이스 방언에 맞는 타입 구현체를 반환하는 구조를 취합니다. 이는 데이터베이스마다 다른 데이터 타입 처리 방식을 추상화하여, 개발자가 `String`이나 `Integer`와 같은 공통 타입을 사용하더라도 실제 데이터베이스에서는 해당 DB에 최적화된 타입으로 변환되도록 설계된 것입니다.
+
+```python
+# lib/sqlalchemy/sql/type_api.py의 adapt 메서드 예시
+def adapt(
+    self, cls: Type[Union[TypeEngine[Any], TypeEngineMixin]], **kw: Any
+) -> TypeEngine[Any]:
+    return super().adapt(cls, **kw)
+```
+
+## 대안과 비교했을 때의 장단점
+
+SQLAlchemy는 Django ORM과 자주 비교됩니다. Django ORM은 프레임워크와 강력하게 결합되어 있어 생산성이 높지만, SQLAlchemy는 독립적인 라이브러리로서 어떤 파이썬 프레임워크와도 결합할 수 있는 유연성을 가집니다. 또한, SQLAlchemy는 SQL 표현식 언어(Core)를 별도로 제공하여 ORM을 사용하지 않고도 복잡한 쿼리를 파이썬 객체로 안전하게 작성할 수 있다는 장점이 있습니다. 반면, Django ORM에 비해 초기 설정이 다소 복잡할 수 있습니다.
+
+## 보안·라이선스·도입 시 확인할 점
+
+SQLAlchemy는 MIT 라이선스를 따르며, 상업적 이용을 포함한 광범위한 자유를 허용합니다. 도입 시에는 `pyproject.toml`에 명시된 의존성(예: `greenlet`, `typing-extensions`)과 사용하려는 데이터베이스 드라이버(psycopg, mysqlclient 등)의 호환성을 확인해야 합니다. 보안 측면에서는 사용자 입력값을 쿼리에 직접 삽입하지 않도록 설계된 바인드 파라미터 방식을 적극적으로 활용하여 데이터베이스 상호작용의 안전성을 확보해야 합니다.
+
+## 한계와 추천 대상
+
+SQLAlchemy는 복잡한 데이터베이스 스키마를 다루거나, 여러 데이터베이스를 지원해야 하는 대규모 애플리케이션에 적합합니다. 그러나 단순히 간단한 CRUD 작업만 필요한 소규모 프로젝트라면 학습 곡선이 높게 느껴질 수 있습니다. 데이터베이스의 관계형 특성을 깊이 이해하고 제어하고자 하는 개발자에게는 강력한 도구이지만, ORM이 모든 데이터베이스 문제를 자동으로 해결해주길 기대하는 사용자에게는 적합하지 않을 수 있습니다.
+
+출처:
+- https://github.com/sqlalchemy/sqlalchemy/blob/main/README.rst
+- https://github.com/sqlalchemy/sqlalchemy/blob/main/LICENSE
+- https://github.com/sqlalchemy/sqlalchemy/blob/main/pyproject.toml
+- https://github.com/sqlalchemy/sqlalchemy/blob/main/lib/sqlalchemy/event/api.py
+- https://github.com/sqlalchemy/sqlalchemy/blob/main/lib/sqlalchemy/sql/type_api.py
+
+## 출처
+
+- GitHub: [sqlalchemy/sqlalchemy](https://github.com/sqlalchemy/sqlalchemy) — 작성자: sqlalchemy
+- GitHub: [sqlalchemy/sqlalchemy / LICENSE](https://github.com/sqlalchemy/sqlalchemy/blob/main/LICENSE) — 작성자: sqlalchemy
+- GitHub: [sqlalchemy/sqlalchemy / pyproject.toml](https://github.com/sqlalchemy/sqlalchemy/blob/main/pyproject.toml) — 작성자: sqlalchemy
+- GitHub: [sqlalchemy/sqlalchemy / lib/sqlalchemy/event/api.py](https://github.com/sqlalchemy/sqlalchemy/blob/main/lib/sqlalchemy/event/api.py) — 작성자: sqlalchemy
+- GitHub: [sqlalchemy/sqlalchemy / lib/sqlalchemy/sql/type_api.py](https://github.com/sqlalchemy/sqlalchemy/blob/main/lib/sqlalchemy/sql/type_api.py) — 작성자: sqlalchemy
