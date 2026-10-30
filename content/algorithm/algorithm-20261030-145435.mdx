@@ -1,0 +1,89 @@
+---
+title: "[코딩테스트] 행렬 내 행최소 열최대 요소 찾기"
+publishedAt: "2026-10-30"
+summary: "행렬에서 각 행의 최솟값이자 각 열의 최댓값인 행운의 숫자를 찾는 알고리즘을 구현한다."
+tag: "Algorithm"
+---
+
+## 문제
+
+주어진 `m x n` 크기의 행렬에서 행운의 숫자를 모두 찾아 반환한다. 행운의 숫자는 해당 행에서 최솟값이면서 동시에 해당 열에서 최댓값인 원소를 의미한다. 행렬의 모든 원소는 서로 다르며, 반환 순서는 상관없다. 제약 조건으로 행과 열의 크기는 최대 50, 원소의 값은 10^5 이하이다.
+
+## 접근 방법
+
+행운의 숫자는 '행의 최솟값'과 '열의 최댓값'이라는 두 가지 조건을 동시에 만족해야 한다. 이를 효율적으로 찾기 위해 먼저 각 열의 최댓값을 미리 계산하여 저장해 둔다. 이후 각 행을 순회하며 행의 최솟값을 찾는다. 찾은 최솟값이 해당 열의 미리 계산된 최댓값과 일치하면, 그 원소는 행운의 숫자이다. 이 방식으로 각 원소를 두 번 이상 반복해서 순회하지 않고 조건을 검증할 수 있다.
+
+## 풀이
+
+먼저 각 열의 최댓값을 `col_maxs` 배열에 저장한다. 이 과정은 각 열을 순회하며 최대값을 찾는 방식으로 수행한다. 그 후 각 행을 순회하며 행의 최솟값을 찾는다. 행의 최솟값을 찾으면, 해당 원소가 속한 열의 최댓값(`col_maxs`)과 비교한다. 두 값이 일치하면 행운의 숫자이므로 결과 리스트에 추가한다.
+
+```python
+def luckyNumbers(matrix):
+    lucky_numbers = []
+    rows = len(matrix)
+    cols = len(matrix[0])
+    
+    # 각 열의 최댓값을 미리 계산하여 저장
+    # 각 열 j에 대해 모든 행 i의 matrix[i][j] 중 최댓값을 찾음
+    col_maxs = [max(matrix[i][j] for i in range(rows)) for j in range(cols)]
+    
+    # 각 행을 순회하며 최솟값을 찾고 조건 확인
+    for i in range(rows):
+        # 현재 행의 최솟값 찾기
+        row_min = min(matrix[i])
+        
+        # 행의 최솟값이 속한 열의 인덱스 찾기
+        col_index = matrix[i].index(row_min)
+        
+        # 행의 최솟값이 해당 열의 최댓값과 일치하는지 확인
+        if col_maxs[col_index] == row_min:
+            lucky_numbers.append(row_min)
+            
+    return lucky_numbers
+```
+
+시간복잡도: 각 열의 최댓값을 계산하는 데 $O(m \times n)$이 소요된다. 각 행의 최솟값을 찾고 해당 열의 최댓값과 비교하는 데 $O(m \times n)$이 소요되므로 전체 시간복잡도는 $O(m \times n)$이다.
+공간복잡도: 열의 최댓값을 저장하는 배열 `col_maxs`에 $O(n)$의 공간이 소요된다.
+
+## 다른 풀이 방법
+
+행의 최솟값을 먼저 계산하여 `row_mins` 배열에 저장한 후, 각 열의 최댓값을 확인하는 방식도 가능하다. 이 경우에도 각 원소를 한 번씩 순회하며 조건을 검증하므로 시간복잡도는 $O(m \times n)$이다.
+
+```python
+def luckyNumbers(matrix):
+    lucky_numbers = []
+    rows = len(matrix)
+    cols = len(matrix[0])
+    
+    # 각 행의 최솟값을 미리 계산하여 저장
+    row_mins = [min(row) for row in matrix]
+    
+    # 각 열을 순회하며 최댓값을 찾고 조건 확인
+    for j in range(cols):
+        # 현재 열의 최댓값 찾기
+        col_max = max(matrix[i][j] for i in range(rows))
+        
+        # 열의 최댓값이 속한 행의 인덱스 찾기
+        row_index = -1
+        for i in range(rows):
+            if matrix[i][j] == col_max:
+                row_index = i
+                break
+        
+        # 열의 최댓값이 해당 행의 최솟값과 일치하는지 확인
+        if row_mins[row_index] == col_max:
+            lucky_numbers.append(col_max)
+            
+    return lucky_numbers
+```
+
+시간복잡도: 각 행의 최솟값을 계산하는 데 $O(m \times n)$, 각 열의 최댓값을 찾고 해당 행의 최솟값과 비교하는 데 $O(m \times n)$이 소요되므로 전체 $O(m \times n)$이다.
+공간복잡도: 행의 최솟값을 저장하는 배열에 $O(n)$의 공간이 소요된다.
+
+## 추가 참고사항
+
+문제에서 모든 원소가 서로 다르다고 명시했으므로, 동일한 행이나 열 내에 최솟값이나 최댓값이 중복으로 존재하는 경우는 고려하지 않아도 된다. 만약 원소가 중복될 경우, '최솟값'의 정의가 명확하지 않을 수 있으므로 주의가 필요하다. 현재 접근 방식은 제약 조건 내에서 안정적으로 동작하며, 코드의 가독성을 위해 리스트 컴프리헨션을 활용하여 코드를 간결하게 작성할 수 있다.
+
+## 출처
+
+- LeetCode: [LeetCode 1380 - Lucky Numbers in a Matrix](https://leetcode.com/problems/lucky-numbers-in-a-matrix/)
