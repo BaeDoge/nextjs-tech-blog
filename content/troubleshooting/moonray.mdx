@@ -1,0 +1,93 @@
+---
+title: "[오픈소스 분석] 드림웍스의 프로덕션 패스 트레이싱 렌더러 MoonRay"
+publishedAt: "2026-10-31"
+summary: "OpenMoonRay는 드림웍스 애니메이션이 개발하고 아카데미 소프트웨어 재단(ASWF)에서 관리하는 고성능 프로덕션급 패스 트레이싱 렌더러입니다."
+tag: "OpenSource"
+---
+
+## 한눈에 보는 프로젝트와 해결하려는 문제
+
+OpenMoonRay는 영화 및 애니메이션 제작 파이프라인에서 요구하는 복잡한 시각 효과를 효율적으로 렌더링하기 위해 설계된 오픈소스 패스 트레이싱 렌더러입니다. 이 프로젝트는 단순한 렌더링 엔진을 넘어, 대규모 스튜디오의 제작 환경에서 검증된 물리 기반 재질 시스템, USD(Universal Scene Description) Hydra 렌더 델리게이트, 그리고 로컬 및 클라우드 기반의 분산 렌더링 기능을 제공합니다.
+
+주요 해결 과제는 고품질의 이미지를 생성하면서도, 아티스트가 작업하는 동안 실시간에 가까운 피드백을 제공하고, 최종 렌더링 단계에서는 대규모 팜(Farm)을 활용해 확장성 있는 성능을 내는 것입니다. CPU와 GPU(XPU)를 모두 활용하는 하이브리드 렌더링 아키텍처를 통해 하드웨어 자원을 효율적으로 사용하는 것을 목표로 합니다.
+
+## 이해에 필요한 핵심 개념
+
+OpenMoonRay를 이해하기 위해서는 다음의 핵심 아키텍처 개념이 필수적입니다.
+
+1. **RDL2 (Renderer Description Language 2):** MoonRay의 핵심 데이터 구조입니다. 렌더링에 필요한 장면 데이터, 재질, 조명 정보를 정의하며, `rdl2dso` 경로를 통해 동적 라이브러리(DSO) 형태로 로드됩니다.
+2. **USD Hydra Render Delegate:** OpenMoonRay는 USD 생태계와 긴밀하게 통합되어 있습니다. `moonray/hydra/` 경로에 위치한 렌더 델리게이트는 USD 장면을 MoonRay가 이해할 수 있는 RDL2 객체로 변환하여 렌더링을 수행합니다.
+3. **Arras:** `arras/` 디렉토리에 위치한 분산 컴퓨팅 프레임워크입니다. 여러 노드에 걸쳐 렌더링 작업을 분산하고 관리하는 역할을 수행하며, 대규모 프로덕션 환경에서의 확장성을 담당합니다.
+4. **XPU (Hybrid GPU Rendering):** CPU의 유연성과 GPU의 병렬 처리 능력을 결합한 렌더링 모드입니다. `package.py`에서 확인할 수 있듯이 CUDA 및 OptiX와 같은 기술 스택을 활용하여 성능을 최적화합니다.
+
+## 저장소 구조와 실제 동작 흐름
+
+저장소는 모듈화된 구조를 띄고 있으며, `git submodule`을 통해 여러 하위 저장소를 관리합니다.
+
+* `moonray/`: 렌더러의 핵심 엔진 코드가 위치합니다.
+* `arras/`: 분산 렌더링을 위한 통신 및 세션 관리 프레임워크입니다.
+* `building/`: 다양한 플랫폼(Rocky9, macOS)별 빌드 설정과 의존성 패치 파일이 포함되어 있습니다.
+* `testdata/`: 렌더링 테스트를 위한 `.rdla` 및 `.usd` 샘플 파일이 저장되어 있습니다.
+
+동작 흐름은 일반적으로 사용자가 `run_arras_render`와 같은 스크립트를 통해 렌더링 세션을 시작하면, Arras가 노드를 할당하고, Hydra 델리게이트가 USD 데이터를 RDL2로 변환하여 엔진에 전달하는 방식으로 진행됩니다. `package.py`는 `Rez` 패키지 관리자를 사용하여 필요한 의존성(Boost, Embree, OpenVDB 등)을 구성합니다.
+
+## 구체적인 예제로 보는 설계 선택
+
+`package.py`를 살펴보면 이 프로젝트가 복잡한 의존성 관리를 어떻게 해결하는지 알 수 있습니다.
+
+```python
+variants = [
+    [
+        'os-rocky-9',
+        'refplat-vfx2025.0',
+        'usd_core-0.25.5.1.x',
+        'openimageio-3.0',
+        'gcc-11.x',
+        'openvdb-12.1.1.0',
+        'zlib-1.2.11.x'
+    ],
+    # ... 추가 변형들
+]
+```
+
+이 코드는 특정 VFX 플랫폼(VFX Reference Platform) 버전에 맞춰 의존성을 엄격하게 관리하고 있음을 보여줍니다. 이는 프로덕션 환경에서 소프트웨어 버전 간 충돌을 방지하기 위한 필수적인 설계 선택입니다. 또한 `building/macOS/` 아래의 다양한 `.patch` 파일들은 외부 라이브러리(Embree, OpenVDB 등)를 macOS 환경에 맞게 조정하기 위한 것으로, 이식성을 높이기 위한 노력을 엿볼 수 있습니다.
+
+## 대안과 비교했을 때의 장단점
+
+OpenMoonRay는 Pixar의 RenderMan이나 Solid Angle의 Arnold와 같은 상용 렌더러와 유사한 프로덕션급 기능을 제공합니다.
+
+* **장점:** 드림웍스에서 실제 장편 애니메이션 제작에 사용된 검증된 코드베이스이며, Apache 2.0 라이선스를 통해 자유로운 수정과 배포가 가능합니다. 특히 USD 및 Hydra와의 강력한 통합은 현대적인 파이프라인 구축에 매우 유리합니다.
+* **단점:** 상용 렌더러에 비해 사용자 친화적인 GUI 도구가 부족할 수 있으며, 빌드 과정이 매우 복잡합니다. `package.py`와 `Rez` 패키지 관리자에 대한 의존도가 높아, 이를 사용하지 않는 일반 사용자에게는 초기 설정 장벽이 매우 높습니다.
+
+## 보안·라이선스·도입 시 확인할 점
+
+* **보안:** `SECURITY.md`에 따르면, MoonRay는 사용자로부터 제공받은 `.rdla` 파일(Lua 기반)과 플러그인을 실행합니다. 이는 임의 코드 실행 위험을 내포하므로, 신뢰할 수 없는 소스의 파일을 로드하지 않도록 주의해야 합니다.
+* **라이선스:** Apache License 2.0을 따르며, 이는 상업적 이용과 수정이 자유롭지만, 기여 시 CLA(Contributor License Agreement)를 서명해야 합니다.
+* **도입 시:** `building/` 디렉토리의 가이드를 따라 빌드 환경을 먼저 구축해야 합니다. 특히 `Rocky9` 환경이 공식적으로 가장 잘 지원되므로, 리눅스 환경에서의 도입을 우선 고려하는 것이 좋습니다.
+
+## 한계와 추천 대상
+
+OpenMoonRay는 개인 프로젝트보다는 대규모 파이프라인을 구축하려는 스튜디오나, 렌더링 엔진의 내부 구조를 깊이 있게 연구하고자 하는 그래픽스 엔지니어에게 적합합니다.
+
+* **한계:** 일반적인 3D 모델링 툴(Blender, Maya 등)의 플러그인처럼 쉽게 설치하여 사용하는 도구가 아닙니다. 렌더링 파이프라인에 대한 깊은 이해와 시스템 구축 능력이 요구됩니다.
+* **추천 대상:** 
+    1. 자체적인 렌더링 파이프라인을 구축하려는 VFX 스튜디오.
+    2. 프로덕션급 패스 트레이서의 아키텍처를 연구하고 싶은 그래픽스 연구자.
+    3. USD 기반의 렌더링 워크플로우를 고도화하려는 기술 감독(TD).
+
+---
+**출처:**
+- [OpenMoonRay GitHub Repository](https://github.com/OpenMoonRay/openmoonray)
+- [README.md](https://github.com/OpenMoonRay/openmoonray/blob/main/README.md)
+- [SECURITY.md](https://github.com/OpenMoonRay/openmoonray/blob/main/SECURITY.md)
+- [CONTRIBUTING.md](https://github.com/OpenMoonRay/openmoonray/blob/main/CONTRIBUTING.md)
+- [package.py](https://github.com/OpenMoonRay/openmoonray/blob/main/package.py)
+
+## 출처
+
+- GitHub: [OpenMoonRay/openmoonray](https://github.com/OpenMoonRay/openmoonray) — 작성자: OpenMoonRay
+- GitHub: [OpenMoonRay/openmoonray / LICENSE](https://github.com/OpenMoonRay/openmoonray/blob/main/LICENSE) — 작성자: OpenMoonRay
+- GitHub: [OpenMoonRay/openmoonray / SECURITY.md](https://github.com/OpenMoonRay/openmoonray/blob/main/SECURITY.md) — 작성자: OpenMoonRay
+- GitHub: [OpenMoonRay/openmoonray / CONTRIBUTING.md](https://github.com/OpenMoonRay/openmoonray/blob/main/CONTRIBUTING.md) — 작성자: OpenMoonRay
+- GitHub: [OpenMoonRay/openmoonray / package.py](https://github.com/OpenMoonRay/openmoonray/blob/main/package.py) — 작성자: OpenMoonRay
+- GitHub: [OpenMoonRay/openmoonray / building/macOS/houdini-usd-fixes/pxr/usd/sdf/childrenProxy.h](https://github.com/OpenMoonRay/openmoonray/blob/main/building/macOS/houdini-usd-fixes/pxr/usd/sdf/childrenProxy.h) — 작성자: OpenMoonRay
