@@ -1,0 +1,103 @@
+---
+title: "[오픈소스 분석] Git 시각화 학습 도구 분석"
+publishedAt: "2026-10-30"
+summary: "Git의 브랜치 및 커밋 구조를 시각적으로 보여주는 클라이언트 사이드 기반 인터랙티브 학습 플랫폼"
+tag: "OpenSource"
+---
+
+## 한눈에 보는 프로젝트와 해결하려는 문제
+
+`pcottle/learnGitBranching`은 Git 저장소의 내부 구조를 시각화하고, 이를 기반으로 한 인터랙티브 튜토리얼과 샌드박스 환경을 제공하는 **학습용 시뮬레이션 도구**입니다.
+
+Git은 명령줄 인터페이스(CLI)를 통해 작동하므로, 커밋(Commit), 브랜치(Branch), 태그(Tag) 등의 추상적인 개념이 실제 저장소의 상태에 어떻게 반영되는지 직관적으로 파악하기 어렵습니다. 특히 브랜치가 단순히 파일이 아닌 '커밋을 가리키는 포인터'이며, 원격 저장소(Remote)와의 동기화 상태가 로컬에 어떻게 저장되는지 이해하는 것은 초보자에게 큰 장벽입니다. 이 프로젝트는 이러한 '보이지 않는 상태'를 시각적으로 보여줌으로써, 사용자가 명령어를 입력할 때마다 커밋 트리가 실시간으로 업데이트되는 피드백을 제공합니다.
+
+주요 해결 과제는 다음과 같습니다.
+1. **추상적 개념의 구체화:** Git의 데이터 모델(커밋 그래프, 포인터 이동)을 시각적으로 표현하여 학습 곡도를 낮춥니다.
+2. **실패 없는 실험 환경:** 실제 프로젝트에 영향을 주지 않는 샌드박스 모드에서 `undo`, `reset` 등을 자유롭게 실험할 수 있습니다.
+3. **단계별 학습 경로:** 난이도별 레벨(Level)을 통해 기본 커밋부터 원격 저장소 충돌 해결, 리베이스(Rebase) 등 고급 워크플로우까지 체계적으로 습득할 수 있습니다.
+
+## 이해에 필요한 핵심 개념
+
+이 프로젝트를 효과적으로 활용하고 그 구조를 이해하기 위해서는 Git의 데이터 모델과 프로젝트의 아키텍처적 특징을 알아야 합니다.
+
+### 1. Git의 데이터 모델 (Commit, Branch, Tag)
+이 애플리케이션은 실제 Git 저장소를 조작하는 것이 아니라, JavaScript 객체로 Git의 데이터 모델을 재현합니다.
+*   **Commit:** 부모 커밋을 참조하는 노드로, 그래프의 정점(Vertex)에 해당합니다.
+*   **Branch:** 특정 커밋을 가리키는 레이블로, 그래프의 포인터에 해당합니다.
+*   **Remote Tracking Branch:** 로컬에 저장된 원격 저장소의 상태를 나타내는 가상의 브랜치(예: `o/main`)입니다. 이는 로컬과 원격의 상태 차이를 시각적으로 비교하는 데 핵심적인 개념입니다.
+
+### 2. 레벨(Level) 기반 학습 구조
+학습은 `src/levels` 폴더에 정의된 JSON 데이터에 의해 제어됩니다. 각 레벨은 시작 상태(`startTree`), 목표 상태(`goalTreeString`), 힌트 등을 포함합니다. 시스템은 사용자의 명령어 입력에 따라 상태를 갱신하고, 현재 상태와 목표 상태를 비교하여 성공 여부를 판정합니다.
+
+### 3. 클라이언트 사이드 실행
+이 프로젝트는 백엔드 데이터베이스나 AJAX 요청 없이 100% 클라이언트 사이드에서 실행됩니다. 이는 배포의 단순성(GitHub Pages 정적 호환)과 프라이버시 보호라는 장점을 가집니다.
+
+## 저장소 구조와 실제 동작 흐름
+
+저장소는 '엔진', 'UI', '학습 콘텐츠', '빌드 도구'로 구성됩니다.
+
+### 주요 폴더 및 파일
+*   **`src/js/git/`**: Git 엔진의 핵심 로직이 위치합니다. `commands.js`는 명령어 실행을, `index.js`는 Git 객체(Commit, Branch 등)의 생성과 관리를 담당합니다.
+*   **`src/js/models/`**: `collections.js`를 통해 커밋, 브랜치, 태그 등 Git 객체들을 관리하는 모델을 정의합니다.
+*   **`src/levels/`**: 학습 콘텐츠가 JSON 형식으로 저장됩니다.
+*   **`__tests__/`**: `jasmine`을 사용한 테스트 스위트가 위치하며, `git.spec.js` 등을 통해 엔진 로직을 검증합니다.
+
+### 동작 흐름
+1. **초기화**: `index.html` 로드 시 Vite가 번들링된 JS를 실행합니다.
+2. **명령어 처리**: 사용자가 입력한 명령어는 `src/js/git/commands.js`를 통해 처리되며, `src/js/models/collections.js`에 정의된 데이터 모델을 갱신합니다.
+3. **시각화**: 상태 변경에 따라 UI 뷰가 커밋 트리를 다시 그립니다.
+4. **판정**: 레벨 모드인 경우, 현재 트리가 `goalTreeString`과 일치하는지 비교하여 성공 여부를 판정합니다.
+
+## 구체적인 예제로 보는 설계 선택
+
+`src/levels/remote/lockedMain.js` 파일을 통해 프로젝트의 레벨 설계 방식을 살펴봅니다.
+
+```javascript
+exports.level = {
+  "goalTreeString": "{\"branches\":{\"main\":{\"target\":\"C1\",...},...},...}",
+  "startTree": "{\"branches\":{\"main\":{\"target\":\"C2\",...},...},...}",
+  "hint": { ... }
+};
+```
+
+*   **JSON 기반 레벨 정의**: 레벨의 시작과 목표 상태를 JSON으로 저장하여, 별도의 로직 수정 없이 데이터 구조 변경만으로 학습 콘텐츠를 확장할 수 있습니다.
+*   **상태 기반 검증**: 시스템은 사용자가 입력한 명령어를 통해 변형된 트리 상태가 `goalTreeString`과 일치하는지 확인합니다. 이는 특정 명령어만을 강제하는 것이 아니라, 결과적으로 동일한 상태에 도달하는 다양한 경로를 허용하는 유연한 설계입니다.
+
+## 대안과 비교했을 때의 장단점
+
+| 비교 항목 | LearnGitBranching | 단순 시각화 사이트 | IDE 플러그인 |
+| :--- | :--- | :--- | :--- |
+| **상호작용성** | 높음 (명령어 입력) | 낮음 (애니메이션) | 중간 (IDE 종속) |
+| **학습 구조** | 체계적 (레벨/힌트) | 없음 | 없음 |
+| **실행 환경** | 브라우저 (설치 불필요) | 브라우저 | IDE 설치 필요 |
+
+*   **장점**: 브라우저만 있으면 즉시 실행 가능하며, 사용자가 직접 학습 콘텐츠를 생성하고 공유할 수 있는 레벨 빌더 기능을 제공합니다.
+*   **단점**: 실제 파일 시스템을 다루지 않으므로 파일 단위의 변경 사항 확인은 불가능하며, 프로젝트 내 레거시 라이브러리 의존성이 존재합니다.
+
+## 보안·라이선스·도입 시 확인할 점
+
+*   **라이선스**: MIT License를 따르므로 상업적 사용 및 수정이 자유롭습니다.
+*   **보안**: 백엔드가 없는 클라이언트 사이드 앱이므로 서버 측 보안 위험은 없습니다. 다만, `package.json`에 포함된 의존성 라이브러리들의 보안 취약점 여부는 정기적으로 확인해야 합니다.
+*   **도입 시**: 프로젝트는 `yarn`을 패키지 관리자로 사용하며, `node` 엔진 버전을 명시하고 있습니다. 빌드 환경의 일관성을 위해 `package.json`에 정의된 `engines` 설정을 준수해야 합니다.
+
+## 한계와 추천 대상
+
+*   **한계**: 실제 파일 시스템을 다루지 않으므로 `.gitignore`나 실제 파일 변경 사항은 학습할 수 없습니다. 또한, 레거시 라이브러리 사용으로 인해 최신 웹 기술 스택과의 통합이 어려울 수 있습니다.
+*   **추천 대상**: Git의 원리를 시각적으로 이해하고 싶은 초급자, `rebase`나 `remote tracking` 개념이 헷갈리는 중급자, 그리고 팀원 교육용 도구를 찾는 개발자에게 적합합니다. 실제 저장소 관리 도구로는 부적합합니다.
+
+출처:
+- [LearnGitBranching GitHub Repository](https://github.com/pcottle/learnGitBranching)
+- [README.md](https://github.com/pcottle/learnGitBranching/blob/main/README.md)
+- [package.json](https://github.com/pcottle/learnGitBranching/blob/main/package.json)
+- [src/levels/remote/lockedMain.js](https://github.com/pcottle/learnGitBranching/blob/main/src/levels/remote/lockedMain.js)
+
+## 출처
+
+- GitHub: [pcottle/learnGitBranching](https://github.com/pcottle/learnGitBranching) — 작성자: pcottle
+- GitHub: [pcottle/learnGitBranching / LICENSE.md](https://github.com/pcottle/learnGitBranching/blob/main/LICENSE.md) — 작성자: pcottle
+- GitHub: [pcottle/learnGitBranching / Dockerfile](https://github.com/pcottle/learnGitBranching/blob/main/Dockerfile) — 작성자: pcottle
+- GitHub: [pcottle/learnGitBranching / package.json](https://github.com/pcottle/learnGitBranching/blob/main/package.json) — 작성자: pcottle
+- GitHub: [pcottle/learnGitBranching / CONTRIBUTING.md](https://github.com/pcottle/learnGitBranching/blob/main/CONTRIBUTING.md) — 작성자: pcottle
+- GitHub: [pcottle/learnGitBranching / src/js/models/collections.js](https://github.com/pcottle/learnGitBranching/blob/main/src/js/models/collections.js) — 작성자: pcottle
+- GitHub: [pcottle/learnGitBranching / src/levels/remote/lockedMain.js](https://github.com/pcottle/learnGitBranching/blob/main/src/levels/remote/lockedMain.js) — 작성자: pcottle
+- GitHub: [pcottle/learnGitBranching / src/js/util/mock.js](https://github.com/pcottle/learnGitBranching/blob/main/src/js/util/mock.js) — 작성자: pcottle
