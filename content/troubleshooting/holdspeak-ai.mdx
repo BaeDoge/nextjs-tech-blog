@@ -1,0 +1,96 @@
+---
+title: "[오픈소스 분석] HoldSpeak: 로컬 AI 워크벤치"
+publishedAt: "2026-10-31"
+summary: "macOS와 Linux에서 로컬 허브를 기반으로 회의, 프로젝트, 코딩 에이전트를 통합 관리하는 에이전트 우선형 AI 운영체제입니다."
+tag: "OpenSource"
+---
+
+## 한눈에 보는 프로젝트와 해결하려는 문제
+
+HoldSpeak는 macOS와 Linux 환경에서 동작하는 '에이전트 우선(Agentic-first)' 웹 기반 AI 운영체제입니다. 이 프로젝트는 사용자의 업무 맥락(노트, 회의, 프로젝트, 코드)을 로컬 허브에 저장하고, 이를 기반으로 AI 에이전트가 작업을 수행하도록 돕는 데 목적이 있습니다.
+
+주요 해결 과제는 '파편화된 업무 환경의 통합'입니다. 사용자는 회의 녹취, 코드 수정, 프로젝트 관리 등을 위해 여러 도구를 오가야 하지만, HoldSpeak는 이를 하나의 '데스크(Desk)' 인터페이스로 모으고, 로컬 모델(Whisper 등)을 활용해 프라이버시를 보호하면서도 AI의 도움을 받을 수 있는 환경을 제공합니다. 이는 단순한 음성 타이핑 도구를 넘어, AI가 사용자의 업무 맥락을 이해하고 실질적인 작업을 수행하게 하는 '워크벤치' 역할을 지향합니다.
+
+## 이해에 필요한 핵심 개념
+
+HoldSpeak를 이해하기 위해 다음 세 가지 개념이 중요합니다.
+
+1. **로컬 허브(Local Hub):** 모든 데이터는 사용자의 로컬 환경에 저장됩니다. 이는 데이터 주권을 보장하며, 사용자가 로컬 모델(GGUF, MLX)이나 클라우드 엔진을 선택적으로 연결할 수 있는 기반이 됩니다.
+2. **에이전트 중심 워크플로우(Agentic Workflow):** 사용자가 단순히 질문하는 것을 넘어, AI 에이전트에게 작업을 '위임(Hand off)'할 수 있습니다. `agent/skills/` 디렉토리에 정의된 다양한 기술(Skill)을 통해 에이전트는 코드 수정, 회의 요약, 프로젝트 업데이트 등의 작업을 수행합니다.
+3. **데스크(Desk)와 워크벤치(Workbench):** Amiga Workbench에서 영감을 받은 인터페이스로, 창(Window), 도구(Tool), 메뉴를 통해 업무를 시각적으로 배치합니다. `web/src/main.tsx`에서 볼 수 있듯이, 웹 브라우저를 통해 이 데스크에 접근하며, 허브와 실시간으로 동기화됩니다.
+
+## 저장소 구조와 실제 동작 흐름
+
+저장소는 크게 핵심 로직인 `holdspeak/` 모듈과 웹 인터페이스인 `web/`, 그리고 에이전트 기능을 확장하는 `agent/`로 구성됩니다.
+
+- `agent/skills/`: 에이전트가 사용할 수 있는 기능들이 모듈화되어 있습니다. 예를 들어 `holdspeak-dictation`은 음성 받아쓰기를, `holdspeak-meetings`은 회의 관련 처리를 담당합니다.
+- `aipi-lite/`: 하드웨어 브릿지 관련 코드로, 음성 입력 장치나 외부 기기와의 연결을 처리합니다. `aipi-lite/bridge/` 내의 `audio.py`나 `lcd.py` 등은 하드웨어 수준의 제어를 담당합니다.
+- `web/`: React 기반의 프론트엔드 코드가 위치합니다. `web/src/lib/api.ts`를 통해 로컬 허브의 API와 통신하며, 사용자의 모든 조작을 백엔드 서비스로 전달합니다.
+
+동작 흐름은 사용자가 음성이나 텍스트로 명령을 내리면, `holdspeak` 허브가 이를 받아 적절한 엔진(로컬 모델 또는 API)으로 전달하고, 그 결과를 다시 데스크에 반영하는 방식입니다.
+
+## 구체적인 예제로 보는 설계 선택
+
+HoldSpeak는 확장성을 위해 `MCP(Model Context Protocol)`를 적극적으로 활용합니다. `aipi-lite/docs/LCD_SYMBOLS.md`에서 확인할 수 있듯이, 시스템은 하드웨어 상태를 시각적으로 피드백하기 위해 특정 심볼 맵을 사용합니다.
+
+또한, `web/src/lib/api.ts`의 `apiFetch` 함수는 인증 토큰을 관리하며, 허브와 웹 인터페이스 간의 안전한 통신을 보장합니다.
+
+```typescript
+export async function apiFetch<T = JsonRecord>(
+  input: string,
+  init: RequestInit & { json?: unknown } = {},
+): Promise<T> {
+  const { json, ...request } = init;
+  const headers = authenticatedHeaders(request.headers);
+  // ... 생략
+  const response = await apiRequest(input, { ...request, headers, body: ... });
+  // ... 응답 처리
+}
+```
+
+이러한 설계는 사용자가 자신의 로컬 허브를 웹 브라우저로 제어하면서도, 보안을 위해 토큰 기반의 인증을 거치도록 설계되었음을 보여줍니다.
+
+## 대안과 비교했을 때의 장단점
+
+HoldSpeak는 기존의 단순 음성 타이핑 도구(예: Mac의 기본 받아쓰기)나 클라우드 기반 프로젝트 관리 도구(예: Notion AI)와 차별화됩니다.
+
+- **장점:** 모든 데이터가 로컬에 저장되므로 프라이버시가 강력하게 보장됩니다. 또한, 단순 텍스트 생성을 넘어 Git 워크트리 제어, 에이전트 위임 등 개발자 친화적인 워크플로우를 제공합니다.
+- **단점:** 설치 과정이 복잡합니다. `uv`, `Node.js`, `CMake` 등 다양한 의존성을 요구하며, macOS와 Linux 환경에 최적화되어 있어 Windows 사용자는 직접적인 지원을 받기 어렵습니다. 또한, 로컬 모델 구동을 위해 충분한 하드웨어 자원(Apple Silicon 등)이 필요합니다.
+
+## 보안·라이선스·도입 시 확인할 점
+
+- **라이선스:** Apache-2.0 라이선스를 따르며, 기업 환경에서도 비교적 자유롭게 사용할 수 있습니다.
+- **보안:** `docs/SECURITY.md`를 통해 보안 정책을 확인할 수 있습니다. 특히 `keyring`을 사용하여 민감한 키를 시스템 키체인에 저장하는 등 로컬 보안에 신경을 쓰고 있습니다.
+- **도입 시 주의:** `holdspeak doctor` 명령어를 통해 환경 설정을 먼저 점검해야 합니다. 시스템 오디오 캡처를 위해 `BlackHole`(macOS)이나 `PipeWire`(Linux) 같은 추가 드라이버가 필수적이므로, 설치 전 문서의 의존성 목록을 반드시 확인해야 합니다.
+
+## 한계와 추천 대상
+
+HoldSpeak는 현재 0.4.0 버전의 pre-alpha 단계로, 인터페이스와 API가 변경될 가능성이 큽니다. 따라서 안정적인 상용 서비스를 기대하는 사용자보다는, 자신의 업무 환경을 직접 구성하고 AI 에이전트를 활용해 생산성을 높이고자 하는 개발자나 기술적 숙련도가 높은 사용자에게 적합합니다.
+
+**추천 대상:**
+- 로컬 환경에서 AI 에이전트를 활용해 코딩 및 프로젝트 관리를 자동화하고 싶은 개발자.
+- 데이터 프라이버시를 최우선으로 고려하며, 클라우드 서비스에 업무 내용을 업로드하기 꺼리는 사용자.
+- Amiga Workbench와 같은 고전적인 데스크톱 메타포를 선호하고, 이를 AI 시대에 맞게 재해석하고 싶은 사용자.
+
+**적합하지 않은 경우:**
+- 복잡한 설정 없이 즉시 사용 가능한 완성도 높은 상용 소프트웨어를 원하는 사용자.
+- Windows 운영체제를 주력으로 사용하는 사용자.
+- 하드웨어 자원이 제한적인 환경에서 AI 모델을 구동해야 하는 사용자.
+
+출처:
+- [HoldSpeak GitHub Repository](https://github.com/karolswdev/HoldSpeak)
+- [README.md](https://github.com/karolswdev/HoldSpeak/blob/main/README.md)
+- [pyproject.toml](https://github.com/karolswdev/HoldSpeak/blob/main/pyproject.toml)
+- [CONTRIBUTING.md](https://github.com/karolswdev/HoldSpeak/blob/main/CONTRIBUTING.md)
+- [LCD_SYMBOLS.md](https://github.com/karolswdev/HoldSpeak/blob/main/aipi-lite/docs/LCD_SYMBOLS.md)
+
+## 출처
+
+- GitHub: [karolswdev/HoldSpeak](https://github.com/karolswdev/HoldSpeak) — 작성자: karolswdev
+- GitHub: [karolswdev/HoldSpeak / LICENSE](https://github.com/karolswdev/HoldSpeak/blob/main/LICENSE) — 작성자: karolswdev
+- GitHub: [karolswdev/HoldSpeak / pyproject.toml](https://github.com/karolswdev/HoldSpeak/blob/main/pyproject.toml) — 작성자: karolswdev
+- GitHub: [karolswdev/HoldSpeak / CONTRIBUTING.md](https://github.com/karolswdev/HoldSpeak/blob/main/CONTRIBUTING.md) — 작성자: karolswdev
+- GitHub: [karolswdev/HoldSpeak / web/src/main.tsx](https://github.com/karolswdev/HoldSpeak/blob/main/web/src/main.tsx) — 작성자: karolswdev
+- GitHub: [karolswdev/HoldSpeak / uat/web/src/api.js](https://github.com/karolswdev/HoldSpeak/blob/main/uat/web/src/api.js) — 작성자: karolswdev
+- GitHub: [karolswdev/HoldSpeak / web/src/lib/api.ts](https://github.com/karolswdev/HoldSpeak/blob/main/web/src/lib/api.ts) — 작성자: karolswdev
+- GitHub: [karolswdev/HoldSpeak / aipi-lite/docs/LCD_SYMBOLS.md](https://github.com/karolswdev/HoldSpeak/blob/main/aipi-lite/docs/LCD_SYMBOLS.md) — 작성자: karolswdev
