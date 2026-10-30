@@ -1,0 +1,118 @@
+---
+title: "[오픈소스 분석] e2e: AI 에이전트 기반 E2E 테스트 프레임워크"
+publishedAt: "2026-10-30"
+summary: "자연어 목표와 로케이터를 결합해 AI 에이전트가 앱을 구동하고 결과를 검증하는 웹/모바일 E2E 테스트 프레임워크의 구조와 설계 원리를 분석합니다."
+tag: "OpenSource"
+---
+
+## 한눈에 보는 프로젝트와 해결하려는 문제
+
+`tester-army/e2e`는 웹과 모바일 애플리케이션을 위한 차세대 엔드투엔드(E2E) 테스트 프레임워크입니다. 이 프로젝트는 기존 테스트 프레임워크들이 직면한 '선택자 유지보수 비용'과 '환경 의존성' 문제를 해결하기 위해, AI 에이전트와 전통적인 검증 로직을 결합한 하이브리드 접근법을 채택하고 있습니다.
+
+이 프레임워크의 핵심 목표는 개발자가 테스트에서 '어떻게(How)' 클릭하거나 입력할지 상세히 지정하는 대신, '무엇을(What)'을 달성해야 하는지 자연어로 기술하도록 하는 것입니다. [README.md](https://github.com/tester-army/e2e/blob/main/README.md)에 따르면, 이 프레임워크는 에이전트가 앱을 구동하여 목표를 달성하게 하고, 그 결과를 로케이터와 어설션(Assertion)으로 검증하는 구조를 가집니다. 이를 통해 UI의 미세한 변경(예: 버튼 위치 이동, CSS 클래스 변경)에 강인한 테스트를 작성할 수 있도록 돕습니다.
+
+주요 언어는 TypeScript이며, Apache-2.0 라이선스를 따릅니다. 웹(Chromium, Firefox, WebKit)과 모바일 엔진을 모두 지원하며, 개발자가 직접 모델을 선택하거나 로컬 모델을 사용할 수 있는 유연성을 제공합니다.
+
+## 이해에 필요한 핵심 개념
+
+이 프레임워크를 이해하기 위해서는 다음 세 가지 핵심 개념이 필요합니다.
+
+첫째, **에이전트 단계(Agent Step)와 로케이터 검증의 분리**입니다. 기존 E2E 테스트는 `click`, `fill` 등의 명령어를 나열하는 방식이었지만, `e2e`는 `agent.act()`를 통해 AI 모델이 UI를 탐색하고 상호작용하게 합니다. 이때 모델은 매번 호출되지 않으며, 애플리케이션의 상태가 변경되지 않으면 이전 실행 기록을 재생(Replay)하여 API 호출 비용을 절감합니다. 이후 `agent.assert()`나 `expect(screen.getByRole(...))`와 같은 전통적인 로케이터로 결과를 검증합니다. 이는 AI의 유연성과 전통적 테스트의 결정론적 정확성을 결합한 설계입니다.
+
+둘째, **엔진 추상화(Engine Abstraction)**입니다. `e2e` 패키지는 핵심 SDK와 CLI를 담당하며, 실제 브라우저나 기기 제어는 플러그인 형태의 엔진 패키지에 위임됩니다. 웹 엔진은 Playwright를 기반으로 하며, 다양한 환경(Lightpanda, smol 등)을 통해 브라우저를 구동합니다. 이를 통해 사용자는 동일한 테스트 API로 다양한 환경을 교차 테스트할 수 있습니다.
+
+셋째, **신뢰 모델(Trust Model)**입니다. [SECURITY.md](https://github.com/tester-army/e2e/blob/main/SECURITY.md)는 입력을 '코드 신뢰(Code-trust)'와 '신뢰할 수 없는 모델 입력(Untrusted model input)'으로 명확히 구분합니다. 테스트 코드나 설정 파일은 OS 권한으로 실행되지만, 앱에서 수집된 텍스트나 스크린샷은 모델에게 전달될 때 '증거(Evidence)'로 간주되며 직접적인 명령어로 해석되지 않습니다. 모든 모델 도구 호출은 닫힌 스키마(Closed Schema)로 파싱된 후 승인됩니다.
+
+## 저장소 구조와 실제 동작 흐름
+
+저장소는 모노레포 구조로 되어 있으며, 핵심 패키지와 개발 도구, 예제 프로젝트가 분리되어 있습니다. 주요 폴더와 파일의 역할을 살펴보면 다음과 같습니다.
+
+1.  **핵심 패키지**: 루트의 [`package.json`](https://github.com/tester-army/e2e/blob/main/package.json)은 `e2e` (SDK/CLI)와 `@e2e-dev/` 접두사가 붙은 다양한 서브패키지(web, kernel, lightpanda, decision 등)를 관리합니다. `build` 스크립트를 통해 모든 패키지가 순차적으로 빌드됩니다.
+2.  **설정 및 초기화**: `npx e2e init` 명령어는 프로젝트에 맞는 설정 파일(`e2e.config.ts`)과 예제 테스트를 생성합니다. 설정 파일에는 엔진, 모델 제공자, 캐시 경로 등이 정의됩니다.
+3.  **예제 프로젝트**: [`examples/`](https://github.com/tester-army/e2e/tree/main/examples) 폴더에는 Vite, Next.js, Angular 등 다양한 스택의 예제가 포함되어 있습니다. 각 예제는 독립적인 프로젝트로 구성되어 있어, 실제 환경에 적용하기 전에 동작을 확인하기 용이합니다.
+4.  **변경 로그 관리**: `.changeset/` 폴더에는 [`changeset`](https://github.com/tester-army/e2e/blob/main/.changeset/README.md)을 사용한 버전 관리 파일들이 모여 있습니다. 이는 다중 패키지의 버전 bumps와 변경 사항을 체계적으로 관리하기 위한 것입니다.
+
+**동작 흐름**은 다음과 같습니다.
+1.  사용자가 `e2e run` 명령어를 실행합니다.
+2.  프레임워크는 설정 파일을 로드하고, 지정된 엔진을 초기화합니다.
+3.  테스트 파일(`*.e2e.ts`)을 파싱하여 테스트 케이스를 로드합니다.
+4.  각 테스트 케이스는 `agent.act()` 단계에서 AI 모델(또는 캐시된 재생 기록)을 통해 UI를 조작합니다.
+5.  `agent.assert()` 또는 `expect` 문을 통해 결과를 검증합니다.
+6.  테스트 결과와 트레이스(Trace) 정보는 지정된 리포터를 통해 보고됩니다.
+
+## 구체적인 예제로 보는 설계 선택
+
+[`examples/with-angular/src/app/app.ts`](https://github.com/tester-army/e2e/blob/main/examples/with-angular/src/app/app.ts) 예제는 Angular 컴포넌트 기반의 UI를 보여줍니다. 이 앱은 이름 입력 필드와 'Greet' 버튼을 제공하며, 사용자가 이름을 입력하고 버튼을 클릭하면 "Hello, [이름]!" 메시지가 표시됩니다.
+
+이 프레임워크의 설계 선택은 다음과 같습니다.
+
+*   **선언적 테스트 구조**: 테스트 코드는 `agent.act()`를 통해 수행할 목표를 선언하고, `expect`를 통해 최종 상태를 검증합니다. 이는 구현 세부 사항(DOM 선택자)에 덜 의존적인 테스트 작성을 가능하게 합니다.
+*   **계층적 검증**: `agent.act()`는 AI의 판단에 의존하므로 불확실성이 높을 수 있습니다. 이를 `agent.assert()`나 `expect`와 같은 결정론적 검증으로 보완하여, AI의 오류를 빠르게 포착하고 테스트의 신뢰성을 높입니다.
+*   **재생(Replay) 최적화**: `agent.act()`는 앱의 상태가 변경되지 않은 다음 실행에서는 AI 모델 호출 없이 이전의 UI 상호작용 기록을 재생합니다. 이는 테스트 실행 속도를 획기적으로 높이고 API 비용을 절감하는 핵심 설계입니다.
+
+## 대안과 비교했을 때의 장단점
+
+`e2e` 프레임워크를 기존 E2E 테스트 도구인 Playwright와 비교해 보면 다음과 같은 장단점을 확인할 수 있습니다.
+
+| 비교 항목 | Playwright (기존 E2E) | e2e (에이전트 기반) |
+| :--- | :--- | :--- |
+| **테스트 작성 방식** | 로케이터 기반 (`locator.click()`) | 자연어 기반 (`agent.act('...')`) |
+| **유지보수성** | UI 변경 시 로케이터 수정 필요 | UI 변경에 강인함 (의도 기반 테스트) |
+| **실행 속도** | 빠름 (로컬에서 직접 실행) | 초기 실행은 느림 (AI 모델 호출), 이후 재생으로 빠름 |
+| **신뢰성** | 높음 (결정론적) | 중간 (AI 판단 의존, 검증 단계 필요) |
+| **학습 곡선** | 낮음 (DOM 구조 이해 필요) | 높음 (프롬프트 엔지니어링 필요) |
+| **비용** | 무료 (오픈소스) | 모델 API 비용 발생 (BYOK 또는 구독) |
+
+**장점**:
+*   **유지보수 비용 절감**: CSS 클래스나 DOM 구조 변경에 테스트가 쉽게 깨지지 않습니다.
+*   **테스트 작성 속도**: 복잡한 워크플로우를 자연어로 빠르게 기술할 수 있습니다.
+
+**단점**:
+*   **비결정론적 요소**: AI 모델의 응답이 항상 일정하지 않을 수 있어, 테스트 실패 원인을 파악하기 어려울 수 있습니다.
+*   **비용 및 지연 시간**: 매 실행마다 AI 모델을 호출하면 비용과 시간이 증가합니다. (재생 기능으로 완화됨)
+
+## 보안·라이선스·도입 시 확인할 점
+
+**라이선스**: 프로젝트는 [Apache-2.0](https://github.com/tester-army/e2e/blob/main/LICENSE) 라이선스를 따릅니다. 이는 상업적 사용, 수정, 배포를 허용하며, 라이선스 고지와 면책 조항을 준수하면 됩니다. 기여 시에도 동일한 라이선스가 적용됩니다.
+
+**보안**:
+*   **신뢰 모델**: [SECURITY.md](https://github.com/tester-army/e2e/blob/main/SECURITY.md)에 따르면, 테스트 코드와 설정 파일은 OS 권한으로 실행됩니다. 따라서 신뢰할 수 없는 소스의 테스트 코드를 실행할 때는 주의해야 합니다.
+*   **모델 입력 격리**: 앱에서 수집된 데이터는 모델에게 '증거'로 전달되며, 직접적인 명령어로 실행되지 않습니다. 모든 도구 호출은 스키마 검증 후 실행됩니다.
+*   **로그 마스킹 한계**: [README.md](https://github.com/tester-army/e2e/blob/main/README.md) 및 보안 관련 문서에 명시된 Known non-goals에 따르면, `command.log` 및 서비스 로그는 프로세스가 기록하는 그대로 캡처되며 프레임워크가 이를 자동 마스킹(redact)하지 않습니다. 따라서 앱의 stdout에 민감한 정보가 노출되지 않도록 주의해야 합니다.
+*   **텔레메트리**: CLI는 익명 사용 통계를 전송하며, [README.md](https://github.com/tester-army/e2e/blob/main/README.md)에 안내된 대로 `npx e2e telemetry disable` 또는 `E2E_TELEMETRY_DISABLED=1`을 통해 끌 수 있습니다.
+
+**도입 시 확인할 점**:
+*   **모델 제공자**: 지원되는 모델 제공자와 API 키 관리 방식을 확인해야 합니다.
+*   **엔진 환경**: 웹 엔진은 Playwright 브라우저를, 모바일 엔진은 시뮬레이터/에뮬레이터 환경 설정이 필요합니다.
+
+## 한계와 추천 대상
+
+**한계**:
+*   **AI 의존성**: 테스트 실행의 안정성이 AI 모델의 성능과 응답 품질에 일부 의존합니다. 모델이 오작동할 경우 테스트가 실패할 수 있습니다.
+*   **초기 학습 곡선**: 자연어 프롬프트를 효과적으로 작성하는 방법과 에이전트의 동작 원리를 이해하는 데 시간이 필요합니다.
+*   **비용**: 대규모 테스트 스위트에서 매 실행마다 AI 모델을 호출할 경우 비용이 급증할 수 있습니다. (재생 기능으로 완화 가능)
+
+**추천 대상**:
+*   **UI 변경이 빈번한 프로젝트**: CSS 클래스나 DOM 구조가 자주 변경되어 기존 E2E 테스트 유지보수에 많은 시간이 소요되는 프로젝트.
+*   **복잡한 워크플로우 테스트**: 다단계 폼 입력, 드래그 앤 드롭, 복잡한 상태 전이 등 로케이터 기반 테스트 작성과 유지보수가 어려운 프로젝트.
+*   **웹과 모바일 교차 테스트**: 동일한 테스트 로직으로 웹과 모바일을 모두 테스트해야 하는 프로젝트.
+
+**비추천 대상**:
+*   **안정적인 UI를 가진 프로젝트**: UI가 거의 변경되지 않고, 빠른 실행 속도와 높은 결정론적 신뢰성이 더 중요한 프로젝트.
+*   **비용 제약이 있는 프로젝트**: AI 모델 API 비용을 감당하기 어려운 소규모 프로젝트.
+*   **오프라인 환경**: AI 모델 호출이 불가능한 격리된 환경에서의 테스트.
+
+`e2e` 프레임워크는 AI의 유연성과 전통적 테스트의 정확성을 결합한 혁신적인 접근법을 제시합니다. 다만, AI 의존성과 비용 문제를 고려하여 도입 여부를 신중히 결정해야 합니다.
+
+## 출처
+
+- GitHub: [tester-army/e2e](https://github.com/tester-army/e2e) — 작성자: tester-army
+- GitHub: [tester-army/e2e / LICENSE](https://github.com/tester-army/e2e/blob/main/LICENSE) — 작성자: tester-army
+- GitHub: [tester-army/e2e / SECURITY.md](https://github.com/tester-army/e2e/blob/main/SECURITY.md) — 작성자: tester-army
+- GitHub: [tester-army/e2e / package.json](https://github.com/tester-army/e2e/blob/main/package.json) — 작성자: tester-army
+- GitHub: [tester-army/e2e / CONTRIBUTING.md](https://github.com/tester-army/e2e/blob/main/CONTRIBUTING.md) — 작성자: tester-army
+- GitHub: [tester-army/e2e / examples/with-vite/src/main.tsx](https://github.com/tester-army/e2e/blob/main/examples/with-vite/src/main.tsx) — 작성자: tester-army
+- GitHub: [tester-army/e2e / examples/with-angular/src/main.ts](https://github.com/tester-army/e2e/blob/main/examples/with-angular/src/main.ts) — 작성자: tester-army
+- GitHub: [tester-army/e2e / examples/with-angular/src/app/app.ts](https://github.com/tester-army/e2e/blob/main/examples/with-angular/src/app/app.ts) — 작성자: tester-army
+- GitHub: [tester-army/e2e / docs/images/examples/README.md](https://github.com/tester-army/e2e/blob/main/docs/images/examples/README.md) — 작성자: tester-army
+- GitHub: [tester-army/e2e / skills/create-verification-skill/references/example/verify-playground/SKILL.example.md](https://github.com/tester-army/e2e/blob/main/skills/create-verification-skill/references/example/verify-playground/SKILL.example.md) — 작성자: tester-army
