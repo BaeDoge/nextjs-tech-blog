@@ -1,0 +1,92 @@
+---
+title: "[오픈소스 분석] YugabyteDB의 분산 SQL 구조"
+publishedAt: "2026-10-31"
+summary: "PostgreSQL 호환성을 유지하며 클라우드 네이티브 환경에서 수평 확장성과 고가용성을 제공하는 분산 SQL 데이터베이스 프로젝트의 구조와 라이선스를 분석한다."
+tag: "OpenSource"
+---
+
+## 한눈에 보는 프로젝트와 해결하려는 문제
+
+YugabyteDB는 전통적인 관계형 데이터베이스(RDBMS)의 트랜잭션 일관성과 NoSQL 시스템의 확장성을 결합한 분산 SQL 데이터베이스입니다. 이 프로젝트는 미션 크리티컬한 OLTP(온라인 트랜잭션 처리) 애플리케이션이 클라우드 환경에서 직면하는 데이터 정합성 유지, 노드 장애 대응, 그리고 지리적으로 분산된 배포 문제를 해결하는 것을 목표로 합니다.
+
+본 프로젝트는 실행 가능한 데이터베이스 엔진 및 관리 플랫폼을 포함하는 복합적인 소프트웨어 저장소입니다. `src/yb/`에 위치한 C++ 기반의 핵심 스토리지 엔진과 `src/postgres/`의 수정된 PostgreSQL 포크를 통해 SQL 인터페이스를 제공합니다.
+
+## 이해에 필요한 핵심 개념
+
+YugabyteDB를 이해하기 위해서는 다음의 핵심 개념이 필수적입니다.
+
+1. **DocDB**: YugabyteDB의 핵심 분산 스토리지 계층입니다. `src/yb/` 내부에 구현되어 있으며, RocksDB를 기반으로 하여 분산 환경에서의 데이터 저장과 복제를 담당합니다.
+2. **YSQL (Yugabyte SQL)**: PostgreSQL 15와 호환되는 SQL 계층입니다. `src/postgres/` 디렉토리에 위치하며, 사용자는 기존 PostgreSQL 애플리케이션을 거의 수정 없이 분산 환경으로 이전할 수 있습니다.
+3. **Raft 합의 알고리즘**: 데이터의 고가용성과 일관성을 보장하기 위해 노드 간 데이터 복제에 사용됩니다. `architecture/design/` 디렉토리의 설계 문서들에서 분산된 노드 간의 상태 동기화 관리 방식에 대해 설명하고 있습니다.
+
+## 저장소 구조와 실제 동작 흐름
+
+저장소는 크게 핵심 엔진, SQL 계층, 관리 플랫폼으로 나뉩니다.
+
+* `src/yb/`: 데이터베이스의 핵심 엔진인 DocDB, Raft 합의, 서버 로직이 포함된 C++ 소스 코드입니다.
+* `src/postgres/`: PostgreSQL의 소스 코드를 포크하여 YugabyteDB의 분산 스토리지와 연동되도록 수정한 계층입니다.
+* `managed/`: YugabyteDB Anywhere(YBA) 관리 플랫폼으로, 클러스터 오케스트레이션과 모니터링을 담당합니다.
+* `architecture/`: 시스템 설계 사양과 성능 분석 문서가 포함되어 있어, 내부 동작 원리를 파악하는 데 중요한 길잡이 역할을 합니다.
+
+데이터 처리 흐름은 사용자가 SQL 쿼리를 `src/postgres/` 계층으로 보내면, 이를 내부적으로 DocDB의 키-값 연산으로 변환하고, Raft를 통해 복제된 노드들에 안전하게 저장하는 방식으로 동작합니다.
+
+## 구체적인 예제로 보는 설계 선택
+
+`src/postgres/src/test/examples/testlo.c` 파일은 YugabyteDB가 PostgreSQL의 대형 객체(Large Object) 기능을 어떻게 처리하는지 보여주는 좋은 예제입니다.
+
+```c
+/*
+ * create the large object
+ */
+lobjId = lo_creat(conn, INV_READ | INV_WRITE);
+if (lobjId == 0)
+    fprintf(stderr, "cannot create large object");
+
+lobj_fd = lo_open(conn, lobjId, INV_WRITE);
+```
+
+이 코드는 표준 PostgreSQL의 `libpq` API를 사용합니다. YugabyteDB는 이 API를 그대로 지원함으로써 기존 PostgreSQL 생태계와의 호환성을 극대화하는 설계 선택을 했습니다. 이는 개발자가 별도의 학습 비용 없이 분산 데이터베이스의 이점을 누릴 수 있게 합니다. 또한, `src/yb/rocksdb/examples/simple_example.cc`에서는 RocksDB의 `WriteBatch`를 사용하여 원자적 업데이트를 수행하는 방식을 보여주는데, 이는 분산 환경에서 데이터 일관성을 유지하기 위한 핵심 기술입니다.
+
+## 대안과 비교했을 때의 장단점
+
+YugabyteDB는 CockroachDB와 자주 비교됩니다.
+
+* **장점**: PostgreSQL과의 높은 호환성을 제공하여 기존 DB 마이그레이션이 상대적으로 용이합니다. 또한, `src/postgres/` 계층을 통해 최신 PostgreSQL 기능을 빠르게 반영할 수 있는 구조를 갖추고 있습니다.
+* **단점**: 분산 트랜잭션 처리를 위한 오버헤드가 존재하며, 단일 노드 기반의 전통적인 RDBMS에 비해 단순 읽기/쓰기 성능이 낮을 수 있습니다. 또한, 복잡한 아키텍처로 인해 운영 및 유지보수 난이도가 높습니다.
+
+## 보안·라이선스·도입 시 확인할 점
+
+* **라이선스**: `LICENSE.md`에 명시된 바와 같이, 핵심 데이터베이스 엔진은 `Apache License 2.0`을 따르지만, 관리 플랫폼인 YugabyteDB Anywhere는 `Polyform Free Trial License 1.0.0`을 따릅니다. 상업적 용도로 도입 시 이 차이를 반드시 확인해야 합니다.
+* **보안**: 분산 환경에서는 노드 간 통신 암호화와 인증 설정이 필수적입니다.
+* **도입 시 고려**: `architecture/cloud-machine-types-analysis.md`와 같은 문서를 통해 클라우드 환경에서의 비용과 성능 최적화 방안을 사전에 검토해야 합니다.
+
+## 한계와 추천 대상
+
+YugabyteDB는 수평적 확장이 필요한 대규모 OLTP 애플리케이션에 적합합니다. 반면, 데이터 규모가 작거나 단일 서버로 충분한 성능을 낼 수 있는 환경에서는 복잡한 분산 아키텍처가 오히려 운영 부담을 가중시킬 수 있습니다.
+
+**추천 대상**:
+- PostgreSQL 기반의 애플리케이션을 클라우드 네이티브 환경으로 확장하려는 팀
+- 지리적으로 분산된 데이터 센터 간의 일관된 데이터 처리가 필요한 서비스
+- 고가용성과 자동 장애 복구가 필수적인 미션 크리티컬 시스템
+
+**확인할 점**:
+- `architecture/` 디렉토리의 설계 문서를 통해 현재 서비스의 워크로드와 일치하는지 확인하십시오.
+- `README.md`에 나열된 최신 릴리스 노트를 통해 현재 프로젝트의 안정성과 지원되는 기능을 파악하는 것이 중요합니다.
+
+---
+**출처:**
+- [YugabyteDB GitHub Repository](https://github.com/yugabyte/yugabyte-db)
+- [README.md](https://github.com/yugabyte/yugabyte-db/blob/master/README.md)
+- [LICENSE.md](https://github.com/yugabyte/yugabyte-db/blob/master/LICENSE.md)
+- [src/postgres/src/test/examples/testlo.c](https://github.com/yugabyte/yugabyte-db/blob/master/src/postgres/src/test/examples/testlo.c)
+- [src/yb/rocksdb/examples/simple_example.cc](https://github.com/yugabyte/yugabyte-db/blob/master/src/yb/rocksdb/examples/simple_example.cc)
+
+## 출처
+
+- GitHub: [yugabyte/yugabyte-db](https://github.com/yugabyte/yugabyte-db) — 작성자: yugabyte
+- GitHub: [yugabyte/yugabyte-db / LICENSE.md](https://github.com/yugabyte/yugabyte-db/blob/master/LICENSE.md) — 작성자: yugabyte
+- GitHub: [yugabyte/yugabyte-db / src/postgres/src/test/examples/testlo.c](https://github.com/yugabyte/yugabyte-db/blob/master/src/postgres/src/test/examples/testlo.c) — 작성자: yugabyte
+- GitHub: [yugabyte/yugabyte-db / src/yb/rocksdb/examples/simple_example.cc](https://github.com/yugabyte/yugabyte-db/blob/master/src/yb/rocksdb/examples/simple_example.cc) — 작성자: yugabyte
+- GitHub: [yugabyte/yugabyte-db / src/yb/client/client.h](https://github.com/yugabyte/yugabyte-db/blob/master/src/yb/client/client.h) — 작성자: yugabyte
+- GitHub: [yugabyte/yugabyte-db / src/yb/rocksdb/examples/README.md](https://github.com/yugabyte/yugabyte-db/blob/master/src/yb/rocksdb/examples/README.md) — 작성자: yugabyte
+- GitHub: [yugabyte/yugabyte-db / src/odyssey/docs/index.md](https://github.com/yugabyte/yugabyte-db/blob/master/src/odyssey/docs/index.md) — 작성자: yugabyte
