@@ -1,0 +1,82 @@
+---
+title: "[코딩테스트] 두 문자열의 백스페이스 비교"
+publishedAt: "2026-11-02"
+summary: "'#' 백스페이스를 포함한 두 문자열의 최종 결과를 비교하여 동일한지 판별"
+tag: "Algorithm"
+---
+
+## 문제
+
+문자열 `s`와 `t`가 주어질 때, '#'은 백스페이스를 의미합니다. 이 두 문자열이 빈 텍스트 에디터에 입력되었을 때 최종적으로 동일한 결과가 나오면 참을, 다르면 거짓을 반환해야 합니다. '#'을 누르면 그 앞에 있는 문자가 삭제되며, 빈 상태에서 '#'을 눌러도 텍스트는 빈 상태로 유지됩니다. 문자열은 소문자와 '#'으로만 구성되며 길이는 1 이상 200 이하입니다.
+
+## 접근 방법
+
+문자열의 앞에서부터 순회하며 '#'를 처리하는 시뮬레이션을 수행합니다. 이 과정에서 '#'이 아닌 문자는 결과에 누적되고, '#'이 만나면 직전 문자를 삭제해야 하므로 스택(Stack)을 활용하면 효율적으로 구현할 수 있습니다. '#'를 만나면 스택에서 가장 최근의 문자를 pop하고, 일반 문자를 만나면 push합니다. 두 문자열에 대해 각각 이 과정을 거쳐 생성된 결과를 비교하면 됩니다.
+
+## 풀이
+
+두 문자열을 각각 처리하여 최종 문자열을 생성하고 이를 비교하는 풀이입니다. '#'를 만나면 스택이 비어있지 않을 때 pop 연산을 수행하고, 일반 문자는 push합니다. 최종적으로 스택에 남은 문자들을 합쳐 두 문자열이 같은지 판별합니다.
+
+```python
+class Solution:
+    def backspaceCompare(self, s: str, t: str) -> bool:
+        def build_final_string(text: str) -> str:
+            stack = []
+            for char in text:
+                if char == '#':
+                    if stack:
+                        stack.pop()
+                else:
+                    stack.append(char)
+            return "".join(stack)
+        
+        return build_final_string(s) == build_final_string(t)
+```
+
+시간복잡도: O(N + M) (N, M은 각각 `s`와 `t`의 길이)
+공간복잡도: O(N + M)
+
+## 다른 풀이 방법
+
+O(1) 공간 복잡도로 해결하기 위해 후방 탐색(Two Pointers)을 사용할 수 있습니다. 문자열의 끝에서부터 앞으로 거슬러 올라가며 '#', 일반 문자를 처리합니다. 두 포인터를 각각 `s`와 `t`의 마지막 인덱스에서 시작합니다. '#'를 만나면 스킵해야 할 문자 수를 카운터에 저장하고, 일반 문자를 만나면 카운터가 0일 때만 비교 대상이 됩니다.
+
+```python
+class Solution:
+    def backspaceCompare(self, s: str, t: str) -> bool:
+        def get_next_valid_index(text: str, idx: int) -> int:
+            backspace_count = 0
+            while idx >= 0:
+                if text[idx] == '#':
+                    backspace_count += 1
+                elif backspace_count > 0:
+                    backspace_count -= 1
+                else:
+                    break
+                idx -= 1
+            return idx
+
+        i, j = len(s) - 1, len(t) - 1
+        while i >= 0 or j >= 0:
+            i = get_next_valid_index(s, i)
+            j = get_next_valid_index(t, j)
+
+            if i >= 0 and j >= 0 and s[i] != t[j]:
+                return False
+            if (i >= 0) != (j >= 0):
+                return False
+            
+            i -= 1
+            j -= 1
+        return True
+```
+
+시간복잡도: O(N + M)
+공간복잡도: O(1)
+
+## 추가 참고사항
+
+첫 번째 풀이는 스택을 사용하므로 구현이 간단하지만 추가 메모리가 필요합니다. 두 번째 풀이는 후방 탐색을 통해 O(1) 공간 복잡도를 달성합니다. 두 방법 모두 문자열의 길이만큼 순회하므로 시간 복잡도는 선형인 O(N)입니다. 제약 조건에 따라 두 풀이 모두 충분히 효율적으로 동작합니다.
+
+## 출처
+
+- LeetCode: [LeetCode 844 - Backspace String Compare](https://leetcode.com/problems/backspace-string-compare/)
