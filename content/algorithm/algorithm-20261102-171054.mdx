@@ -1,0 +1,46 @@
+---
+title: "[코딩테스트] 최종 가격 할인"
+publishedAt: "2026-11-02"
+summary: "각 상품에 대해 오른쪽에 있는 첫 번째 조건을 만족하는 가격을 할인으로 적용하여 최종 가격을 구하는 문제입니다."
+tag: "Algorithm"
+---
+
+## 문제
+
+정수 배열 prices가 주어지며, prices[i]는 i번째 상품의 가격이다. 상점에서는 특별 할인이 적용되며, i번째 상품을 구매할 때 j > i 중 가장 작은 인덱스 j에 대해 prices[j] <= prices[i]를 만족하면 prices[j]만큼 할인을 제공한다. 그러한 j가 없으면 할인 없이 원래 가격을 지불한다. 최종 지불 가격을 계산하여 정수 배열 answer를 리턴해야 한다.
+
+## 접근 방법
+
+모노토닉 스택을 사용하여 배열을 오른쪽에서 왼쪽으로 역순 순회한다. 스택에 저장된 값이 현재 가격보다 크면 pop하며, 스택의 top이 할인 금액이 되는 다음 작은 값이 된다. 이 과정을 통해 각 항목에 대해 O(n) 내에 할인된 가격을 찾을 수 있다. 브루트 포스 이중 루프 방식도 가능하지만 비효율적이다.
+
+## 풀이
+
+모노토닉 스택을 이용한 선형 시간 해결책이다. 스택을 유지하면서 현재 가격보다 큰 값들은 제거하고, 스택이 비어있지 않으면 top을 할인 금액으로 하여 최종 가격을 계산한다.
+
+```python
+def finalPrices(prices):
+    n = len(prices)
+    answer = prices[:]
+    stack = []
+    for i in range(n - 1, -1, -1):
+        while stack and stack[-1] > prices[i]:
+            stack.pop()
+        if stack:
+            answer[i] = prices[i] - stack[-1]
+        stack.append(prices[i])
+    return answer
+```
+
+시간 복잡도: O(n), 공간 복잡도: O(n)
+
+## 다른 풀이 방법
+
+브루트 포스 방법은 이중 루프를 사용해 각 i에 대해 j > i를 검사하고, prices[j] <= prices[i]를 만족하는 최초의 j를 찾는다. 시간 복잡도는 O(n²)이며, constraints상 n <= 500이므로 제한 시간 내에 통과할 수 있다. 코드가 간단하지만 큰 입력에서는 모노토닉 스택에 비해 비효율적이다.
+
+## 추가 참고사항
+
+이 문제는 Array, Stack, Monotonic Stack 태그로 분류된다. prices[i]의 범위는 1 이상 1000 이하이고, 배열 길이는 1 이상 500 이하이다. 따라서 O(n²) 해결책도 사용 가능하지만, 일반적으로는 O(n) 모노토닉 스택 해결책이 선호된다.
+
+## 출처
+
+- LeetCode: [LeetCode 1475 - Final Prices With a Special Discount in a Shop](https://leetcode.com/problems/final-prices-with-a-special-discount-in-a-shop/)
