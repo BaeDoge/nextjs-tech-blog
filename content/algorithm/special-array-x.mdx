@@ -1,0 +1,81 @@
+---
+title: "[코딩테스트] Special Array X 요소 찾기"
+publishedAt: "2026-11-02"
+summary: "정렬과 이분 탐색을 활용하여 특수 조건을 만족하는 X를 찾는 방법"
+tag: "Algorithm"
+---
+
+## 문제
+
+음수가 아닌 정수 `nums`로 이루어진 배열이 주어진다. 특정 정수 `x`가 존재하여, `nums`의 요소 중 `x` 이상인 값이 정확히 `x`개일 때, 이를 '특별한(special)' 배열이라고 정의한다. 이때 `x`는 `nums` 배열의 요소가 아니어도 된다. `nums`가 특별한 배열이라면 해당 `x` 값을, 그렇지 않다면 `-1`을 반환한다. 특별한 배열인 경우, 만족하는 `x` 값은 유일함이 보장된다.
+
+## 접근 방법
+
+`x`가 가질 수 있는 범위는 배열의 길이 `n`을 넘을 수 없다. 배열의 길이가 `n`이므로 `n` 이상인 요소의 개수는 최대 `n`개이다. 따라서 `x`가 `n`보다 크면 조건을 만족할 수 없다. 탐색 범위는 `0`부터 `n`까지이다.
+주어진 배열을 정렬하면, 특정 기준값 `x` 이상인 요소의 개수를 효율적으로 확인할 수 있다. 정렬된 배열에서 특정 인덱스 `i`부터 끝까지의 요소 개수는 `n - i`이다. 이때 `nums[i]`가 `x` 이상이면서, 바로 앞의 인덱스 `nums[i-1]`이 `x` 미만이라면, 정확히 `n - i`개의 요소가 `x` 이상이다.
+이러한 특성을 이용하여 `x` 값을 이분 탐색으로 찾을 수 있다.
+
+## 풀이
+
+먼저 `nums`를 정렬한다. 이분 탐색을 통해 `0`부터 `n` 사이의 후보 `x`를 찾는다.
+탐색 중점(mid)을 `x`라고 가정하고, `x` 이상인 요소의 개수가 정확히 `x`인지 확인한다.
+정렬된 배열에서 `x` 이상인 첫 번째 요소의 인덱스를 이분 탐색으로 찾으면, 나머지 요소의 개수 `count`를 `len(nums) - index`로 계산할 수 있다.
+만약 `count`가 `x`와 같다면 조건을 만족하는 값을 찾았으므로 반환한다.
+`count`가 `x`보다 크다면 `x`를 더 크게 만들어야 하므로 탐색 범위를 오른쪽으로 좁힌다.
+반대로 `count`가 `x`보다 작다면 `x`를 더 작게 만들어야 하므로 탐색 범위를 왼쪽으로 좁힌다.
+이 과정을 반복하여 조건을 만족하는 `x`를 찾지 못하면 `-1`을 반환한다.
+
+```python
+class Solution:
+    def specialArray(self, nums: List[int]) -> int:
+        nums.sort()
+        left, right = 0, len(nums)
+        
+        while left <= right:
+            mid = (left + right) // 2
+            
+            # mid 이상인 요소의 개수 찾기
+            # 이분 탐색을 통해 mid 이상이 되는 첫 번째 인덱스를 찾음
+            idx = self.lower_bound(nums, mid)
+            count = len(nums) - idx
+            
+            # 조건 확인
+            if count == mid:
+                return mid
+            elif count > mid:
+                # 조건을 만족하는 요소가 너무 많음 -> x를 더 크게 설정
+                left = mid + 1
+            else:
+                # 조건을 만족하는 요소가 너무 적음 -> x를 더 작게 설정
+                right = mid - 1
+                
+        return -1
+
+    def lower_bound(self, nums: List[int], target: int) -> int:
+        # target 이상인 첫 번째 인덱스를 찾는 이분 탐색
+        left, right = 0, len(nums)
+        while left < right:
+            mid = (left + right) // 2
+            if nums[mid] < target:
+                left = mid + 1
+            else:
+                right = mid
+        return left
+```
+
+- 시간복잡도: 배열 정렬에 $O(n \log n)$이 소요된다. 이분 탐색 과정은 $O(\log n)$이며, 내부에서 수행하는 `lower_bound` 탐색도 $O(\log n)$이므로 총 시간복잡도는 $O(n \log n)$이다.
+- 공간복잡도: 정렬 알고리즘 구현에 따라 다르지만, 일반적으로 $O(1)$ 또는 $O(n)$이다. 추가적인 자료구조는 사용하지 않는다.
+
+## 다른 풀이 방법
+
+**정렬 및 순회 접근 (이중 포인터 또는 단순 탐색)**: 이분 탐색을 사용하지 않고 정렬된 배열을 순회하면서 조건을 확인할 수도 있다. 인덱스 `i`마다 `count = len(nums) - i`를 계산하고, `nums[i]`가 `count` 이상이며 `nums[i-1]` (존재할 경우)이 `count` 미만인지 확인하면 된다. 이 방법은 탐색을 위해 정렬된 배열을 한 번 순회하므로 시간복잡도는 정렬 비용 $O(n \log n)$에 순회 비용 $O(n)$이 추가된 $O(n \log n)$이다.
+
+## 추가 참고사항
+
+- `nums`의 최대값이 1000, 배열 길이가 100으로 제한되어 있으므로, 최대값 1000을 기준으로 하는 정수 정렬이나 빈도 배열(Counting Sort) 기반의 접근도 가능하다. 이 경우 시간복잡도 $O(n + K)$를 기대할 수 있다.
+- 탐색 범위 설정 시 `x`가 `len(nums)`를 넘지 않는다는 점이 핵심이다.
+- `lower_bound`와 같은 헬퍼 함수는 표준 라이브러리 `bisect` 모듈을 활용하여 더 간단하게 구현할 수 있다.
+
+## 출처
+
+- LeetCode: [LeetCode 1608 - Special Array With X Elements Greater Than or Equal X](https://leetcode.com/problems/special-array-with-x-elements-greater-than-or-equal-x/)
