@@ -1,0 +1,83 @@
+---
+title: "[코딩테스트] BST 범위 합 계산"
+publishedAt: "2026-11-02"
+summary: "이진 탐색 트리의 조건을 만족하는 노드 값의 합을 효율적으로 구합니다."
+tag: "Algorithm"
+---
+
+## 문제
+
+이진 탐색 트리(BST)의 루트와 정수 `low`, `high`가 주어집니다. 노드 값이 `[low, high]` 범위 내에 포함된 모든 노드의 값을 합산하여 반환합니다. 트리의 노드 수는 최대 $2 \times 10^4$이며, 노드 값은 $10^5$ 이하입니다.
+
+## 접근 방법
+
+BST의 정렬된 구조적 성질을 활용하여 탐색 범위를 좁힙니다. 현재 노드의 값이 `low`보다 작으면, 해당 노드와 왼쪽 서브트리는 모두 범위를 벗어나므로 오른쪽 서브트리만 탐색합니다. 반대로 현재 노드의 값이 `high`보다 크면 왼쪽 서브트리만 탐색합니다. 노드 값이 범위 내에 있으면 해당 값을 합산하고 왼쪽, 오른쪽 서브트리를 모두 탐색합니다.
+
+## 풀이
+
+재귀적 DFS를 구현하여 조건에 따라 불필요한 분기를 차단하는 방식으로 해결합니다.
+
+```python
+# Definition for a binary tree node.
+# class TreeNode:
+#     def __init__(self, val=0, left=None, right=None):
+#         self.val = val
+#         self.left = left
+#         self.right = right
+class Solution:
+    def rangeSumBST(self, root: Optional[TreeNode], low: int, high: int) -> int:
+        if not root:
+            return 0
+        
+        # 현재 노드 값이 범위를 벗어났을 때 탐색 방향 결정
+        if root.val < low:
+            return self.rangeSumBST(root.right, low, high)
+        if root.val > high:
+            return self.rangeSumBST(root.left, low, high)
+        
+        # 현재 노드가 범위 내에 있을 경우 합산
+        return root.val + self.rangeSumBST(root.left, low, high) + self.rangeSumBST(root.right, low, high)
+```
+
+시간복잡도: $O(N)$. 최악의 경우(예: 노드가 한쪽으로 치우친 트리 또는 범위 내 노드가 전체에 분포된 경우) 모든 노드를 방문하므로 노드 수 $N$에 비례합니다. 균형 잡힌 BST인 경우 $O(\log N)$에 수렴할 수 있습니다.
+공간복잡도: $O(N)$. 재귀 호출 스택의 최대 깊이가 트리의 높이 $H$에 비례하며, 최악의 경우 $N$이 됩니다.
+
+## 다른 풀이 방법
+
+BFS(너비 우선 탐색)를 사용하여 큐를 기반으로 순회할 수 있습니다. 루트 노드를 큐에 넣고 반복문을 수행하며, 각 노드의 값을 확인하여 합산하거나 자식을 큐에 추가합니다. 재귀 호출 스택 대신 명시적인 큐를 사용하므로 재귀 제한이 있는 환경에서 대체로 활용될 수 있으나, 시간 및 공간복잡도는 DFS와 동일하게 $O(N)$입니다.
+
+```python
+class Solution:
+    def rangeSumBST(self, root: Optional[TreeNode], low: int, high: int) -> int:
+        if not root:
+            return 0
+        
+        queue = collections.deque([root])
+        total_sum = 0
+        
+        while queue:
+            node = queue.popleft()
+            if low <= node.val <= high:
+                total_sum += node.val
+                if node.left:
+                    queue.append(node.left)
+                if node.right:
+                    queue.append(node.right)
+            elif node.val < low:
+                if node.right:
+                    queue.append(node.right)
+            else:
+                if node.left:
+                    queue.append(node.left)
+                    
+        return total_sum
+```
+
+## 추가 참고사항
+
+BST의 정렬 특성을 활용하지 않고 단순 DFS로 모든 노드를 방문해도 정답은 도출되지만, 탐색해야 할 노드 수가 증가하므로 성능상 불리합니다.
+주어진 제약 조건에서 노드 값의 합은 정수형 범위를 벗어날 가능성이 낮으나, 언어 환경에 따라 합산 변수의 자료형을 고려해야 할 수 있습니다.
+
+## 출처
+
+- LeetCode: [LeetCode 938 - Range Sum of BST](https://leetcode.com/problems/range-sum-of-bst/)
