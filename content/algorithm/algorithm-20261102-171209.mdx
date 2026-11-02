@@ -1,0 +1,68 @@
+---
+title: "[코딩테스트] 이진 탐색 삽입 위치 찾기"
+publishedAt: "2026-11-02"
+summary: "정렬된 배열에서 타겟의 인덱스를 찾거나 삽입 위치를 반환하는 이진 탐색 문제입니다."
+tag: "Algorithm"
+---
+
+## 문제
+
+오름차순으로 정렬된 서로 다른 정수 배열 `nums`와 정수 `target`이 주어진다. `target`이 배열에 존재하면 그 인덱스를, 존재하지 않으면 정렬 순서를 유지하며 삽입될 인덱스를 반환해야 한다. 알고리즘의 시간 복잡도는 O(log n)이어야 한다.
+
+제약 조건:
+- 1 <= nums.length <= 10^4
+- -10^4 <= nums[i], target <= 10^4
+- 배열은 중복 없이 오름차순 정렬됨
+
+예시:
+- nums = [1,3,5,6], target = 5 → 2
+- nums = [1,3,5,6], target = 2 → 1
+- nums = [1,3,5,6], target = 7 → 4
+
+## 접근 방법
+
+배열이 정렬되어 있고 O(log n) 시간 복잡도가 요구되므로 이진 탐색을 사용한다. 일반적인 이진 탐색에서 타겟을 찾으면 인덱스를 반환하고, 찾지 못하면 탐색 범위가 좁아지면서 `left` 포인터가 삽입 위치를 가리키게 된다. `left`는 타겟보다 큰 첫 번째 원소의 인덱스이거나, 모든 원소보다 클 경우 배열 길이와 같아진다.
+
+## 풀이
+
+```python
+def searchInsert(nums: list[int], target: int) -> int:
+    left, right = 0, len(nums) - 1
+    
+    while left <= right:
+        mid = (left + right) // 2
+        if nums[mid] == target:
+            return mid
+        elif nums[mid] < target:
+            left = mid + 1
+        else:
+            right = mid - 1
+    
+    return left
+```
+
+시간 복잡도: O(log n) — 이진 탐색으로 매 단계마다 탐색 범위를 절반으로 줄인다.
+공간 복잡도: O(1) — 상수 개의 변수만 사용한다.
+
+## 다른 풀이 방법
+
+```python
+# 선형 탐색 (O(n)) - 제약 조건상 비효율적
+def searchInsert_linear(nums: list[int], target: int) -> int:
+    for i, num in enumerate(nums):
+        if num >= target:
+            return i
+    return len(nums)
+```
+
+선형 탐색은 배열을 순회하며 타겟보다 크거나 같은 첫 원소의 인덱스를 반환한다. 최악의 경우 O(n) 시간이 걸려 문제의 O(log n) 요구사항을 만족하지 못한다. 이진 탐색이 정렬된 배열의 특성을 활용해 로그 시간에 해결하므로 선형 탐색 대비 효율적이다.
+
+## 추가 참고사항
+
+- 파이썬의 `bisect` 모듈(`bisect_left`)을 사용하면 한 줄로 해결 가능하지만, 코딩테스트에서는 직접 구현이 요구되는 경우가 많다.
+- `left` 포인터가 최종적으로 삽입 위치를 가리키는 이유는: 루프 종료 조건 `left > right` 시점에서 `left`는 타겟보다 큰 최소 인덱스이거나, 모든 원소보다 큰 경우 `len(nums)`가 되기 때문이다.
+- 중복 원소가 허용되는 변형 문제에서는 `bisect_left`(첫 위치)와 `bisect_right`(마지막 위치 다음) 구분이 필요하다.
+
+## 출처
+
+- LeetCode: [LeetCode 35 - Search Insert Position](https://leetcode.com/problems/search-insert-position/)
