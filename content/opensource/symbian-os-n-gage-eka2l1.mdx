@@ -1,0 +1,132 @@
+---
+title: "[오픈소스 분석] Symbian OS/N‑Gage 에뮬레이터 EKA2L1"
+publishedAt: "2026-11-02"
+summary: "EKA2L1은 C++17로 작성된 오픈소스 Symbian OS/N‑Gage 에뮬레이터로, Qt 기반 UI, JSON API 컨트롤러, 통합 테스트 스위트를 제공하며 GPL‑3.0 라이선스로 배포됩니다."
+tag: "OpenSource"
+---
+
+## 한눈에 보는 프로젝트와 해결하려는 문제
+
+EKA2L1은 현대 하드웨어에서 Symbian OS(특히 N‑Gage 게임 플랫폼)를 실행할 수 있도록 하는 에뮬레이터 프로젝트입니다. 이 프로젝트는 전체 시스템 에뮬레이션 방식 대신, Symbian의 핵심 앱 서버와 라이브러리를 재구현하여 대부분의 공식 N‑Gage/N‑Gage 2.0 라이브러리와 S60v1부터 Belle까지의 게임 라이브러리를 지원합니다. 주요 목표는 다음과 같습니다:
+
+* **레트로 게임 및 소프트웨어 접근성** – 사용자가 Windows, Linux, macOS, Android에서 익숙한 UI로 클래식 Symbian 게임을 실행할 수 있도록 합니다.
+* **개발 및 연구 지원** – Symbian 애플리케이션의 동작을 조사하고, 디버깅하며, 호환성 문제를 테스트할 수 있는 도구를 제공합니다.
+* **오픈소스 협업** – 커뮤니티가 에뮬레이터 코드를 검토, 확장 및 개선할 수 있도록 GPL‑3.0 하에 모든 관련 파일을 공개합니다.
+
+프로젝트는 부분적으로 유지보수 중이며, 2022년부터 개발은 취미 활동으로 전환되어 일부 플랫폼에 대한 공식 빌드가 제공되지 않습니다. 현재 주요 기여자는 PC/Android 빌드를 담당하며, 커뮤니티는 누락된 플랫폼에 대한 문제 해결을 지원합니다.
+
+## 이해에 필요한 핵심 개념
+
+| 개념 | 설명 | EKA2L1에서의 관련성 |
+|---------|------------|------------------------|
+| **Symbian OS 커널 (EKA2)** | 이벤트 기반 스케줄러, 프로세스 간 통신(IPC), 앱 서버 모델을 정의하는 저수준 OS 계층. | 에뮬레이터는 `src/emu/control` 및 `src/intests`의 `kern` 테스트 케이스에서 EKA2의 동작을 재현합니다. |
+| **앱 서버** | Symbian 애플리케이션이 시스템 서비스(파일 시스템, UI, 네트워킹)를 요청하는 데 사용하는 추상화 계층. | 에뮬레이터는 Qt 프론트엔드(`src/emu/qt`)와 통신하는 컨트롤 API 서버를 구현하여 외부 컨트롤러 역할을 합니다. |
+| **C++17 기능** | 표준 라이브러리의 기능(`std::variant`, `std::string_view` 등)을 활용하여 현대적인 타입 안전 코드를 작성. | CMakeLists.txt는 `CXX_STANDARD 17`을 강제하며, `rapidjson` 파서 및 `std::vector<std::string>` 메타타입 등록 코드에서 이를 활용합니다. |
+| **데이터 배포 모델** | 에뮬레이터는 런타임 시 패치, 리소스, 스크립트 및 호환성 데이터를 복사하여 번들 크기를 줄이면서도 사용자별 데이터는 유지합니다. | `main.cpp`는 `eka2l1::common::copy_folder`를 사용하여 `patch`, `resources`, `scripts` 및 `compat` 디렉토리를 `$XDG_DATA_HOME/EKA2L1/`으로 복사합니다. |
+
+## 저장소 구조와 실제 동작 흐름
+
+```
+EKA2L1/
+├─ .github/               # CI 워크플로우, 자금 지원 YAML
+├─ cmake/                 # 플랫폼 감지, 패키지 관리자, Symbian 지원
+├─ src/
+│  ├─ emu/               # 에뮬레이터 런타임
+│  │  ├─ qt/            # Qt 기반 UI (src/emu/qt/src/main.cpp)
+│  │  └─ control/       # JSON API 서버 (src/emu/control/src/api.cpp)
+│  └─ intests/           # 통합 테스트 프레임워크 (src/intests/src/main.cpp)
+├─ native/                # 참조용 Symbian 네이티브 앱 (BitmapCanavas, ITried 등)
+├─ README.md              # 프로젝트 개요 및 빌드 지침
+└─ BUILDING.md            # 빌드 상세 지침
+```
+
+**일반적인 실행 흐름**
+
+1. **빌드** – `cmake`을 사용하여 빌드하며, CI(`.github/workflows/build.yml`)는 Windows, Linux, macOS, Android용 아티팩트를 생성합니다.
+2. **데이터 준비** – `src/emu/qt/src/main.cpp`는 `$XDG_DATA_HOME/EKA2L1/` 경로를 결정하고, 실행 파일과 함께 제공되는 `patch`, `resources`, `scripts` 및 `compat` 디렉토리를 사용자 데이터 경로로 복사하여 번들 기반 파일 시스템을 구성합니다.
+3. **UI 시작** – `eka2l1::desktop::emulator_entry`는 Qt 이벤트를 통해 에뮬레이터 코어를 초기화하고, Symbian 앱 서버를 시작합니다.
+4. **컨트롤 API** – `src/emu/control/src/api.cpp`는 `rapidjson`을 활용한 REST 스타일 API를 제공하여 외부 도구에서 에뮬레이터를 제어할 수 있게 합니다.
+5. **테스트** – `src/intests/src/main.cpp`는 `CTestManager`를 사용하여 커널, 파일 시스템, IPC 등에 대한 통합 테스트를 실행합니다.
+
+## 구체적인 예제로 보는 설계 선택
+
+### 예제 1 – Qt UI 진입점 (`src/emu/qt/src/main.cpp`)
+
+```cpp
+int main(int argc, char *argv[]) {
+    if (handle_command_line_help(argc, const_cast<const char **>(argv))) {
+        return 0;
+    }
+    QApplication a(argc, argv);
+    // ... (언어 설정 로드 및 메타타입 등록)
+#if !EKA2L1_PLATFORM(WIN32)
+    // 번들 데이터와 사용자 데이터 분리 및 복사
+    eka2l1::common::copy_folder(app_path_str + "/patch", data_path_str + "/patch", 0, nullptr);
+    eka2l1::common::copy_folder(app_path_str + "/resources", data_path_str + "/resources", 0, nullptr);
+    eka2l1::common::copy_folder(app_path_str + "/scripts", data_path_str + "/scripts", 0, nullptr);
+    eka2l1::common::copy_folder(app_path_str + "/compat", data_path_str + "/compat", 0, nullptr);
+    // ...
+#endif
+    eka2l1::desktop::emulator emulator_state;
+    return eka2l1::desktop::emulator_entry(a, emulator_state, argc, const_cast<const char **>(argv));
+}
+```
+
+*설계 선택:* `QSettings`를 통한 언어 설정 영속화와, 설치 경로와 사용자 데이터 경로를 분리하여 시스템 파일 수정 없이 사용자 스크립트와 호환성 데이터를 관리하는 구조를 채택했습니다.
+
+### 예제 2 – 컨트롤 API JSON 파서 (`src/emu/control/src/api.cpp`)
+
+```cpp
+json json::parse(const std::string &text) {
+    rapidjson::Document doc;
+    doc.Parse(text.c_str(), text.size());
+    if (doc.HasParseError())
+        throw api_error(400, "parse_error", "invalid JSON");
+    return read(doc, 0);
+}
+```
+
+*설계 선택:* `rapidjson`을 래핑하여 타입 안전성을 높이고, `api_error` 예외를 통해 HTTP 상태 코드와 오류 메시지를 표준화하여 외부 클라이언트의 처리 편의성을 높였습니다.
+
+## 대안과 비교했을 때의 장단점
+
+| 측면 | EKA2L1 | 전체 시스템 가상화(QEMU 등) |
+|--------|--------|------------------------------------------|
+| **성능** | 핵심 서버 재구현으로 인해 오버헤드가 적음. | 하드웨어 에뮬레이션으로 인해 오버헤드가 큼. |
+| **설정** | 단일 CMake 프로젝트로 빌드 및 실행이 간편함. | 게스트 OS 이미지 관리 및 가상화 설정 필요. |
+| **호환성** | 공식 라이브러리 재구현 기반으로 게임에 최적화. | OS 전체 에뮬레이션으로 범용성은 높으나 게임 성능 저하 가능. |
+
+## 보안·라이선스·도입 시 확인할 점
+
+* **라이선스** – 전체 프로젝트는 **GPL‑3.0**입니다(`LICENSE` 파일 참조). 파생 저작물 배포 시 소스 코드 공개 의무가 있습니다.
+* **보안 고려 사항** – `control` API는 로컬 네트워크나 Unix 소켓을 통해 접근하도록 설계되었습니다. 외부 노출 시 별도의 인증 계층이 필요합니다.
+* **도입 체크리스트**
+  1. 지원 플랫폼(Windows, Linux, Android) 확인. macOS는 커뮤니티 빌드 의존.
+  2. `$XDG_DATA_HOME/EKA2L1/` 디렉토리에 충분한 디스크 공간 확보.
+  3. 테스트 실행 시 `GEN_TESTS` 매크로를 통한 기록 모드 활용 가능 여부 확인.
+
+## 한계와 추천 대상
+
+**한계**
+* **유지보수 상태** – 2022년 이후 개발 속도가 완만해졌으며, 일부 플랫폼 빌드는 커뮤니티 지원에 의존합니다.
+* **호환성 범위** – 모든 Symbian 앱을 지원하지 않으며, 특히 커널 수준의 특수 기능을 사용하는 앱은 실행이 제한될 수 있습니다.
+
+**추천 대상**
+* **레트로 게임 애호가** – N‑Gage 게임을 현대 환경에서 구동하려는 사용자.
+* **Symbian 연구자** – OS 아키텍처 분석 및 호환성 테스트가 필요한 개발자.
+* **개발자** – Qt 기반 프론트엔드와 JSON API 서버 구조를 학습하거나 Symbian 스타일의 앱 서버 이식을 연구하는 경우.
+
+### 출처
+* `README.md` – 프로젝트 개요 및 호환성 정보.
+* `LICENSE` – GPL-3.0 라이선스.
+* `src/emu/qt/src/main.cpp` – UI 진입점 및 데이터 관리 로직.
+* `src/intests/src/main.cpp` – 통합 테스트 프레임워크.
+* `src/emu/control/src/api.cpp` – JSON API 서버 구현.
+
+## 출처
+
+- GitHub: [EKA2L1/EKA2L1](https://github.com/EKA2L1/EKA2L1) — 작성자: EKA2L1
+- GitHub: [EKA2L1/EKA2L1 / LICENSE](https://github.com/EKA2L1/EKA2L1/blob/master/LICENSE) — 작성자: EKA2L1
+- GitHub: [EKA2L1/EKA2L1 / src/emu/qt/src/main.cpp](https://github.com/EKA2L1/EKA2L1/blob/master/src/emu/qt/src/main.cpp) — 작성자: EKA2L1
+- GitHub: [EKA2L1/EKA2L1 / src/intests/src/main.cpp](https://github.com/EKA2L1/EKA2L1/blob/master/src/intests/src/main.cpp) — 작성자: EKA2L1
+- GitHub: [EKA2L1/EKA2L1 / src/emu/control/src/api.cpp](https://github.com/EKA2L1/EKA2L1/blob/master/src/emu/control/src/api.cpp) — 작성자: EKA2L1
