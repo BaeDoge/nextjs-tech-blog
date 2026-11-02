@@ -1,0 +1,115 @@
+---
+title: "[오픈소스 분석] 중국 독립 개발자 리스트와 자동화"
+publishedAt: "2026-11-02"
+summary: "이 프로젝트는 중국 독립 개발자들의 제품을 공유하는 큐레이션 저장소이자, AI와 GitHub 이슈를 결합해 기여 과정을 자동화한 파이프라인입니다."
+tag: "OpenSource"
+---
+
+## 한눈에 보는 프로젝트와 해결하려는 문제
+
+`1c7/chinese-independent-developer`는 중국 독립 개발자들의 제품과 활동을 기록하는 거대한 링크 컬렉션 프로젝트입니다. 단순히 정적인 리스트를 수동으로 관리하는 것을 넘어, 전 세계 개발자들이 자신의 프로젝트를 쉽게 등록하고 관리할 수 있도록 GitHub 이슈와 대규모 언어 모델(LLM)을 결합한 자동화 파이프라인을 구축한 점이 가장 큰 특징입니다.
+
+이 프로젝트가 해결하려는 핵심 문제는 '정보의 파편화'와 '관리의 비효율성'입니다. 수많은 독립 개발자가 각자의 제품을 만들지만, 이를 한곳에 모아 가시성을 확보하는 것은 쉽지 않습니다. 관리자는 수동으로 리스트를 업데이트하는 대신, 코드에 지정된 이슈(`ISSUE_NUMBER = 160`)를 통해 접수된 데이터를 AI가 구조화하고 자동으로 Pull Request를 생성하여 저장소에 반영하는 워크플로우를 설계했습니다. 이를 통해 커뮤니티 기여자는 복잡한 Git 조작이나 마크다운 수동 편집 없이도 이슈 댓글만으로 자신의 제품을 리스트에 등록할 수 있습니다.
+
+## 이해에 필요한 핵심 개념
+
+이 프로젝트를 기술적으로 이해하기 위해서는 다음 세 가지 개념이 중요합니다.
+
+1. **이슈 기반 데이터 수집 (Issue-driven Collection):** 사용자가 이슈 160번(`ISSUE_NUMBER = 160`)에 자신의 프로젝트를 댓글로 남기면, 시스템이 이를 감지하여 정적 리스트(README)에 추가할 수 있는 후보로 포착합니다.
+2. **AI 기반 데이터 정제 (LLM-based Processing):** `.github/scripts/process_item.py`에 구현된 로직은 사용자의 비정형 텍스트 입력을 받아 OpenAI API 호환 엔드포인트를 통해 표준화된 Markdown 형식으로 변환합니다. 이 과정에서 여러 제품이 포함된 텍스트도 각각 분리하여 처리할 수 있습니다.
+3. **자동화된 워크플로우 (Automated Workflow):** `.github/workflows/` 내의 설정 파일들은 GitHub Actions를 통해 주기적으로 스크립트를 실행하며, 관리자의 개입을 최소화하면서도 데이터의 품질을 유지하는 반복 작업을 수행합니다.
+
+## 저장소 구조와 실제 동작 흐름
+
+저장소는 크게 데이터 저장 영역과 자동화 로직 영역으로 나뉩니다.
+
+- **데이터 관리:** `README.md` 및 관련 마크다운 문서들은 독립 개발자들의 리스트를 카테고리별로 관리하는 핵심 저장소 역할을 합니다.
+- **자동화 로직:** `.github/scripts/` 디렉토리는 프로젝트의 핵심 엔진입니다. `.github/scripts/process_item.py`는 이슈를 스캔하고 AI로 텍스트를 정제하는 역할을 담당합니다.
+- **워크플로우:** `.github/workflows/` 내의 YAML 파일들은 특정 이벤트나 주기적인 시간 설정에 따라 스크립트를 자동으로 실행합니다.
+
+전체적인 동작 흐름은 다음과 같습니다:
+1. 사용자가 이슈 160번(`ISSUE_NUMBER = 160`)에 자신의 프로젝트 정보를 댓글로 작성합니다.
+2. 관리자가 해당 댓글에 특정 이모지 반응을 남겨 처리를 승인합니다(이때 성공 처리는 `SUCCESS_EMOJI = "hooray"` 기준을 따름).
+3. `.github/scripts/process_item.py` 스크립트가 실행되어 조건에 맞는 댓글을 수집하고 파싱합니다.
+4. LLM이 내용을 Markdown 형식으로 포맷팅하고, 시스템이 자동으로 Pull Request를 생성하여 리스트를 업데이트합니다.
+
+## 구체적인 예제로 보는 설계 선택
+
+`.github/scripts/process_item.py` 파일은 이 프로젝트의 자동화 철학을 잘 보여줍니다. 특히 `get_ai_project_line` 함수는 LLM을 사용하여 사용자의 자유로운 입력을 정형화된 데이터로 변환하도록 설계되었습니다.
+
+```python
+def get_ai_project_line(raw_text):
+    """让 AI 提取项目名称、链接和描述（支持多个产品）"""
+    client = OpenAI(api_key=API_KEY, base_url=BASE_URL)
+    prompt = f"""
+任务：将用户的项目介绍转换为 Markdown 格式。
+
+要求：
+1. 识别文本中的所有产品/项目（可能有多个）
+2. 每个项目占一行
+...
+    """
+    response = client.chat.completions.create(
+        model=os.getenv("LLM_MODEL", "gpt-4o-mini"),
+        messages=[{"role": "user", "content": prompt}]
+    )
+    return response.choices[0].message.content.strip()
+```
+
+또한, `.github/tests/test_process_item.py`는 실제 외부 API 호출 없이도 로직을 검증할 수 있도록 가짜 객체(Mock)를 활용한 테스트 코드를 포함하고 있습니다. 이는 외부 의존성을 제거하고 스크립트의 로직을 독립적으로 검증하기 위한 설계 선택입니다.
+
+```python
+class ProcessItemTests(unittest.TestCase):
+    def setUp(self):
+        self.script = load_script()
+
+    def test_contributor_success_reaction_does_not_suppress_submission(self):
+        item = Item((
+            Reaction("rocket", "1c7"),
+            Reaction("hooray", "contributor"),
+        ))
+
+        self.assertEqual(self.script.check_reactions(item), (True, False))
+```
+
+## 대안과 비교했을 때의 장단점
+
+이 프로젝트는 수동으로 관리되는 일반적인 커뮤니티 리스트(Awesome List)와 비교했을 때 다음과 같은 차이가 있습니다.
+
+| 비교 항목 | 일반적인 커뮤니티 리스트 | 본 프로젝트 (AI + 이슈 자동화) |
+| :--- | :--- | :--- |
+| **업데이트 방식** | 관리자가 직접 PR 검토 및 포맷 수정 | 이슈 댓글 작성 후 관리자가 이모지로 트리거 제공, 자동화 스크립트가 AI를 통해 PR 생성 |
+| **데이터 정제** | 기여자 및 관리자의 수동 편집 | LLM을 활용한 일관된 마크다운 포맷 변환 |
+| **운영 확장성** | 관리자의 시간에 전적으로 의존 | 자동화 워크플로우를 통한 대량의 기여 수용 용이 |
+
+**장점:** 수많은 개발자가 동시에 참여하는 대규모 커뮤니티 리스트를 운영함에 있어 관리자의 수동 편집 부담을 획기적으로 낮추고, 기여 장벽을 낮추어 활발한 참여를 유도합니다.
+**단점:** LLM API 호출에 따른 비용과 모델 응답의 변동성이 존재하며, AI가 잘못된 링크나 설명을 생성할 경우 이를 사후에 검토하고 수정해야 하는 예외 처리가 필요합니다.
+
+## 보안·라이선스·도입 시 확인할 점
+
+- **보안 및 환경 변수:** `.github/scripts/process_item.py` 스크립트는 `PAT_TOKEN`과 `LLM_API_KEY`를 환경 변수로 요구합니다. 이는 GitHub Actions Secrets 등을 통해 안전하게 주입되어야 하며, 공개 로그에 토큰이 노출되지 않도록 주의해야 합니다.
+- **코드 설정:** 설정 및 스크립트 동작 과정에서 `ISSUE_NUMBER = 160`과 같은 특정 이슈 번호나 관리자 핸들 등의 식별자가 활용되므로, 다른 저장소에서 이 시스템을 차용할 때는 코드 전반에 걸쳐 하드코딩된 식별자나 설정값을 환경에 맞게 수정해야 합니다.
+- **라이선스:** 저장소의 SPDX 라이선스는 명시되어 있지 않으나, 오픈소스 커뮤니티의 지식 공유 및 기여 모델을 차용하고 있습니다. 타 저장소에서 이 자동화 파이프라인을 차용할 때는 스크립트의 라이선스 및 사용 중인 LLM API의 이용 약관을 준수해야 합니다.
+
+## 한계와 추천 대상
+
+**한계:**
+- LLM 모델의 성능 및 환각(Hallucination) 현상에 따라 추출된 프로젝트 링크나 설명의 정확도가 완벽하지 않을 수 있습니다.
+- 복잡한 데이터베이스 구조가 아니라 단순한 마크다운 리스트 갱신에 특화되어 있어, 대규모 트랜잭션이나 정교한 검색 기능이 필요한 서비스에는 적합하지 않습니다.
+- GitHub 플랫폼 및 외부 LLM API 제공자의 가동 상태에 의존합니다.
+
+**추천 대상:**
+- 대규모 큐레이션 리스트나 오픈소스 디렉터리를 운영하면서 관리 업무를 자동화하고 싶은 커뮤니티 메인터이너.
+- GitHub 이슈, GitHub Actions, LLM API를 결합한 실용적인 자동화 파이프라인 구축 사례를 학습하고자 하는 개발자.
+- 자신의 독립 개발 프로젝트를 중국 생태계에 공유하거나 다른 개발자들의 사례를 탐색하려는 창업자 및 개발자.
+
+출처:
+- [1c7/chinese-independent-developer GitHub Repository](https://github.com/1c7/chinese-independent-developer)
+- [.github/scripts/process_item.py](https://github.com/1c7/chinese-independent-developer/blob/master/.github/scripts/process_item.py)
+- [.github/tests/test_process_item.py](https://github.com/1c7/chinese-independent-developer/blob/master/.github/tests/test_process_item.py)
+
+## 출처
+
+- GitHub: [1c7/chinese-independent-developer](https://github.com/1c7/chinese-independent-developer) — 작성자: 1c7
+- GitHub: [1c7/chinese-independent-developer / .github/scripts/process_item.py](https://github.com/1c7/chinese-independent-developer/blob/master/.github/scripts/process_item.py) — 작성자: 1c7
+- GitHub: [1c7/chinese-independent-developer / .github/tests/test_process_item.py](https://github.com/1c7/chinese-independent-developer/blob/master/.github/tests/test_process_item.py) — 작성자: 1c7
