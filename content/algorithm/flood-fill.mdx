@@ -1,0 +1,104 @@
+---
+title: "[코딩테스트] Flood Fill 탐색 알고리즘"
+publishedAt: "2026-11-02"
+summary: "시작 픽셀과 인접한 동일한 색상을 가진 영역을 새로운 색상으로 변경하는 Flood Fill 문제를 해결합니다."
+tag: "Algorithm"
+---
+
+## 문제
+
+이 문제는 주어진 `m x n` 크기의 정수형 2차원 배열 `image`와 시작 좌표 `(sr, sc)`, 그리고 새 색상 `color`를 받아 Flood Fill 알고리즘을 수행하는 것입니다.
+
+시작 픽셀의 색상을 `color`로 변경한 후, 상하좌우로 인접한 픽셀 중 시작 픽셀의 원래 색상과 같은 경우에도 동일하게 색상을 변경합니다. 이 과정을 더 이상 변경할 인접한 픽셀이 없을 때까지 반복합니다.
+
+주어진 제약 조건은 다음과 같습니다.
+- 이미지 크기 `m`, `n`은 50 이하입니다.
+- 색상 값과 `color`는 0 이상 2^16 미만입니다.
+- 시작 좌표는 이미지의 유효한 범위 안에 있습니다.
+
+## 접근 방법
+
+Flood Fill 문제는 그래프 탐색 문제로 볼 수 있습니다. 각 픽셀을 노드, 인접한 픽셀을 간선으로 간주할 수 있습니다.
+
+1. 시작 지점 `(sr, sc)`의 원래 색상을 `original_color`로 저장합니다.
+2. 만약 `original_color`와 `color`가 같다면, 색상을 변경할 필요가 없으므로 그대로 `image`를 반환합니다.
+3. 시작 지점부터 시작하여 상하좌우 방향으로 탐색을 진행합니다. 탐색 중 이전에 방문한 픽셀을 다시 방문하면 무한 루프에 빠지므로, 방문 처리가 필요합니다.
+4. 탐색 방법으로는 재귀를 이용한 깊이 우선 탐색(DFS) 또는 큐를 이용한 너비 우선 탐색(BFS)을 사용할 수 있습니다.
+
+## 풀이
+
+재귀 호출을 사용하여 깊이 우선 탐색(DFS) 방식으로 구현합니다.
+
+```python
+class Solution:
+    def floodFill(self, image: List[List[int]], sr: int, sc: int, color: int) -> List[List[int]]:
+        original_color = image[sr][sc]
+        
+        # 시작 색상이 새 색상과 동일하다면 변경할 필요 없음
+        if original_color == color:
+            return image
+        
+        def dfs(r, c):
+            image[r][c] = color
+            
+            # 상하좌우 인접한 픽셀 확인
+            directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]
+            for dr, dc in directions:
+                nr, nc = r + dr, c + dc
+                
+                # 범위 체크 및 색상 체크
+                if (0 <= nr < len(image) and 
+                    0 <= nc < len(image[0]) and 
+                    image[nr][nc] == original_color):
+                    dfs(nr, nc)
+        
+        dfs(sr, sc)
+        return image
+```
+
+시간복잡도: O(m * n). 최악의 경우 모든 픽셀을 한 번씩 방문합니다.
+공간복잡도: O(m * n). 재귀 호출 스택의 깊이가 이미지 크기에 비례할 수 있습니다.
+
+## 다른 풀이 방법
+
+큐를 이용한 너비 우선 탐색(BFS)을 사용할 수 있습니다.
+
+```python
+from collections import deque
+
+class Solution:
+    def floodFill(self, image: List[List[int]], sr: int, sc: int, color: int) -> List[List[int]]:
+        original_color = image[sr][sc]
+        if original_color == color:
+            return image
+        
+        m, n = len(image), len(image[0])
+        queue = deque([(sr, sc)])
+        image[sr][sc] = color
+        
+        directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]
+        
+        while queue:
+            r, c = queue.popleft()
+            
+            for dr, dc in directions:
+                nr, nc = r + dr, c + dc
+                if (0 <= nr < m and 0 <= nc < n and image[nr][nc] == original_color):
+                    image[nr][nc] = color
+                    queue.append((nr, nc))
+                    
+        return image
+```
+
+시간복잡도: O(m * n)
+공간복잡도: O(m * n). 큐의 크기가 최대 이미지 크기인 m x n을 차지할 수 있습니다.
+
+## 추가 참고사항
+
+- 시작 색상이 새 색상과 같은 경우 예외 처리를 하지 않으면 재귀 깊이 제한이나 큐의 불필요한 증가로 인해 성능 저하 또는 무한 루프 가능성이 있습니다.
+- Python의 경우 재귀 깊이 제한이 기본값이 1000이므로, 이미지 크기가 매우 클 경우 `sys.setrecursionlimit`을 조정하거나 BFS를 사용하는 것이 안전합니다.
+- 이 문제는 그래프의 연결 요소(Connected Component)를 찾는 문제와 유사한 구조를 가집니다.
+
+## 출처
+
+- LeetCode: [LeetCode 733 - Flood Fill](https://leetcode.com/problems/flood-fill/)
