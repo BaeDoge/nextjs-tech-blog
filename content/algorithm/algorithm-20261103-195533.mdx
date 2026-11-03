@@ -1,0 +1,89 @@
+---
+title: "[코딩테스트] 이진트리 중위순회"
+publishedAt: "2026-11-03"
+summary: "이진 트리의 중위순회 알고리즘을 재귀 및 반복 방식으로 구현한다."
+tag: "Algorithm"
+---
+
+## 문제
+
+주어진 이진 트리의 루트 노드를 입력으로 받아, 중위순회(Inorder Traversal) 결과인 노드 값들의 리스트를 반환해야 한다. 중위순회는 왼쪽 서브트리, 현재 노드, 오른쪽 서브트리의 순서로 데이터를 방문한다. 트리의 노드 수는 0부터 100까지이며, 각 노드의 값은 -100에서 100 사이의 정수이다. 입력이 비어있다면 빈 리스트를 반환한다.
+
+## 접근 방법
+
+중위순회의 핵심 원칙은 `왼쪽 -> 루트 -> 오른쪽`의 방문 순서를严格遵守하는 것이다. 이를 구현하는 가장 직관적인 방법은 재귀 호출을 사용하는 것이다. 함수가 호출될 때 먼저 왼쪽 자식 노드를 호출하고, 그 실행이 끝나면 현재 노드의 값을 결과 리스트에 추가한 후 오른쪽 자식 노드를 호출한다. 재귀는 호출 스택을 자동으로 관리하므로 구현이 간단하다. 반복문으로 구현할 때는 명시적인 스택을 사용하여 방문해야 할 노드들을 추적해야 한다.
+
+## 풀이
+
+재귀 방식을 사용하여 구현한다.辅助 함수를 정의하여 DFS 탐색을 진행하거나, 클래스 메서드 내에서 리스트를 갱신하는 방식으로 작성할 수 있다. 아래 코드는 보조 함수를 사용하여 리스트를 채우는 방식이다.
+
+```python
+# Definition for a binary tree node.
+# class TreeNode:
+#     def __init__(self, val=0, left=None, right=None):
+#         self.val = val
+#         self.left = left
+#         self.right = right
+class Solution:
+    def inorderTraversal(self, root: Optional[TreeNode]) -> List[int]:
+        result = []
+        
+        def inorder(node: Optional[TreeNode]):
+            if not node:
+                return
+            # 1. 왼쪽 서브트리 방문
+            inorder(node.left)
+            # 2. 현재 노드 방문
+            result.append(node.val)
+            # 3. 오른쪽 서브트리 방문
+            inorder(node.right)
+            
+        inorder(root)
+        return result
+
+# 시간 복잡도: O(N) - 모든 노드를 정확히 한 번 방문
+# 공간 복잡도: O(N) - 재귀 호출 스택의 최대 깊이가 N일 수 있음 (최악의 경우 편향 트리)
+```
+
+## 다른 풀이 방법
+
+반복문과 명시적인 스택(Stack)을 사용하는 방법이 있다. 재귀의 호출 스택을 직접 스택 자료구조로 구현하는 것이다.
+1. 현재 노드를 루트로 설정한다.
+2. 현재 노드가 존재하는 동안 또는 스택이 비어있지 않은 동안 루프를 돈다.
+3. 현재 노드가 존재하면 왼쪽 자식들을 순회하며 스택에 push한다.
+4. 현재 노드가 없으면 스택에서 top을 pop하고 해당 값을 결과에 추가한 후, 현재 노드를 오른쪽 자식으로 이동한다.
+이 방법은 재귀의 오버헤드를 피하고 제어 흐름을 명시적으로 관리할 수 있다는 장점이 있다.
+
+```python
+class Solution:
+    def inorderTraversal(self, root: Optional[TreeNode]) -> List[int]:
+        result = []
+        stack = []
+        current = root
+        
+        while current or stack:
+            # 왼쪽 끝까지 내려가며 스택에 저장
+            while current:
+                stack.append(current)
+                current = current.left
+            
+            # 스택에서 꺼내 방문
+            current = stack.pop()
+            result.append(current.val)
+            
+            # 오른쪽 서브트로 이동
+            current = current.right
+            
+        return result
+
+# 시간 복잡도: O(N)
+# 공간 복잡도: O(N) - 스택 저장 공간
+```
+
+## 추가 참고사항
+
+모던 LeetCode 환경에서는 재귀 풀이와 반복 풀이의 실행 시간과 메모리 사용량이 큰 차이가 나지 않을 수 있다. 하지만 문제 Follow-up에서 반복 해결책을 요청한 것처럼, 재귀 깊이가 매우 깊어지는 경우(Deep Recursion) 스택 오버플로우 위험이 있으므로 대규모 데이터나 제한된 스택 크기의 환경에서는 반복문을 권장한다. 또한, Morris Traversal 기법을 사용하면 O(1)의 추가 공간으로 중위순회를 구현할 수 있으나, 트리를 일시적으로 수정한다는 점과 구현 복잡도로 인해 실제 코딩 테스트에서는 재귀/반복문을 주로 사용한다.
+
+## 출처
+
+- LeetCode: [LeetCode 94 - Binary Tree Inorder Traversal](https://leetcode.com/problems/binary-tree-inorder-traversal/)
