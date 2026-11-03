@@ -1,0 +1,121 @@
+---
+title: "[트러블슈팅] staticmethod 객체 호출 불가 해결"
+publishedAt: "2026-11-03"
+summary: "클래스 정의 내부에서 staticmethod 객체를 직접 참조할 때 발생하는 호출 불가 오류를 해결하는 방법을 설명합니다."
+tag: "Troubleshooting"
+---
+
+## 현상
+
+클래스 정의 블록 내에서 `@staticmethod`로 데코레이터된 메서스를 직접 참조하여 딕셔너리에 저장한 후 호출하면 에러가 발생합니다.
+
+```python
+class A(object):
+    @staticmethod
+    def open_func():
+        return 123
+
+    @staticmethod
+    def process_func():
+        return 456
+
+    switch = {
+        1: open_func,
+        2: process_func,
+    }
+
+obj = A.switch[1]()
+```
+
+실행 시 다음과 같은 `TypeError`가 발생합니다.
+
+```python
+TypeError: 'staticmethod' object is not callable
+```
+
+## 원인
+
+클래스 정의 블록 내부에서 함수명을 직접 참조하면, 호출 가능한 함수가 아니라 `staticmethod` 클래스의 인스턴스(디스크립터 객체)가 참조됩니다.
+
+`staticmethod` 객체는 클래스나 인스턴스의 속성으로 접근될 때(`A.open_func`) 디스크립터 프로토콜에 의해 실제 함수로 변환됩니다.
+
+그러나 클래스 바디 내부는 실행 컨텍스트일 뿐이며, 여기서 함수명을 사용하면 디스크립터 객체가 바인딩되지 않은 상태로 참조됩니다.
+
+이로 인해 변환 과정이 일어나지 않은 `staticmethod` 객체가 그대로 저장되며, 이를 호출하려고 할 때 에러가 발생합니다.
+
+## 해결 방법
+
+클래스가 생성된 후 외부에서 클래스 객체를 통해 속성으로 접근하여 딕셔너리를 할당하면 디스크립터 프로토콜이 작동합니다.
+
+클래스 정의 후 별도의 딕셔너리를 생성하여 클래스 속성에 할당합니다.
+
+```python
+class A(object):
+    @staticmethod
+    def open_func():
+        return 123
+    @staticmethod
+    def process_func():
+        return 456
+
+A.switch = {
+    1: A.open_func,
+    2: A.process_func,   
+}
+```
+
+![해결 방법 스크린샷](/blogs/staticmethod-1.gif)
+
+## 다른 해결 방법
+
+디스크립터의 `__get__` 메서드를 명시적으로 호출하거나 `__func__` 속성을 사용하여 내부 함수를 추출할 수 있습니다.
+
+첫째, `__get__` 메서드를 사용하여 강제로 바인딩된 함수를 가져옵니다. `staticmethod`의 경우 컨텍스트가 무시되므로 `None`을 전달합니다.
+
+```python
+class A(object):
+    @staticmethod
+    def open_func():
+        return 123
+    @staticmethod
+    def process_func():
+        return 456
+
+    switch = {
+        1: open_func.__get__(None, A),
+        2: process_func.__get__(None, A),   
+    }
+```
+
+둘째, `staticmethod` 객체의 `__func__` 속성에 접근하여 원래의 함수 객체를 직접 가져옵니다.
+
+```python
+class A(object):
+    @staticmethod
+    def open_func():
+        return 123
+    @staticmethod
+    def process_func():
+        return 456
+
+    switch = {
+        1: open_func.__func__,
+        2: process_func.__func__,   
+    }
+```
+
+## 추가 참고사항
+
+`classmethod`나 `staticmethod`를 다른 데코레이터와 함께 사용할 때는 가장 바깥쪽에 배치해야 합니다.
+
+`staticmethod`나 `classmethod`는 디스크립터 객체를 반환하기 때문에, 다른 데코레이터가 바깥에 있으면 `__module__` 등 속성을 찾을 수 없는 `AttributeError`가 발생할 수 있습니다.
+
+메서드 네임스페이스가 필요할 경우 클래스보다는 일반 모듈에 함수를 정의하는 것이 더 간편할 수 있습니다.
+
+## 출처
+
+- StackOverflow: ['staticmethod' object is not callable](https://stackoverflow.com/questions/41921255/staticmethod-object-is-not-callable) — 작성자: Ramin Farajpour Cami(질문), Martijn Pieters(답변) (CC BY-SA)
+- Tistory: [Python _ @classmethod, @staticmethod 란 무엇인가?](https://daco2020.tistory.com/281) — 작성자: 코드로 우주평화
+- Tistory: [[python] staticmethod, classmethod 데코레이터 여러개 쓰기AttributeError: 'staticmethod' object has no attribute '__module__'/](https://great-woman-hoseung.tistory.com/59) — 작성자: 어려운게 너무 많아
+
+본문 이미지는 위 출처에서 가져왔습니다.
