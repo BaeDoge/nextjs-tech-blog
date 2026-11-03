@@ -1,0 +1,47 @@
+---
+title: "[코딩테스트] 배열 오른쪽 최대값 치환"
+publishedAt: "2026-11-03"
+summary: "배열의 각 요소를 오른쪽에 있는 최대값으로 대체하고 마지막 요소를 -1로 만드는 문제를 O(n) 시간에 해결한다."
+tag: "Algorithm"
+---
+
+## 문제
+
+주어진 정수 배열 `arr`에서 각 인덱스 `i`의 값을 `i`보다 오른쪽에 위치한 원소들 중 최댓값으로 바꾼다. 가장 오른쪽 원소는 오른쪽에 원소가 없으므로 `-1`로 채운다. 제약 조건은 `1 ≤ arr.length ≤ 10^4`, `1 ≤ arr[i] ≤ 10^5`이다.
+
+## 접근 방법
+
+배열을 오른쪽에서 왼쪽으로 한 번만 순회하면서 지금까지 본 최댓값을 유지한다. 현재 위치의 원소를 저장해 두고, 유지 중인 최댓값으로 현재 위치를 갱신한 뒤, 저장한 원소와 기존 최댓값 중 큰 값을 새로운 최댓값으로 갱신한다. 이렇게 하면 추가 배열 없이 제자리에서 O(n) 시간에 처리할 수 있다.
+
+## 풀이
+
+```python
+def replaceElements(arr):
+    max_right = -1
+    for i in range(len(arr) - 1, -1, -1):
+        current = arr[i]
+        arr[i] = max_right
+        if current > max_right:
+            max_right = current
+    return arr
+```
+
+- 시간복잡도: O(n) — 배열을 한 번만 순회한다.
+- 공간복잡도: O(1) — 상수 개의 변수만 사용한다.
+
+## 다른 풀이 방법
+
+1. **브루트 포스 (O(n²))**  
+   각 인덱스 `i`에 대해 `i+1`부터 끝까지 스캔해 최댓값을 구한다. 구현은 간단하지만 `n ≤ 10^4`에서 시간 초과 가능성이 있다.
+2. **접미사 최댓값 배열 (O(n) 시간, O(n) 공간)**  
+   오른쪽부터 누적 최댓값을 별도 배열 `suffix_max`에 저장한 뒤, 원본 배열을 `suffix_max` 값으로 채운다. 추가 공간이 필요하지만 로직이 직관적이다.
+
+## 추가 참고사항
+
+- 배열 길이가 1인 경우 루프 한 번만 실행되어 `[-1]`이 반환된다.
+- 원본 배열을 수정해도 문제 조건상 허용된다.
+- `max_right` 초기값을 `-1`로 두면 마지막 원소 처리가 자연스럽게 된다.
+
+## 출처
+
+- LeetCode: [LeetCode 1299 - Replace Elements with Greatest Element on Right Side](https://leetcode.com/problems/replace-elements-with-greatest-element-on-right-side/)
