@@ -1,0 +1,124 @@
+---
+title: "[오픈소스 분석] Scrapling: 현대 웹 스크래핑 프레임워크 심층 분석"
+publishedAt: "2026-11-04"
+summary: "HTTP 정적 페칭부터 Playwright 기반 스텔스 브라우저, 그리고 Scrapy 호환 스파이더까지 통합한 고성능 Python 웹 스크래핑 프레임워크의 구조와 설계 선택을 분석한다."
+tag: "OpenSource"
+---
+
+## 한눈에 보는 프로젝트와 해결하려는 문제
+
+Scrapling은 Python 기반의 웹 스크래핑(Web Scraping) 및 크롤링 프레임워크입니다. GitHub 저장소 정보와 README, `pyproject.toml`을 기준으로 볼 때, 이 프로젝트는 단순한 HTML 파싱 라이브러리가 아니라 '정적 HTTP 요청'부터 '동적 자바스크립트 렌더링', '보안 우회(Anti-bot)', 그리고 '대규모 크롤링'까지 전 주기를 아우르는 통합 솔루션을 지향합니다. 저장소 토픽에 `ai`, `mcp`, `playwright`, `stealth`가 포함된 점과 `agent-skill` 폴더가 포함된 것은, 단순 데이터 수집을 넘어 AI 에이전트나 RAG(Retrieval-Augmented Generation) 시스템의 데이터 소스로서의 역할도 고려하고 있음을 시사합니다.
+
+주요 해결 대상은 현대 웹의 복잡성입니다. 과거에는 `requests`와 `BeautifulSoup` 조합으로 충분했지만, 현재는 Cloudflare와 같은 보안 시스템, SPA(Single Page Application)의 자바스크립트 의존성, 그리고 방대한 데이터 수집을 위한 동시성 처리와 세션 관리가 필수적입니다. Scrapling은 이러한 요구사항을 단일 프레임워크 내에서 해결하기 위해, 경량 HTTP 엔진, Playwright 기반 브라우저 엔진, 그리고 Scrapy와 유사한 스파이더 아키텍처를 결합했습니다.
+
+저장소의 개발 상태는 `pyproject.toml`의 `classifiers`에 따르면 `Development Status :: 4 - Beta`입니다. 이는 프로덕션 환경에서 안정적으로 사용 가능하지만, API 변경이나 새로운 기능이 활발히 추가되는 단계임을 의미합니다. Python 3.10 이상을 요구하며, BSD-3-Clause 라이선스를 따릅니다.
+
+## 이해에 필요한 핵심 개념
+
+Scrapling의 동작 원리를 이해하기 위해서는 다음 세 가지 핵심 개념을 파악해야 합니다.
+
+첫째, **Fetcher와 Session의 분리**입니다. Scrapling은 일회성 요청과 지속적 세션 관리를 명확히 구분합니다. `Fetcher` 클래스는 간단한 URL 하나를 가져오는 데 사용되며, 내부적으로 `FetcherSession`을 생성하여 처리합니다. `FetcherSession`은 HTTP 연결을 재사용하고 쿠키를 유지하며, `curl_cffi` 라이브러리를 활용하여 브라우저의 TLS 지문(TLS fingerprint)을 모방합니다. 이는 `impersonate` 파라미터를 통해 실제 Chrome 브라우저의 TLS 핸드셰이크 패턴을 설정하여 보안을 우회하는 역할을 합니다.
+
+둘째, **Adaptive Element Tracking(적응형 요소 추적)**입니다. 웹 페이지의 구조가 미세하게 변경되어 기존 CSS/XPath 셀렉터가 실패하는 것은 스크래퍼 개발자의 가장 큰 골칫거리입니다. Scrapling은 `Selector` 클래스 내부에 `find_similar` 기능을 제공합니다. 이는 요소의 고유한 속성(태그, 클래스, 텍스트, 위치 등)을 저장소(`elements_storage.db`)에 저장하고, 이후 페이지 로드 시 저장된 속성과 유사도가 높은 요소를 찾아 재배치합니다. 이는 `difflib.SequenceMatcher`를 기반으로 한 유사도 알고리즘을 사용하여 구현됩니다.
+
+셋째, **Spider 아키텍처의 통합**입니다. Scrapling은 Scrapy와 유사한 `Spider` 클래스를 제공합니다. `start_urls`에서 시작하여 비동기 `parse` 콜백을 통해 데이터를 추출하고, `Request`와 `Response` 객체를 처리합니다. 이는 대용량 크롤링에 필요한 동시성 제어, 도메인별 스로틀링, 그리고 다운로드 지연 시간을 단일 인터페이스로 관리할 수 있게 합니다.
+
+## 저장소 구조와 실제 동작 흐름
+
+저장소의 파일 구조는 Scrapling이 '데이터 수집(Fetching)', '파싱(Parsing)', '크롤링(Spiders)', 'AI 통합(AI)'이라는 네 가지 층위로 구성되어 있음을 보여줍니다.
+
+핵심 로직은 `scrapling/` 폴더에 위치합니다. `scrapling/parser.py`는 HTML 파싱의 핵심으로, `lxml`을 기반으로 하지만 `cssselect`를 통해 CSS 셀렉터를 XPath로 변환하고, `TextHandler`와 `AttributesHandler`를 통해 직관적인 API를 제공합니다. `scrapling/fetchers/` 폴더에는 HTTP 요청(`Fetcher`)과 브라우저 자동화(`StealthyFetcher`) 로직이 분리되어 있습니다. `StealthyFetcher`는 `playwright`와 `patchright`(Playwright의 스텔스 패치 버전)를 사용하여 브라우저 인스턴스를 관리합니다.
+
+`scrapling/spiders/` 폴더는 크롤링 엔진을 담당합니다. `scrapling/spiders/cache.py`에 있는 `ResponseCacheManager`는 개발 단계에서 반복되는 네트워크 요청을 줄이기 위해 HTTP 응답을 로컬 디스크(JSON 형식)에 캐싱합니다. 이는 `orjson`을 사용하여 직렬화하며, `anyio`를 통해 비동기적으로 파일 입출력을 처리합니다.
+
+`agent-skill/` 폴더는 AI 에이전트 통합을 위한 스킬 정의 파일과 예제를 포함합니다. 여기에는 `SKILL.md`와 함께 `01_fetcher_session.py`, `02_browser_session.py` 등 실제 사용 예제가 포함되어 있어, AI 모델이 Scrapling을 어떻게 호출해야 하는지 학습할 수 있는 컨텍스트를 제공합니다.
+
+`docs/` 폴더는 `Zensical`을 사용하여 구축된 문서를 포함하며, 다국어 지원(AR, CN, DE, ES, FR, JP, PT_BR, RU, KR)을 위해 로케일 폴더가 별도로 관리됩니다.
+
+동작 흐름은 다음과 같습니다. 사용자가 `Fetcher.get()` 또는 `Spider`를 호출하면, 내부에서 `FetcherSession`이 생성되어 `curl_cffi`를 통해 TLS 지문을 설정한 HTTP 요청을 보냅니다. 응답이 오면 `lxml` 기반의 파서가 HTML을 구문 분석하고 `Selector` 객체를 반환합니다. 만약 `StealthyFetcher`를 사용했다면, Playwright 브라우저가 렌더링한 DOM을 파싱합니다. 추출된 데이터는 `Response` 객체에 담겨 사용자에게 반환되며, Spider 모드라면 `parse` 콜백으로 전달됩니다.
+
+## 구체적인 예제로 보는 설계 선택
+
+`agent-skill/Scrapling-Skill/examples/01_fetcher_session.py`를 통해 Scrapling의 세션 관리와 파싱 방식을 구체적으로 살펴봅니다.
+
+```python
+from scrapling.fetchers import FetcherSession
+
+all_quotes = []
+
+with FetcherSession(impersonate="chrome") as session:
+    for i in range(1, 11):
+        page = session.get(
+            f"https://quotes.toscrape.com/page/{i}/",
+            stealthy_headers=True,
+        )
+        quotes = page.css(".quote .text::text").getall()
+        all_quotes.extend(quotes)
+        print(f"Page {i}: {len(quotes)} quotes (status {page.status})")
+```
+
+이 예제는 몇 가지 중요한 설계 선택을 보여줍니다.
+
+1.  **컨텍스트 매니저 활용**: `with FetcherSession(...) as session:` 구문을 사용하여 세션의 생명주기를 명확히 관리합니다. 이는 연결 누수를 방지하고, 세션 종료 시 정리 작업을 자동으로 수행하게 합니다.
+2.  **TLS 지문 임페르소네이션**: `impersonate="chrome"` 옵션은 `curl_cffi`를 통해 실제 Chrome 브라우저의 TLS 클라이언트 헬로 메시지와 동일하게 설정합니다. 이는 Cloudflare와 같은 보안 시스템이 TLS 지문을 통해 봇을 식별하는 것을 우회하는 핵심 기법입니다.
+3.  **직관적인 파싱 API**: `page.css(".quote .text::text").getall()`은 CSS 셀렉터를 사용하여 요소를 찾고, `::text` 필터를 통해 텍스트 노드만 추출한 후, 모든 결과를 리스트로 반환합니다. 이는 `BeautifulSoup`의 `.find_all()`이나 `lxml`의 `.xpath()`보다 직관적인 문법을 제공합니다.
+4.  **상태 확인**: `page.status`를 통해 HTTP 상태 코드를 쉽게 확인할 수 있어, 에러 처리 로직을 간소화합니다.
+
+또한, `scrapling/parser.py`의 `find_similar` 메서드는 요소의 고유한 속성(태그, 클래스, 텍스트, 위치 등)을 저장소(`elements_storage.db`)에 저장하고, 이후 페이지 로드 시 저장된 속성과 유사도가 높은 요소를 찾아 재배치합니다. 이는 `difflib.SequenceMatcher`를 기반으로 한 유사도 알고리즘을 사용하여 구현됩니다.
+
+## 대안과 비교했을 때의 장단점
+
+Scrapling을 기존 웹 스크래핑 도구와 비교하면 다음과 같은 장단점을 가집니다.
+
+**vs. Requests + BeautifulSoup**
+*   **장점**: Scrapling은 TLS 지문 임페르소네이션, 세션 관리, 적응형 요소 추적을 내장하고 있어, 보안이 강화된 사이트나 구조가 자주 변경되는 사이트에 더 강건합니다. 또한, `lxml` 기반의 파서가 `BeautifulSoup`보다 일반적으로 빠릅니다.
+*   **단점**: `requests`와 `bs4`는 경량이고 학습 곡선이 낮습니다. Scrapling은 의존성(`curl_cffi`, `lxml`, `cssselect` 등)이 많고 설정이 복잡할 수 있습니다.
+
+**vs. Scrapy**
+*   **장점**: Scrapling은 Scrapy보다 설치와 설정이 간단합니다. Scrapy는 복잡한 설정 파일과 파이프라인 구성이 필요하지만, Scrapling은 Python 코드만으로 빠른 프로토타이핑이 가능합니다. 또한, Playwright 기반의 `StealthyFetcher`를 내장하고 있어 자바스크립트 렌더링이 필요한 사이트에 더 쉽게 대응합니다.
+*   **단점**: Scrapy는 대규모 크롤링을 위한 생태계(미들웨어, 확장, 커뮤니티)가 훨씬 큽니다. Scrapling의 `Spider`는 Scrapy와 유사하지만, 아직 생태계와 문서화 측면에서 성숙도가 낮습니다.
+
+**vs. Playwright/Selenium**
+*   **장점**: Scrapling은 브라우저 자동화 로직을 추상화하여, HTML 파싱과 데이터 추출을 위한 직관적인 API(`css`, `xpath`, `find_by_text`)를 제공합니다. Playwright/Selenium은 브라우저 조작에 집중되어 있어, 데이터 추출을 위해서는 추가적인 파싱 로직이 필요합니다.
+*   **단점**: Playwright/Selenium은 브라우저 자동화의 세밀한 제어가 가능합니다. Scrapling은 이들을 래핑한 것이므로, 매우 복잡한 브라우저 상호작용에는 한계가 있을 수 있습니다.
+
+## 보안·라이선스·도입 시 확인할 점
+
+**라이선스**: Scrapling은 BSD-3-Clause 라이선스를 따릅니다. 이는 상업적 사용, 수정, 재배포를 허용하며, 저작권 표시와 면책 조항을 유지하면 됩니다. `LICENSE` 파일을 참조하면, 기여자는 Karim Shoair이며, Parsel의 일부 코드가 `translator` 서브모듈에 적응되어 사용되었습니다.
+
+**보안**:
+*   **TLS 지문 우회**: `impersonate` 옵션은 실제 브라우저의 TLS 지문을 모방합니다. 이는 합법적인 크롤링에는 유용하지만, 악의적인 봇 활동에 사용될 수도 있으므로, 사용자는 해당 사이트의 이용약관을 준수해야 합니다.
+*   **의존성 보안**: `curl_cffi`, `playwright`, `lxml` 등 외부 의존성에 대한 보안 업데이트를 정기적으로 확인해야 합니다. `pyproject.toml`에 명시된 버전 범위를 확인하고, `uv sync` 또는 `pip install` 시 최신 버전으로 업데이트하는 것이 좋습니다.
+*   **데이터 캐싱**: `ResponseCacheManager`는 로컬 디스크에 데이터를 저장합니다. 민감한 데이터가 포함된 경우, 캐시 디렉토리의 보안 권한을 설정해야 합니다.
+
+**도입 시 확인할 점**:
+*   **Python 버전**: Python 3.10 이상이 필요합니다.
+*   **의존성 설치**: `pip install "scrapling[all]>=0.5"`를 사용하여 모든 기능(Fetchers, AI 등)을 설치할 수 있습니다. 브라우저 자동화를 위해서는 `playwright install chromium` 명령어를 통해 브라우저를 설치해야 합니다.
+*   **Beta 버전**: `Development Status :: 4 - Beta`이므로, 프로덕션 환경에서 사용 시 API 변경에 대비한 테스트가 필요합니다.
+
+## 한계와 추천 대상
+
+**한계**:
+1.  **생태계 성숙도**: Scrapy에 비해 확장 프로그램, 미들웨어, 커뮤니티 지원이 부족합니다. 대규모 팀 프로젝트나 복잡한 파이프라인이 필요한 경우, Scrapy가 더 안정적일 수 있습니다.
+2.  **브라우저 자동화 세밀함**: Playwright/Selenium을 직접 사용하는 것보다 브라우저 조작의 세밀함이 제한될 수 있습니다. 매우 복잡한 자바스크립트 상호작용이 필요한 경우, 직접 Playwright를 사용하는 것이 나을 수 있습니다.
+3.  **문서화**: 다국어 문서를 제공하지만, 아직 일부 고급 기능에 대한 문서가 부족할 수 있습니다. GitHub 이슈와 Discord 커뮤니티를 통해 정보를 얻어야 합니다.
+
+**추천 대상**:
+*   **개인 개발자 및 스타트업**: 빠른 프로토타이핑과 유지보수가 쉬운 프레임워크를 원하는 경우.
+*   **보안 우회가 필요한 크롤링**: Cloudflare와 같은 보안 시스템이 있는 사이트를 대상으로 하는 경우.
+*   **AI 에이전트 데이터 소스**: AI 모델이 웹 페이지를 직접 크롤링하여 데이터를 추출해야 하는 경우. `agent-skill` 폴더가 이를 지원하고 있습니다.
+*   **Scrapy 학습자**: Scrapy의 개념은 알지만, 더 간단하고 현대적인 인터페이스를 원하는 경우.
+
+Scrapling은 현대 웹의 복잡성을 해결하기 위해 설계된 강력한 도구입니다. 하지만, 사용 사례에 따라 적합한 도구를 선택하는 것이 중요합니다. 대규모 크롤링에는 Scrapy, 복잡한 브라우저 자동화에는 Playwright, 그리고 균형 잡힌 통합 솔루션을 원한다면 Scrapling을 고려해 볼 수 있습니다.
+
+## 출처
+
+- GitHub: [D4Vinci/Scrapling](https://github.com/D4Vinci/Scrapling) — 작성자: D4Vinci
+- GitHub: [D4Vinci/Scrapling / LICENSE](https://github.com/D4Vinci/Scrapling/blob/main/LICENSE) — 작성자: D4Vinci
+- GitHub: [D4Vinci/Scrapling / Dockerfile](https://github.com/D4Vinci/Scrapling/blob/main/Dockerfile) — 작성자: D4Vinci
+- GitHub: [D4Vinci/Scrapling / pyproject.toml](https://github.com/D4Vinci/Scrapling/blob/main/pyproject.toml) — 작성자: D4Vinci
+- GitHub: [D4Vinci/Scrapling / CONTRIBUTING.md](https://github.com/D4Vinci/Scrapling/blob/main/CONTRIBUTING.md) — 작성자: D4Vinci
+- GitHub: [D4Vinci/Scrapling / agent-skill/Scrapling-Skill/examples/01_fetcher_session.py](https://github.com/D4Vinci/Scrapling/blob/main/agent-skill/Scrapling-Skill/examples/01_fetcher_session.py) — 작성자: D4Vinci
+- GitHub: [D4Vinci/Scrapling / scrapling/parser.py](https://github.com/D4Vinci/Scrapling/blob/main/scrapling/parser.py) — 작성자: D4Vinci
+- GitHub: [D4Vinci/Scrapling / scrapling/spiders/cache.py](https://github.com/D4Vinci/Scrapling/blob/main/scrapling/spiders/cache.py) — 작성자: D4Vinci
+- GitHub: [D4Vinci/Scrapling / agent-skill/Scrapling-Skill/examples/README.md](https://github.com/D4Vinci/Scrapling/blob/main/agent-skill/Scrapling-Skill/examples/README.md) — 작성자: D4Vinci
