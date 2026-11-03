@@ -1,0 +1,119 @@
+---
+title: "[트러블슈팅] Python Maximum recursion depth 해결"
+publishedAt: "2026-11-03"
+summary: "재귀 호출 깊이 초과 에러를 해결하는 방법을 다룹니다."
+tag: "Troubleshooting"
+---
+
+## 현상
+
+Python에서 함수가 재귀적으로 호출되는 깊이가 제한을 넘어서면 `RecursionError: maximum recursion depth exceeded` 에러가 발생합니다.
+
+```python
+RecursionError: maximum recursion depth exceeded while calling a Python object
+```
+
+재귀 깊이가 제한을 초과하는 상황을 재현할 수 있는 코드는 다음과 같습니다.
+
+```python
+def func(n):
+    print(n)
+    if n < 1:
+        return
+    else:
+        return func(n - 1)
+
+func(1000)
+```
+
+1000 정도 깊이에서 에러가 발생하며, `sys.getrecursionlimit()` 명령어로 현재 설정된 제한을 확인할 수 있습니다.
+
+```python
+import sys
+print(sys.getrecursionlimit())
+```
+
+## 원인
+
+Python은 스택 오버플로우를 방지하기 위해 재귀 호출의 깊이 제한을 기본값인 1000으로 설정합니다. 이 제한을 초과하여 함수가 자신을 호출하면 인터프리터가 에러를 발생시킵니다.
+
+```python
+def func(n):
+    if n < 1:
+        return
+    return func(n - 1)
+```
+
+예시 코드에서 기저 조건이 충족되지 않는다면 함수는 계속 자신을 호출하게 됩니다.
+
+```python
+def infinite():
+    return infinite()
+```
+
+이 경우 재귀 깊이 제한이 즉시 초과되어 에러가 발생합니다.
+
+## 해결 방법
+
+`sys` 모듈의 `setrecursionlimit` 함수를 사용하여 허용되는 재귀 호출 깊이를 늘릴 수 있습니다. 기본값인 1000보다 큰 값을 설정하여 더 깊은 재귀 호출을 가능하게 합니다.
+
+```python
+import sys
+sys.setrecursionlimit(10000)
+```
+
+설정 후 재귀 함수를 다시 실행하면, 이전에 에러가 발생하던 깊은 단계까지 호출이 진행될 수 있습니다.
+
+```python
+import sys
+sys.setrecursionlimit(1200)
+
+def func(n):
+    print(n)
+    if n < 1:
+        return
+    else:
+        return func(n - 1)
+
+func(1000)
+```
+
+이렇게 하면 1000까지의 재귀 호출이 정상적으로 처리됩니다.
+
+![해결 방법 스크린샷](/blogs/python-maximum-recursion-depth-1.png)
+
+## 다른 해결 방법
+
+재귀를 반복문(Iteration)으로 대체하여 스택 오버플로우 문제를 근본적으로 해결할 수 있습니다. 모든 재귀 함수는 반복문을 사용하여 구현할 수 있으며, 이는 재귀 제한 에러를 유발하지 않습니다.
+
+동적 계획법(DP)이나 메모이제이션(Memoization)을 적용하여 중복 계산과 깊은 재귀 호출을 줄일 수 있습니다. 재귀 호출 대신 큐(Queue)나 스택(Stack)을 사용하여 상태를 관리하는 방식으로 변환할 수 있습니다.
+
+예를 들어, 아래 재귀 함수는 다음과 같이 반복문으로 변환할 수 있습니다.
+
+```python
+def func_iter(n):
+    while n >= 1:
+        print(n)
+        n -= 1
+```
+
+위와 같이 변환하면 시스템의 스택 오버플로우 문제를 피할 수 있습니다.
+
+## 추가 참고사항
+
+현재 설정된 재귀 한도 값을 확인하려면 `sys.getrecursionlimit()` 함수를 사용합니다.
+
+```python
+import sys
+print(sys.getrecursionlimit())
+```
+
+재귀 제한 에러가 발생하면 코드 구조 개선이 가장 권장되며, 재귀 함수 설계 시 재귀 깊이가 제한을 초과하지 않도록 알고리즘을 최적화하는 것이 좋습니다.
+
+## 출처
+
+- StackOverflow: [Python: Maximum recursion depth exceeded](https://stackoverflow.com/questions/8177073/python-maximum-recursion-depth-exceeded) — 작성자: add-semi-colons(질문), Óscar López(답변) (CC BY-SA)
+- Tistory: [[Python] stackoverflow 해결 (maximum recursion depth)](https://park-duck.tistory.com/entry/Python-stackoverflow-%ED%95%B4%EA%B2%B0-maximum-recursion-depth) — 작성자: I'm always a beginner :)
+- Tistory: [[Python3] - RecursionError: maximum recursion depth exceeded in comparison](https://saltyzun.tistory.com/13) — 작성자: SALTY
+
+본문 이미지는 위 출처에서 가져왔습니다.
