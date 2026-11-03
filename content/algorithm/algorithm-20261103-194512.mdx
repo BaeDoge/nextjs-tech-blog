@@ -1,0 +1,94 @@
+---
+title: "[코딩테스트] 핵심 키워드"
+publishedAt: "2026-11-03"
+summary: "이진 트리에서 두 노드가 사촌 노드인지 판별합니다."
+tag: "Algorithm"
+---
+
+## 문제
+
+이진 트리는 고유한 값을 가진 노드들로 구성되며, `root`, `x`, `y` 값이 주어집니다. `x`와 `y`에 해당하는 두 노드가 **같은 깊이**에 위치하면서 **부모가 다른 경우**에만 `true`를Returned하고, 그렇지 않으면 `false`를Returned해야 합니다. 루트 노드는 깊이 0에 있으며, 각 단계 아래로 내려갈 때마다 깊이가 1씩 증가합니다.
+
+## 접근 방법
+
+너비 우선 탐색(BFS)을 사용하여 각 노드의 깊이와 부모를 추적합니다. 큐에 `(노드, 부모, 깊이)`를 저장하며, `x` 또는 `y`를 발견하면 해당 정보를 기록합니다. 탐색이 완료되면 저장된 깊이와 부모를 비교하여 사촌 조건을 확인합니다.
+
+```python
+from collections import deque
+
+def isCousin(root, x, y):
+    # (node, parent, depth)를 저장
+    q = deque([(root, None, 0)])
+    info = {}  # 값 -> (parent, depth)
+
+    while q:
+        node, parent, depth = q.popleft()
+        if node.val == x or node.val == y:
+            info[node.val] = (parent, depth)
+            if len(info) == 2:
+                break
+        if node.left:
+            q.append((node.left, node, depth + 1))
+        if node.right:
+            q.append((node.right, node, depth + 1))
+
+    if len(info) != 2:
+        return False
+    (px, dx), (py, dy) = info[x], info[y]
+    return dx == dy and px != py
+```
+
+## 풀이
+
+BFS를 사용하여 트리를 탐색하며 각 노드의 부모와 깊이를 기록합니다. `x`와 `y`에 해당하는 노드를 찾으면 그 정보를 비교하여 같은 깊이와 다른 부모인지 확인합니다. 이 알고리즘은 노드를 한 번씩만 방문하므로 **시간 복잡도 O(N)**이고, 큐에 저장되는 최대 노드 수는 트리의 최대 너비인 `W`이므로 **공간 복잡도 O(W)**입니다.
+
+```python
+from collections import deque
+
+def isCousin(root, x, y):
+    q = deque([(root, None, 0)])
+    info = {}
+    while q:
+        node, parent, depth = q.popleft()
+        if node.val == x or node.val == y:
+            info[node.val] = (parent, depth)
+            if len(info) == 2:
+                break
+        if node.left:
+            q.append((node.left, node, depth + 1))
+        if node.right:
+            q.append((node.right, node, depth + 1))
+    if len(info) != 2:
+        return False
+    (px, dx), (py, dy) = info[x], info[y]
+    return dx == dy and px != py
+```
+
+## 다른 풀이 방법
+
+이와 부모를 저장하는 해시맵을 생성하기 위해 재귀적 DFS를 사용할 수 있습니다. 각 노드를 방문할 때, 해당 노드의 깊이와 부모를 계산하고 맵에 저장합니다. BFS와 동일한 비교 로직을 적용합니다. 이 방법도 **O(N)** 시간 복잡도를 가지지만, 재귀 호출 스택으로 인해 **공간 복잡도 O(H)**를 가지며, `H`는 트리의 높이입니다.
+
+```python
+def isCousinDFS(root, x, y):
+    depth = {}
+    parent = {}
+
+    def dfs(node, p, d):
+        if not node:
+            return
+        depth[node.val] = d
+        parent[node.val] = p
+        dfs(node.left, node, d + 1)
+        dfs(node.right, node, d + 1)
+
+    dfs(root, None, 0)
+    return depth[x] == depth[y] and parent[x] != parent[y]
+```
+
+## 추가 참고사항
+
+문제에서는 `x`와 `y`가 서로 다르고 트리 내에 반드시 존재한다고 보장하므로, 추가적인 유효성 검사가 필요하지 않습니다. BFS와 DFS 모두 제약 조건(노드 ≤ 100)을 쉽게 만족합니다. 사촌 정의는 정확히 같은 깊이와 다른 부모를 요구하며, 같은 부모이거나 깊이가 다르면 사촌이 아닙니다.
+
+## 출처
+
+- LeetCode: [LeetCode 993 - Cousins in Binary Tree](https://leetcode.com/problems/cousins-in-binary-tree/)
