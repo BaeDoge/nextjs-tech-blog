@@ -1,0 +1,77 @@
+---
+title: "[코딩테스트] 연결 리스트 회전"
+publishedAt: "2026-11-04"
+summary: "k회전으로 연결 리스트의 순서를 효과적으로 변경하는 방법을 정리합니다."
+tag: "Algorithm"
+---
+
+## 문제
+
+정방향 연결 리스트의 `head`와 정수 `k`가 주어집니다. 리스트를 오른쪽으로 `k`번 회전하여 반환해야 합니다. 회전은 리스트의 마지막 노드가 맨 앞으로 이동하는 것을 의미합니다.
+입력 예시로 `head = [1,2,3,4,5]`, `k = 2`일 때 결과인 `[4,5,1,2,3]`을 반환합니다.
+연결 리스트의 노드 개수는 0에서 500 사이이며, `k`는 0에서 $2 \times 10^9$까지 될 수 있습니다. 노드 값의 범위는 -100에서 100입니다.
+
+## 접근 방법
+
+먼저 연결 리스트의 길이를 계산합니다. `k`가 리스트 길이보다 크거나 같다면, 실제로 회전하는 횟수는 `k % length`로 줄일 수 있습니다. 이 값이 0이면 리스트가 원위치이므로 그대로 반환합니다.
+리스트 길이를 알면, 회전 후 새로운 `head`가 될 노드의 위치를 결정할 수 있습니다. 오른쪽으로 `k`회전하면 새로운 `head`는 뒤에서 `k`번째 노드가 되며, 이는 앞에서 `(length - k)`번째 노드에 해당합니다.
+마지막 노드가 기존 `head`를 가리키도록 순환 연결 리스트를 만들고, 새 `head` 앞 노드의 `next`를 `null`로 설정하면 됩니다.
+
+## 풀이
+
+```python
+# Definition for singly-linked list.
+# class ListNode:
+#     def __init__(self, val=0, next=None):
+#         self.val = val
+#         self.next = next
+class Solution:
+    def rotateRight(self, head: Optional[ListNode], k: int) -> Optional[ListNode]:
+        if not head or not head.next:
+            return head
+        
+        # 1. 리스트 길이 계산 및 마지막 노드 찾기
+        length = 1
+        last_node = head
+        while last_node.next:
+            last_node = last_node.next
+            length += 1
+            
+        # 2. 실제 회전 횟수 계산
+        k = k % length
+        if k == 0:
+            return head
+            
+        # 3. 새 tail 찾기 (앞에서 length - k - 1번째 노드)
+        # 새 head는 앞에서 length - k번째 노드
+        new_tail_index = length - k - 1
+        new_tail = head
+        for _ in range(new_tail_index):
+            new_tail = new_tail.next
+            
+        # 4. 연결 구조 변경
+        new_head = new_tail.next
+        new_tail.next = None
+        last_node.next = head
+        
+        return new_head
+```
+
+- 시간 복잡도: $O(N)$ — 리스트를 두 번 순회(길이 계산, 새 tail 탐색)합니다.
+- 공간 복잡도: $O(1)$ — 추가적인 자료 구조를 사용하지 않습니다.
+
+## 다른 풀이 방법
+
+배열을 사용하여 문제를 해결할 수 있습니다. 리스트의 값을 배열에 저장한 후, `k % length`만큼 뒤로 옮기는 방식으로 인덱스를 재배치합니다.
+배열 인덱스 $(i + k) \% length$에 해당하는 값을 새 위치로 이동시킨 후, 다시 연결 리스트를 복원합니다.
+시간 복잡도 $O(N)$, 공간 복잡도 $O(N)$으로 추가 메모리를 사용하므로, 연결 리스트의 구조를 직접 조작하는 방법보다 공간 효율성이 떨어집니다.
+
+## 추가 참고사항
+
+`k`가 매우 큰 값이 될 수 있으므로 `k % length` 연산을 통해 불필요한 순환을 피해야 합니다.
+노드 개수가 0개이거나 1개인 경우, 회전해도 모양이 동일하므로 초기 조건 확인이 필요합니다.
+새로운 `head`가 정해지면, 기존 마지막 노드가 기존 `head`를 참조하도록 하면 순환 구조를 형성하지 않고도 회전 효과를 낼 수 있습니다.
+
+## 출처
+
+- LeetCode: [LeetCode 61 - Rotate List](https://leetcode.com/problems/rotate-list/)
