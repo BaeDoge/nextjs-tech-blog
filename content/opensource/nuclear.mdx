@@ -1,0 +1,85 @@
+---
+title: "[오픈소스 분석] 플러그인 기반 데스크톱 음악 플레이어 Nuclear"
+publishedAt: "2026-11-04"
+summary: "Tauri와 React를 활용해 플러그인 아키텍처로 스트리밍 소스를 확장하고, MCP를 통해 AI 에이전트와 연동할 수 있는 오픈소스 데스크톱 음악 플레이어입니다."
+tag: "OpenSource"
+---
+
+## 한눈에 보는 프로젝트와 해결하려는 문제
+
+`nukeop/nuclear`는 광고나 사용자 추적 없이 음악을 검색하고 스트리밍할 수 있는 데스크톱 애플리케이션입니다. 이 프로젝트는 Spotify와 같은 중앙 집중식 상용 서비스의 제약을 피하고, 사용자가 다양한 온라인 소스에서 음악을 자유롭게 찾을 수 있도록 하는 것을 목표로 합니다. 2016년 9월 22일 저장소가 생성된 이후 꾸준히 개발되어 왔으며, 현재는 Windows, macOS, Linux를 모두 지원합니다.
+
+기술적으로는 `Tauri`를 사용하여 데스크톱 네이티브 환경과 웹 기술을 결합했습니다. 프론트엔드는 `React`와 `TypeScript`로 구축되었으며, 백엔드와 시스템 인터페이스는 `Rust`로 처리됩니다. 전체 프로젝트는 `pnpm`과 `Turborepo`를 활용한 모노레포 구조로 관리되며, `@nuclearplayer/player`가 메인 애플리케이션 패키지로 동작합니다.
+
+## 이해에 필요한 핵심 개념
+
+`Nuclear`의 동작 방식을 이해하기 위해서는 다음 세 가지 핵심 개념을 파악해야 합니다.
+
+1. **플러그인 아키텍처**: `Nuclear`의 핵심 기능은 플러그인으로 모듈화되어 있습니다. 스트리밍 소스, 메타데이터, 플레이리스트, 대시보드 콘텐츠 등 모든 기능이 플러그인 형태로 제공됩니다. 사용자는 내장된 플러그인 스토어를 통해 기능을 확장하거나, `@nuclearplayer/plugin-sdk`를 사용하여 직접 플러그인을 개발할 수 있습니다.
+2. **Tauri 기반 하이브리드 구조**: `packages/player/src/main.tsx`를 통해 애플리케이션이 실행될 때 `__TAURI_INTERNALS__` 존재 여부를 확인하여 Tauri 환경인지 웹 환경인지 구분합니다. 이를 통해 데스크톱 네이티브 기능과 웹 UI를 효율적으로 분리하여 운영하며, 원격 제어용 웹 UI도 함께 제공합니다.
+3. **MCP(Model Context Protocol) 서버**: 설정의 `Integrations` 메뉴를 통해 활성화할 수 있는 기능으로, AI 에이전트가 `Nuclear`를 제어할 수 있도록 인터페이스를 제공합니다. 이를 통해 Claude Code나 Cursor와 같은 도구에서 음악 플레이어를 직접 조작할 수 있습니다.
+
+## 저장소 구조와 실제 동작 흐름
+
+저장소는 `Turborepo`를 사용하여 여러 패키지로 분리되어 있습니다. 주요 패키지는 다음과 같습니다.
+
+- `packages/player`: 메인 애플리케이션 코드가 위치하며, React와 Tauri 연동을 담당합니다.
+- `packages/hifi`: 오디오 스트리밍 처리를 위한 저수준 로직을 포함합니다.
+- `packages/model`: 애플리케이션에서 사용하는 공통 데이터 모델(예: `Queue`, `Track`)을 정의합니다. `packages/model/src/queue.ts`가 대표적입니다.
+- `packages/docs`: 사용자 및 개발자용 문서가 위치해 있습니다.
+
+데이터 흐름은 사용자가 검색어를 입력하면 플러그인 시스템이 외부 API를 호출하고, 결과로 받은 스트리밍 URL을 처리하여 오디오 버퍼로 전달하는 방식으로 이루어집니다.
+
+## 구체적인 예제로 보는 설계 선택
+
+`Nuclear`는 플러그인이 데스크톱 환경의 제약 없이 외부 API와 통신할 수 있도록 `api.Http.fetch`를 제공합니다. `packages/docs/plugins/http.md`에 따르면, 일반적인 브라우저 환경에서는 CORS 정책으로 인해 외부 API 호출이 제한되지만, `Nuclear`는 Tauri의 네이티브 HTTP 클라이언트를 경유하여 이 문제를 해결합니다.
+
+```typescript
+// 플러그인 예제: api.Http.fetch 사용
+async onEnable(api: NuclearPluginAPI) {
+  const response = await api.Http.fetch('https://api.example.com/tracks?q=radiohead');
+  if (response.ok) {
+    const data = await response.json();
+    api.Logger.info(`Found ${data.results.length} tracks`);
+  }
+}
+```
+
+이 설계는 플러그인 개발자가 브라우저 보안 모델에 얽매이지 않고 자유롭게 데이터 소스를 확장할 수 있게 해줍니다.
+
+## 대안과 비교했을 때의 장단점
+
+`Nuclear`는 기존의 중앙 집중식 스트리밍 서비스와 비교했을 때 다음과 같은 특징을 가집니다.
+
+- **장점**: 광고가 없으며, 사용자가 직접 플러그인을 통해 소스를 추가할 수 있어 확장성이 매우 높습니다. 또한 로컬 파일과 온라인 스트리밍을 통합 관리할 수 있습니다.
+- **단점**: 스트리밍 소스가 외부 서비스에 의존하므로, 해당 서비스의 정책 변화나 API 변경에 따라 재생 기능이 일시적으로 중단될 수 있습니다. 또한 사용자가 직접 플러그인을 관리해야 하는 번거로움이 있을 수 있습니다.
+
+## 보안·라이선스·도입 시 확인할 점
+
+- **라이선스**: `AGPL-3.0` 라이선스를 따릅니다. 이는 소프트웨어를 수정하거나 네트워크를 통해 서비스할 경우, 수정된 소스 코드를 공개해야 함을 의미합니다. 기업 환경에서 도입 시 라이선스 준수 여부를 반드시 확인해야 합니다.
+- **보안 및 기여 정책**: `CONTRIBUTING.md`에 명시된 바와 같이, 현재 프로젝트는 코드 기여를 받지 않습니다. 이는 프로젝트 관리의 일관성을 유지하기 위한 정책으로 보이며, 사용자 확장은 공식 플러그인 시스템을 통해 이루어집니다. 외부 플러그인 사용 시에는 해당 플러그인의 출처와 안전성을 사용자가 직접 검토해야 합니다.
+
+## 한계와 추천 대상
+
+`Nuclear`는 음악 라이브러리를 직접 구축하고 다양한 소스를 통합 관리하고 싶은 고급 사용자에게 적합합니다. 반면, 안정적인 공식 API 지원과 끊김 없는 재생 경험을 최우선으로 하는 사용자에게는 상용 서비스가 더 나은 선택일 수 있습니다.
+
+도입 전, 자신이 주로 듣는 음악 소스가 현재 플러그인 생태계에서 안정적으로 지원되는지 확인하는 것이 중요합니다. 또한 `AGPL-3.0` 라이선스 하에 있으므로, 개인적인 용도를 넘어 상업적 목적으로 활용할 계획이라면 법적 검토가 선행되어야 합니다.
+
+출처:
+- [Nuclear GitHub Repository](https://github.com/nukeop/nuclear)
+- [Nuclear Documentation](https://github.com/nukeop/nuclear/blob/master/packages/docs/README.md)
+- [Nuclear Plugin HTTP API](https://github.com/nukeop/nuclear/blob/master/packages/docs/plugins/http.md)
+- [Nuclear License](https://github.com/nukeop/nuclear/blob/master/LICENSE)
+- [Nuclear Contributing Guide](https://github.com/nukeop/nuclear/blob/master/CONTRIBUTING.md)
+
+## 출처
+
+- GitHub: [nukeop/nuclear](https://github.com/nukeop/nuclear) — 작성자: nukeop
+- GitHub: [nukeop/nuclear / LICENSE](https://github.com/nukeop/nuclear/blob/master/LICENSE) — 작성자: nukeop
+- GitHub: [nukeop/nuclear / package.json](https://github.com/nukeop/nuclear/blob/master/package.json) — 작성자: nukeop
+- GitHub: [nukeop/nuclear / CONTRIBUTING.md](https://github.com/nukeop/nuclear/blob/master/CONTRIBUTING.md) — 작성자: nukeop
+- GitHub: [nukeop/nuclear / packages/model/src/queue.ts](https://github.com/nukeop/nuclear/blob/master/packages/model/src/queue.ts) — 작성자: nukeop
+- GitHub: [nukeop/nuclear / packages/player/src/main.tsx](https://github.com/nukeop/nuclear/blob/master/packages/player/src/main.tsx) — 작성자: nukeop
+- GitHub: [nukeop/nuclear / packages/hifi/src/fmp4/parser.ts](https://github.com/nukeop/nuclear/blob/master/packages/hifi/src/fmp4/parser.ts) — 작성자: nukeop
+- GitHub: [nukeop/nuclear / packages/docs/README.md](https://github.com/nukeop/nuclear/blob/master/packages/docs/README.md) — 작성자: nukeop
+- GitHub: [nukeop/nuclear / packages/docs/plugins/http.md](https://github.com/nukeop/nuclear/blob/master/packages/docs/plugins/http.md) — 작성자: nukeop
