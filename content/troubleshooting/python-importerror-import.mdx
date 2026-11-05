@@ -1,0 +1,114 @@
+---
+title: "[트러블슈팅] Python ImportError 상대 import 오류 해결"
+publishedAt: "2026-11-05"
+summary: "스크립트 실행 시 `__package__` 가 `None` 이 되어 발생하는 상대 import 오류의 원인과 해결 방법을 정리합니다."
+tag: "Troubleshooting"
+---
+
+## 현상
+
+프로젝트 디렉토리 구조에서 하위 모듈이 상위 패키지의 모듈을 상대 경로로 import 할 때 발생합니다.
+
+```
+project/
+├─ utils/
+│  ├─ module.py
+├─ server/
+│  ├─ main.py
+```
+
+`project/server/main.py` 파일에서 `from ..utils.module import my_function` 문장을 사용하여 import 합니다.
+
+```python
+from ..utils.module import my_function
+```
+
+이 파일을 터미널에서 직접 실행하면 다음과 같은 오류가 발생합니다.
+
+```
+ImportError: attempted relative import with no known parent package
+```
+
+VSCode 환경에서는 IDE의 경로 설정으로 인해 자동 완성이 정상 작동할 수 있지만, 실제 실행 시에는 이 오류가 나타납니다.
+
+## 원인
+
+파이썬 인터프리터가 상대 import의 기준 위치를 결정할 때 `__name__` 속성과 `__package__` 속성을 사용합니다.
+
+스크립트를 직접 실행할 경우 `__name__` 은 `__main__` 으로 설정됩니다.
+
+이때 `__package__` 속성은 `None` 으로 설정되므로, 인터프리터는 상위 패키지의 위치를 알 수 없습니다.
+
+PEP 366 에 따르면, `__package__` 가 존재할 때만 명시적인 상대 import 가 계산됩니다.
+
+따라서 패키지의 일부로 인식되지 않는 독립 실행 파일에서는 상대 import 가 유효하지 않습니다.
+
+## 해결 방법
+
+`-m` 플래그를 사용하여 모듈로서 실행하면 `__package__` 가 올바르게 설정됩니다.
+
+프로젝트 루트 디렉토리에서 실행 명령어를 수정합니다.
+
+```bash
+python3 -m project.server.main
+```
+
+이렇게 실행하면 `__package__` 가 `project.server` 로 설정되어 상대 import 가 정상 작동합니다.
+
+`__main__.py` 파일을 사용하는 경우 패키지로 실행할 수도 있습니다.
+
+```bash
+python3 -m project.server
+```
+
+이 방식은 모듈의 실행 컨텍스트를 유지하므로 가장 표준적인 해결 방법입니다.
+
+![해결 방법 스크린샷](/blogs/python-importerror-import-1.png)
+
+## 다른 해결 방법
+
+절대 import 문을 사용하여 패키지의 전체 경로를 명시할 수 있습니다.
+
+상대 import 대신 다음과 같이 코드를 수정합니다.
+
+```python
+# 수정 전
+from ..utils.module import my_function
+
+# 수정 후
+from project.utils.module import my_function
+```
+
+절대 import를 사용할 때는 프로젝트의 루트 패키지를 기준으로 경로를 찾습니다.
+
+이 경우 스크립트의 실행 환경에서 `sys.path` 가 프로젝트 루트 디렉토리를 포함하고 있어야 합니다.
+
+예를 들어 스크립트 내에서 다음과 같이 경로를 추가할 수 있습니다.
+
+```python
+import sys
+from os import path
+sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
+```
+
+이러한 설정이 선행되어야 절대 import문이 정상적으로 모듈을 찾아갑니다.
+
+## 추가 참고사항
+
+스크립트 실행 시 `__package__` 가 `None` 인지 확인하여 상대 import 사용 여부를 검토합니다.
+
+```python
+print(__package__)
+```
+
+상대 import는 현재 모듈의 위치를 기준으로 경로를 계산하므로, 상위 패키지의 문맥이 없으면 유효하지 않습니다.
+
+절대 import를 사용할 때도 실행 환경(`sys.path`)에 주의해야 합니다.
+
+## 출처
+
+- StackOverflow: [Python error - ImportError: attempted relative import with no known parent package](https://stackoverflow.com/questions/68960171/python-error-importerror-attempted-relative-import-with-no-known-parent-packa) — 작성자: Ricardo Passos(질문), Niel Godfrey P. Ponciano(답변) (CC BY-SA)
+- Tistory: [[파이썬][Error] 055. ImportError - attempted relative import with no known parent package](https://about-ittt.tistory.com/382) — 작성자: about_IT
+- Tistory: [[파이썬 상대경로 import 에러] ImportError: attempted relative import with no known parent package](https://myjorney.tistory.com/entry/%ED%8C%8C%EC%9D%B4%EC%8D%AC-%EC%83%81%EB%8C%80%EA%B2%BD%EB%A1%9C-import-%EC%97%90%EB%9F%AC-ImportError-attempted-relative-import-with-no-known-parent-package) — 작성자: Jordan Tech Lab
+
+본문 이미지는 위 출처에서 가져왔습니다.
