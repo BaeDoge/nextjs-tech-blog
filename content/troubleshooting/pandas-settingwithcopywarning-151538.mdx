@@ -1,0 +1,122 @@
+---
+title: "[트러블슈팅] Pandas SettingWithCopyWarning 해결"
+publishedAt: "2026-11-05"
+summary: "데이터프레임 슬라이스 복사본에 값 할당 시 발생하는 경고의 원인과 .loc 인덱싱을 통한 해결 방법을 정리한다."
+tag: "Troubleshooting"
+---
+
+## 현상
+
+Pandas 환경에서 데이터프레임의 슬라이스된 부분에 값을 할당할 때 다음 경고가 출력된다.
+
+```python
+df.col1[df.col1 == 10] = 1000
+```
+
+출력되는 경고 메시지는 다음과 같다.
+
+```
+-c:1: SettingWithCopyWarning: 
+A value is trying to be set on a copy of a slice from a DataFrame
+
+See the the caveats in the documentation: http://pandas.pydata.org/pandas-docs/stable/indexing.html#indexing-view-versus-copy
+```
+
+이 경고는 할당 연산이 의도대로 작동할 수도 있지만, 원본 데이터프레임이 수정되지 않을 잠재적 버그 가능성을 시사한다.
+
+## 원인
+
+이 경고는 데이터프레임의 슬라이스(slice)가 원본의 뷰(view)인지 복사본(copy)인지 명확하지 않을 때 발생한다.
+슬라이스가 복사본인 경우, 해당 슬라이스에 값을 변경해도 원본 데이터프레임에는 반영되지 않는다.
+Pandas는 이러한 모호성으로 인한 의도치 않은 동작을 방지하기 위해 경고를 출력한다.
+`.loc` 인덱서를 사용하면 슬라이스의 상태와 관계없이 원본 데이터프레임을 명확하게 지정하여 수정할 수 있다.
+
+## 해결 방법
+
+슬라이스된 복사본 대신 `.loc` 인덱서를 사용하여 원본 데이터프레임의 특정 위치를 명시적으로 지정해야 한다.
+`.loc[row_indexer, col_indexer] = value` 형식을 사용하면 원본 데이터프레임이 직접 수정된다.
+
+```python
+# 수정 전 (경고 발생)
+df.col2[df.index == 151] = 500
+
+# 수정 후 (경고 해결)
+df.loc[151, 'col2'] = 500
+```
+
+인덱스로 조건을 지정하는 경우에도 `.loc`을 사용한다.
+
+```python
+# 수정 전 (경고 발생)
+df.col1[df.col1 == 10] = 1000
+
+# 수정 후 (경고 해결)
+df.loc[df.col1 == 10, 'col1'] = 1000
+```
+
+여러 열을 동시에 처리할 때도 `.loc`을 활용한다.
+
+```python
+# 수정 전 (경고 발생)
+cols = ['col1', 'col2', 'col3']
+df[cols] = df[cols].applymap(some_function)
+
+# 수정 후 (경고 해결)
+df.loc[:, cols] = df.loc[:, cols].applymap(some_function)
+```
+
+![해결 방법 스크린샷](/blogs/pandas-settingwithcopywarning-151538-1.png)
+
+## 다른 해결 방법
+
+슬라이스된 데이터프레임이 원본과 무관한 독립적인 복사본임을 명확히 하고 싶다면 `.copy()` 메서드를 사용한다.
+이 경우 경고가 발생하지 않으며, 변경 사항이 원본에 영향을 주지 않음이 명시된다.
+
+```python
+# 슬라이스를 명시적으로 복사본으로 생성
+df_slice = df[df['A'] > 1].copy()
+
+# 복사본에 값 할당 시 경고 발생 안 함
+df_slice['B'] = 0
+```
+
+또한, 새로운 열을 생성할 때도 `.loc`을 사용하여 원본 데이터프레임에 직접 할당할 수 있다.
+
+```python
+# 에러 발생 코드
+yesterday_result['date'] = yesterday_result['pubDate'].dt.strftime('%Y-%m-%d %H:%M:%S')
+
+# .loc 인덱서를 사용하여 경고 해결
+yesterday_result.loc[:, 'date'] = yesterday_result['pubDate'].dt.strftime('%Y-%m-%d %H:%M:%S')
+```
+
+## 추가 참고사항
+
+`iterrows()` 루프 내에서 값을 변경할 때는 행 시리즈가 아닌 `.loc`을 통해 원본에 접근해야 한다.
+
+```python
+# 원본 미반영 방법
+for idx, row in sample_df.iterrows():
+    row['score'] = 100
+
+# 올바른 방법
+for idx, row in sample_df.iterrows():
+    sample_df.loc[idx, 'score'] = 100
+```
+
+여러 값을 한꺼번에 변경할 때는 튜플 형태로 할당한다.
+
+```python
+sample_df.loc[idx, ['score', 'grade']] = 100, 'A'
+```
+
+이 경고는 Pandas의 인덱싱 동작이 뷰와 복사본을 구분하지 않아 발생할 수 있으므로, 항상 `.loc` 또는 `.iloc`을 사용하는 것이 안전하다.
+
+## 출처
+
+- StackOverflow: [Pandas SettingWithCopyWarning](https://stackoverflow.com/questions/26724378/pandas-settingwithcopywarning) — 작성자: ba_ul(질문), Paul H(답변) (CC BY-SA)
+- Tistory: [Pandas SettingWithCopyWarning 해결방법](https://miidsummer.tistory.com/11) — 작성자: 이것저것 담는 블로그
+- Velog: [[파이썬 판다스] SettingWithCopyWarning: 
+A value is trying to be set on a copy of a slice from a DataFrame.](https://velog.io/@hyojinnnnnan/%ED%8C%8C%EC%9D%B4%EC%8D%AC-%ED%8C%90%EB%8B%A4%EC%8A%A4-SettingWithCopyWarning-A-value-is-trying-to-be-set-on-a-copy-of-a-slice-from-a-DataFrame)
+
+본문 이미지는 위 출처에서 가져왔습니다.
