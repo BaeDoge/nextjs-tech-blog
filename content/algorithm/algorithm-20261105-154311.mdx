@@ -1,0 +1,53 @@
+---
+title: "[코딩테스트] 중심 연장 회문 부분 문자열 개수 세기"
+publishedAt: "2026-11-05"
+summary: "문자열에서 중심을 기준으로 연장하면서 회문이 되는 부분 문자열의 개수를 반환하는 문제입니다."
+tag: "Algorithm"
+---
+
+## 문제
+
+문자열 `s`가 주어졌을 때, 그 안에 존재하는 회문 부분 문자열의 개수를 반환하세요. 회문은 앞에서 읽으나 뒤에서 읽으나 같은 문자열을 말합니다. 부분 문자열은 문자 사이의 연속된 문자열을 의미합니다. 예를 들어 "abc"에서는 "a", "b", "c" 세 개의 회문 부분 문자열이 존재합니다. "aaa"에서는 "a", "a", "a", "aa", "aa", "aaa" 총 여섯 개의 회문 부분 문자열이 존재합니다. 문자열 길이는 최대 1000이고, 문자는 영어 소문자로 구성됩니다.
+
+## 접근 방법
+
+원래 문자열을 2중 포인터로 접근하여 중심에서부터 연장하면서 회문인지 확인합니다. 각 자리마다 회문 부분 문자열이 몇 개인지 세어 합산하면 됩니다. 이 방식은 각 자리에 대해 중심을 잡고, 안쪽에서부터 길이가 짝수인 경우와 홀수인 경우로 나누어 검사합니다.
+
+## 풀이
+
+```python
+def countSubstrings(s: str) -> int:
+    n = len(s)
+    count = 0
+    for i in range(n):
+        # 홀수 중심: s[i]
+        left, right = i, i
+        while left >= 0 and right < n and s[left] == s[right]:
+            count += 1
+            left -= 1
+            right += 1
+        # 짝수 중심: s[i]와 s[i+1]
+        left, right = i, i + 1
+        while left >= 0 and right < n and s[left] == s[right]:
+            count += 1
+            left -= 1
+            right += 1
+    return count
+```
+
+시간복잡도: O(n²), 공간복잡도: O(1)
+
+## 다른 풀이 방법
+
+동적 programming(DP)을 활용한 접근법도 가능합니다. dp[i][j] = s[i..j]가 회문인지 여부를 저장합니다. 이 방법은 O(n²) 시간과 O(n²) 공간을 필요로 하지만, 코드가 더 복잡할 수 있습니다. 두 방법의 복잡도는 모두 동일하지만 DP는 공간을 더 많이 사용합니다.
+
+## 추가 참고사항
+
+- 예제 1: "abc" → 3개 (각 문자 하나씩)
+- 예제 2: "aaa" → 6개 (하나씩 3개, aa 2개, aaa 1개)
+- 홀수 중심과 짝수 중심을 모두 고려해야 정확한 결과를 얻습니다.
+- while 조건에서 `left >= 0`과 `right < n`을 사용해야 범위를 벗어나는 경우를 방지할 수 있습니다.
+
+## 출처
+
+- LeetCode: [LeetCode 647 - Palindromic Substrings](https://leetcode.com/problems/palindromic-substrings/)
