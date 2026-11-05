@@ -1,0 +1,90 @@
+---
+title: "[트러블슈팅] UnboundLocalError global 변수 할당"
+publishedAt: "2026-11-05"
+summary: "함수 내에서 전역 변수를 수정할 때 global 키워드를 누락하여 발생하는 에러를 해결합니다."
+tag: "Troubleshooting"
+---
+
+## 현상
+
+함수 외부에서 선언한 전역 변수를 함수 내부에서 읽거나 수정하려고 할 때, 다음과 같은 에러가 발생합니다.
+
+```python
+UnboundLocalError: local variable 'total' referenced before assignment
+```
+
+에러가 발생하는 최소 재현 코드는 다음과 같습니다.
+
+```python
+total = 0
+
+def doB():
+    total = total + 1
+
+doB()
+```
+
+## 원인
+
+파이썬은 함수 내부에서 변수에 할당 연산(`=`)이 존재하면 해당 변수를 지역 변수로 간주합니다.
+함수 `doB` 내부에 `total = ...` 구문이 있으므로, 파이썬은 `total`을 지역 변수로 처리합니다.
+하지만 `total = total + 1` 구문에서 우변의 `total`은 아직 지역 변수로 할당되지 않은 상태이므로 참조할 수 없습니다.
+이로 인해 할당 전에 참조된다는 에러가 발생합니다.
+함수 내에서 전역 변수를 단순히 조회(`print(total)`)하는 것은 가능하지만, 값을 변경하려면 명시적인 선언이 필요합니다.
+
+## 해결 방법
+
+함수 내부에서 전역 변수를 수정하려면 `global` 키워드를 사용하여 해당 변수가 전역 네임스페이스에 있음을 명시해야 합니다.
+
+```python
+total = 0
+
+def doB():
+    global total
+    total = total + 1
+
+doB()
+print(total)  # 1
+```
+
+`global` 키워드를 함수 시작 부분에 추가하면, 함수 내 `total` 변수가 전역 변수를 참조하게 되어 에러가 해결됩니다.
+
+![해결 방법 스크린샷](/blogs/unboundlocalerror-global-1.png)
+
+## 다른 해결 방법
+
+함수 내에서 전역 변수의 값을 변경하지 않고, 인자를 통해 값을 전달받아 반환하는 방식을 사용할 수 있습니다.
+이 방법은 전역 변수의 상태를 직접 수정하지 않으므로 네임스페이스 충돌을 피할 수 있습니다.
+
+```python
+def doB(current_total):
+    return current_total + 1
+
+total = 0
+total = doB(total)
+print(total)  # 1
+```
+
+## 추가 참고사항
+
+`global` 키워드는 함수 내에서 전역 변수를 읽기 전용으로 사용할 때는 필요하지 않습니다.
+할당 연산이 없는 경우에만 전역 변수를 자동으로 조회합니다.
+
+```python
+total = 0
+
+def checkTotal():
+    print(total)  # global 선언 없이 읽기만 가능
+
+checkTotal()  # 0 출력
+```
+
+전역 변수 남용은 코드의 가독성을 떨어뜨리고 디버깅을 어렵게 하므로, 가능한 경우 클래스나 모듈 구조를 활용하는 것을 권장합니다.
+
+## 출처
+
+- StackOverflow: [Why do I get a "referenced before assignment" error when assigning to a global variable in a function?](https://stackoverflow.com/questions/855493/why-do-i-get-a-referenced-before-assignment-error-when-assigning-to-a-global-v) — 작성자: Jeremy(질문), stefanB(답변) (CC BY-SA)
+- Velog: [파이썬 referenced before assignment에러 이유와 해결](https://velog.io/@hongsikcho/%ED%8C%8C%EC%9D%B4%EC%8D%AC-referenced-before-assignment%EC%97%90%EB%9F%AC-%EC%9D%B4%EC%9C%A0%EC%99%80-%ED%95%B4%EA%B2%B0)
+- Tistory: [UnboundLocalError: local variable 'result1' referenced before assignment 해결](https://jack-channel-python.tistory.com/entry/UnboundLocalError-local-variable-result1-referenced-before-assignment-%ED%95%B4%EA%B2%B0) — 작성자: Smith_Solution
+
+본문 이미지는 위 출처에서 가져왔습니다.
