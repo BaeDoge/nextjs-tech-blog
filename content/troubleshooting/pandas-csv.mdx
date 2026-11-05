@@ -1,0 +1,65 @@
+---
+title: "[트러블슈팅] Pandas CSV 읽기 인코딩 에러"
+publishedAt: "2026-11-05"
+summary: "pandas의 `read_csv` 함수 사용 시 파일 인코딩 불일치로 인한 `UnicodeDecodeError` 발생 및 해결 방법"
+tag: "Troubleshooting"
+---
+
+## 현상
+
+pandas의 `read_csv` 함수를 사용하여 CSV 파일을 읽을 때 다음과 같은 에러가 발생합니다.
+
+```python
+UnicodeDecodeError: 'utf-8' codec can't decode byte ...
+```
+
+기본적으로 `read_csv`는 파일을 `utf-8` 인코딩으로 해석하려 합니다. 파일의 실제 인코딩이 `utf-8`와 다를 경우, 파싱 과정에서 문자열 변환 실패로 인해 이 에러가 발생합니다.
+
+## 원인
+
+`read_csv` 함수는 인코딩 파라미터가 명시되지 않을 경우 기본값인 `utf-8`를 사용합니다.
+파일 저장 시 사용된 인코딩(예: `cp949`, `ISO-8859-1`, `cp1252` 등)과 pandas가 기대하는 인코딩이 일치하지 않으면, 해당 바이트 시퀀스를 문자로 변환하는 과정에서 실패합니다.
+특히 한글이 포함된 파일의 경우, `utf-8` 대신 `cp949` 등으로 저장된 경우가 많아 자주 발생합니다.
+
+## 해결 방법
+
+`read_csv` 함수의 `encoding` 파라미터에 파일의 실제 인코딩을 명시하여 해결합니다.
+한글 파일의 경우 `cp949` 또는 `utf-8`를 주로 사용합니다.
+
+```python
+# 수정 전
+df = pd.read_csv('filename.csv')
+
+# 수정 후: 인코딩을 cp949로 명시
+df = pd.read_csv('filename.csv', encoding='cp949')
+```
+
+![해결 방법 스크린샷](/blogs/pandas-csv-1.png)
+
+## 다른 해결 방법
+
+파일의 정확한 인코딩을 알 수 없거나, 특정 인코딩으로 읽지 못할 경우 범용적인 인코딩을 사용할 수 있습니다.
+`ISO-8859-1` 또는 `latin` 인코딩은 바이트를 문자로 매핑하는 범위가 넓어 에러를 우회할 수 있습니다.
+또한 윈도우 환경에서는 `cp1252`를 사용할 수도 있습니다.
+
+```python
+# ISO-8859-1 인코딩 사용
+df = pd.read_csv('filename.csv', encoding='ISO-8859-1')
+
+# latin 인코딩 사용
+df = pd.read_csv('filename.csv', encoding='latin')
+```
+
+## 추가 참고사항
+
+파일의 인코딩을 확인하기 위해 리눅스 환경에서는 `file -i <파일명>`, 맥OS에서는 `file -I <파일명>` 명령어를 사용할 수 있습니다.
+`to_csv`로 파일을 저장할 때는 일반적으로 `utf-8` 인코딩을 사용하는 것이 호환성 측면에서 권장됩니다.
+인코딩 관련 배경 지식은 'What every developer should know about unicode and character sets' 등의 자료를 참고하는 것이 좋습니다.
+
+## 출처
+
+- StackOverflow: [UnicodeDecodeError when reading CSV file in Pandas](https://stackoverflow.com/questions/18171739/unicodedecodeerror-when-reading-csv-file-in-pandas) — 작성자: TravisVOX(질문), Stefan(답변) (CC BY-SA)
+- Tistory: [[Python] pandas 에 csv 파일 불러오기: pd.read_csv()](https://smart-worker.tistory.com/63) — 작성자: 손느린 일잘러의 편하게 일하는 방법들
+- Tistory: [Python 공공데이터 다뤄보기 1. Pandas 써보기 (csv파일 읽기 , 행과 열 출력 , 유니코드 에러)](https://j-ungry.tistory.com/116) — 작성자: 정구리의 우주정복
+
+본문 이미지는 위 출처에서 가져왔습니다.
