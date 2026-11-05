@@ -1,0 +1,71 @@
+---
+title: "[코딩테스트] 핵심 키워드"
+publishedAt: "2026-11-05"
+summary: "문자열 내 각 단어의 문자 순서를 역전시키되 단어 간 공백은 유지하는 알고리즘 문제"
+tag: "Algorithm"
+---
+
+## 문제
+
+주어진 문자열 s 에서 각 단어의 문자 순서를 역전시켜 단어의 순서는 유지하되 공백은 그대로 보존해야 한다. 입력 문자열은 공백이 단일 공백으로 분리되어 있으며 앞뒤에는 공백이 없다. 예시로 "Let's take LeetCode contest" 는 "s'teL ekat edoCteeL tsetnoc" 로 변환된다.
+
+## 접근 방법
+
+문자열을 문자 리스트로 변환한 후, 두 포인터(start, end)를 사용하여 각 단어의 시작과 끝을 찾는다. 단어 내부의 문자를 교환하면서 전체 문자열을 한 번에 처리한다. 공백은 단어 구분만 하므로 단어 경계를 쉽게 식별할 수 있다.
+
+```python
+def reverseWords(s: str) -> str:
+    chars = list(s)
+    n = len(chars)
+    i = 0
+    while i < n:
+        start = i
+        while i < n and chars[i] != ' ':
+            i += 1
+        end = i - 1
+        while start < end:
+            chars[start], chars[end] = chars[end], chars[start]
+            start += 1
+            end -= 1
+        i += 1
+    return ''.join(chars)
+```
+
+## 풀이
+
+문자열을 리스트 형태로 변환하여 각 단어를 역순으로 뒤집는다. 두 포인터(start, end)를 이용해 단어 내부를 교환하면서 전체 문자열을 한 번에 처리한다. 시간 복잡도는 O(n)이며, 추가 공간은 O(n) (문자 리스트) 혹은 O(1) extra 공간이다.
+
+```python
+def reverseWords(s: str) -> str:
+    chars = list(s)
+    n = len(chars)
+    i = 0
+    while i < n:
+        start = i
+        while i < n and chars[i] != ' ':
+            i += 1
+        end = i - 1
+        while start < end:
+            chars[start], chars[end] = chars[end], chars[start]
+            start += 1
+            end -= 1
+        i += 1
+    return ''.join(chars)
+```
+
+## 다른 풀이 방법
+
+단어를 공백 기준으로 분리한 뒤, 각 단어를 슬라이싱으로 뒤집고 다시 연결하는 방법이 있다. 이 방법은 코드가 간결하지만 각 단어에 새로운 문자열을 생성하므로 추가 공간 사용량이 O(n)이다. 시간 복잡도는 여전히 O(n)이며, 두 포인터 방법에 비해 메모리 효율이 낮다.
+
+```python
+def reverseWords(s: str) -> str:
+    return ' '.join(word[::-1] for word in s.split(' '))
+```
+
+## 추가 참고사항
+
+문제에서 보장하는 조건은 단어가 한 개 이상 존재하고 공백은 단어 사이를 단일로 구분한다는 점이다. 입력 크기가 최대 50,000이므로 선형 시간 알고리즘이 필요하다. 두 포인터 방법은 원地 수정 가능하지만 파이썬에서는 리스트 변환 후 join을 사용해 가독성을 높일 수 있다.
+
+## 출처
+
+- LeetCode: [LeetCode 557 - Reverse Words in a String III](https://leetcode.com/problems/reverse-words-in-a-string-iii/)
