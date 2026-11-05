@@ -1,0 +1,91 @@
+---
+title: "[트러블슈팅] Django 4.0 url import 오류 해결"
+publishedAt: "2026-11-05"
+summary: "Django 4.0 업그레이드 후 발생하는 `url` 임포트 오류를 `re_path` 또는 `path`로 교체하여 해결하는 방법을 다룹니다."
+tag: "Troubleshooting"
+---
+
+## 현상
+
+Django 4.0 이상으로 업그레이드 후 `python manage.py runserver` 실행 시 다음과 같은 오류가 발생합니다.
+
+```python
+  File "/path/to/myproject/myproject/urls.py", line 16, in <module>
+    from django.conf.urls import url
+ImportError: cannot import name 'url' from 'django.conf.urls' (/path/to/my/venv/lib/python3.9/site-packages/django/conf/urls/__init__.py)
+```
+
+기존 `urls.py` 파일에서 `django.conf.urls`에서 `url`을 임포트하고 사용하는 코드가 있을 경우 발생합니다.
+
+```python
+from django.conf.urls import url
+from myapp.views import home
+
+urlpatterns = [
+    url(r'^$', home, name="home"),
+    url(r'^myapp/', include('myapp.urls')),
+]
+```
+
+![현상 스크린샷](/blogs/django-4-0-url-import-1.png)
+
+## 원인
+
+`django.conf.urls.url()` 함수는 Django 3.0부터 `django.urls`로 이동되었으며, Django 4.0부터 완전히 제거되었습니다. Django 4.0 이상 환경에서는 `django.conf.urls` 모듈에 `url`이 존재하지 않아 해당 임포트가 실패합니다.
+
+## 해결 방법
+
+가장 쉬운 방법은 `url()`을 `re_path()`로 대체하는 것입니다. `re_path`는 `url`과 마찬가지로 정규식(regex)을 사용하므로, import 경로만 변경하고 함수명만 수정하면 기존 패턴을 유지할 수 있습니다.
+
+수정 전:
+
+```python
+from django.conf.urls import url
+from django.urls import include
+from myapp.views import home
+
+urlpatterns = [
+    url(r'^$', home, name="home"),
+    url(r'^myapp/', include('myapp.urls')),
+]
+```
+
+수정 후:
+
+```python
+from django.urls import include, re_path
+from myapp.views import home
+
+urlpatterns = [
+    re_path(r'^$', home, name='home'),
+    re_path(r'^myapp/', include('myapp.urls')),
+]
+```
+
+![해결 방법 스크린샷](/blogs/django-4-0-url-import-2.png)
+
+## 다른 해결 방법
+
+정규식 대신 단순한 문자열 매칭이 가능한 경우 `path()` 함수를 사용할 수 있습니다. 이 경우 URL 패턴을 정규식에서 `path` 형식으로 변경해야 합니다.
+
+```python
+from django.urls import include, path
+from myapp.views import home
+
+urlpatterns = [
+    path('', home, name='home'),
+    path('myapp/', include('myapp.urls')),
+]
+```
+
+## 추가 참고사항
+
+외부 라이브러리(예: `markdownx`)의 내부 `urls.py`에서도 동일한 오류가 발생할 수 있습니다. 이 경우 외부 라이브러리의 소스 파일을 직접 수정하는 것은 권장되지 않으며, 해당 라이브러리의 업데이트를 확인하거나 `pip install --upgrade`를 통해 최신 버전을 설치하는 것이 좋습니다. Django 3.0 미만 버전에서 업그레이드할 경우 `url` 사용 여부를 사전에 점검하는 것이 좋습니다.
+
+## 출처
+
+- StackOverflow: [ImportError: cannot import name 'url' from 'django.conf.urls' after upgrading to Django 4.0](https://stackoverflow.com/questions/70319606/importerror-cannot-import-name-url-from-django-conf-urls-after-upgrading-to) — 작성자: Alasdair(질문), Alasdair(답변) (CC BY-SA)
+- Tistory: [Django - ImportError: cannot import name 'url' from 'django.conf.urls' after upgrading to Django 4.0](https://jerrytheking.tistory.com/151) — 작성자: 김제리의 개발 분투기
+- Tistory: [[Django] ImportError: cannot import name 'url' from 'django.conf.urls' 오류](https://jain5379.tistory.com/11) — 작성자: 유미의 기술들
+
+본문 이미지는 위 출처에서 가져왔습니다.
