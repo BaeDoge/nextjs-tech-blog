@@ -1,0 +1,98 @@
+---
+title: "[코딩테스트] 거리 값 계산 문제"
+publishedAt: "2026-11-05"
+summary: "두 배열 간 절대차이가 특정 기준을 초과하는 원소의 개수를 구하는 문제입니다."
+tag: "Algorithm"
+---
+
+## 문제
+
+정수 배열 `arr1`과 `arr2`, 그리고 정수 `d`가 주어집니다. 거리 값은 다음 조건을 만족하는 `arr1`의 원소 개수로 정의됩니다.
+
+조건: `arr1`의 각 원소 `x`에 대해, `arr2`의 모든 원소 `y`와의 절대차이 `|x - y|`가 `d`보다 커야 합니다.
+
+예를 들어 `arr1 = [4, 5, 8]`, `arr2 = [10, 9, 1, 8]`, `d = 2`일 때:
+- `4`는 `arr2`의 모든 원소와의 차이가 2보다 큽니다. (거리 값 포함)
+- `5`는 `arr2`의 모든 원소와의 차이가 2보다 큽니다. (거리 값 포함)
+- `8`은 `arr2`의 `8`과 차이가 0으로 2보다 작거나 같습니다. (거리 값 제외)
+결과적으로 거리 값은 2입니다.
+
+## 접근 방법
+
+가장 직관적인 방법은 `arr1`의 각 원소에 대해 `arr2`의 모든 원소와의 절대차이를 확인하는 완전탐색입니다.
+
+1. `arr1`의 각 원소 `x`를 순회합니다.
+2. 현재 원소 `x`에 대해 `arr2`의 모든 원소 `y`를 순회하며 `|x - y| <= d` 조건이 성립하는지 확인합니다.
+3. 만약 `arr2`의 원소 중 하나라도 위 조건을 만족하면, `x`는 거리 값에 포함되지 않으므로 바로 다음 원소로 넘어갑니다.
+4. `arr2`의 모든 원소 순회 후에도 조건을 만족하는 원소가 없다면, 카운터를 증가시킵니다.
+
+## 풀이
+
+`arr1`의 길이 `M`, `arr2`의 길이 `N`이라고 할 때, 모든 쌍을 비교하므로 시간 복잡도는 O(M * N)입니다.
+
+```python
+class Solution:
+    def findTheDistanceValue(self, arr1: List[int], arr2: List[int], d: int) -> int:
+        count = 0
+        
+        for x in arr1:
+            is_valid = True
+            for y in arr2:
+                if abs(x - y) <= d:
+                    is_valid = False
+                    break
+            
+            if is_valid:
+                count += 1
+                
+        return count
+```
+
+- 시간 복잡도: O(M * N)
+- 공간 복잡도: O(1)
+
+## 다른 풀이 방법
+
+`arr2`를 정렬한 후 이진 탐색을 활용할 수 있습니다.
+
+1. `arr2`를 정렬합니다.
+2. `arr1`의 각 원소 `x`에 대해 이진 탐색을 수행합니다.
+3. 이진 탐색을 통해 `x`와 가장 가까운 `arr2`의 원소를 찾습니다.
+4. 찾은 원소와의 차이가 `d`보다 크다면 거리 값에 포함됩니다.
+
+이 방법의 시간 복잡도는 정렬 O(N log N)과 탐색 O(M log N)을 합쳐 O((M + N) log N)입니다. 배열이 매우 클 경우 더 효율적일 수 있습니다.
+
+```python
+import bisect
+
+class Solution:
+    def findTheDistanceValue(self, arr1: List[int], arr2: List[int], d: int) -> int:
+        arr2.sort()
+        count = 0
+        
+        for x in arr1:
+            idx = bisect.bisect_left(arr2, x)
+            
+            # 가장 가까운 원소는 arr2[idx] 또는 arr2[idx-1]
+            dist = float('inf')
+            
+            if idx < len(arr2):
+                dist = min(dist, abs(x - arr2[idx]))
+            if idx > 0:
+                dist = min(dist, abs(x - arr2[idx - 1]))
+                
+            if dist > d:
+                count += 1
+                
+        return count
+```
+
+## 추가 참고사항
+
+- 제약 조건에 따라 배열 길이는 최대 500, 원소 값은 -1000~1000입니다.
+- 완전탐색 방식은 N, M이 500일 때 연산 수가 250,000으로 충분히 작으므로 충분한 성능을 발휘합니다.
+- `d`는 0 이상 100 이하의 정수입니다.
+
+## 출처
+
+- LeetCode: [LeetCode 1385 - Find the Distance Value Between Two Arrays](https://leetcode.com/problems/find-the-distance-value-between-two-arrays/)
