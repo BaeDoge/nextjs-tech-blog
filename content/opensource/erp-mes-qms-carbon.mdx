@@ -1,0 +1,154 @@
+---
+title: "[오픈소스 분석] 제조용 통합 ERP/MES/QMS 시스템 Carbon"
+publishedAt: "2026-11-05"
+summary: "단일 PostgreSQL 스키마와 React Router 기반의 모노레포 구조로 ERP, MES, QMS를 통합한 오픈소스 제조 관리 시스템의 기술적 아키텍처와 설계 선택을 분석한다."
+tag: "OpenSource"
+---
+
+## 한눈에 보는 프로젝트와 해결하려는 문제
+
+`crbnos/carbon`은 실행 가능한 오픈소스 제조 관리 시스템(ERP, MES, QMS 통합)입니다. 이 프로젝트는 제조 현장에서 흔히 발생하는 '데이터 단절' 문제를 해결하기 위해 설계되었습니다. 일반적으로 제조 기업은 설계(BOM), 구매, 재고, 생산 계획(MRP), 공장 운영(MES), 품질 관리(QMS), 회계를 각각 다른 시스템으로 관리합니다. 이로 인해 BOM 수정 시 설계와 생산 간 데이터 동기화 오류가 발생하거나, 자재 부족이 생산 시작 후에야 발견되는 비효율이 반복됩니다.
+
+Carbon은 이러한 문제를 해결하기 위해 ERP, MES, QMS 기능을 단일 PostgreSQL 데이터베이스 스키마 위에서 동작하도록 설계했습니다. [README.md](https://github.com/crbnos/carbon/blob/main/README.md)에 명시된 바와 같이, "Plan materials, run the shop floor, manage quality and track actual costs in one system"을 목표로 합니다. 이는 단순히 여러 모듈을 나열하는 것이 아니라, 데이터 모델과 API 레이어에서 이를 통합하여 실시간으로 일관된 정보를 제공하려는 시도입니다.
+
+주요 목표 사용자는 하드웨어 스타트업이나 제조 기업으로, Carbon Cloud(관리형 서비스)를 통해 빠르게 시작하거나, VPC나 온프레미스에 자체 호스팅(Self-host)하여 데이터 주권을 확보할 수 있는 유연성을 제공합니다. TypeScript를 주요 언어로 사용하며, React Router 기반의 웹 애플리케이션과 PostgreSQL을 핵심 기술 스택으로 채택하고 있습니다.
+
+## 이해에 필요한 핵심 개념
+
+Carbon의 기술적 구조를 이해하기 위해서는 다음 세 가지 핵심 개념을 파악해야 합니다.
+
+1. **단일 데이터 모델과 Row-Level Security (RLS):**
+   Carbon은 ERP와 MES가 서로 다른 데이터베이스를 사용하지 않습니다. [README.md](https://github.com/crbnos/carbon/blob/main/README.md)의 아키텍처 섹션에 따르면, "ERP and MES are React Router apps over a single Postgres database"입니다. 모든 테이블은 `company_id`로 스코프가 지정되며, PostgreSQL의 Row-Level Security를 통해 각 회사(테넌트)의 데이터가 물리적으로 격리됩니다. 이는 다중 테넌ancy 구조에서 데이터 유출을 방지하면서도, 시스템 내부에서는 모듈 간 데이터 참조가 자유롭도록 합니다.
+
+2. **React Router 기반의 애플리케이션 레이어:**
+   프론트엔드는 [React Router 7](https://reactrouter.com)과 [Vite](https://vite.dev)를 기반으로 합니다. [README.md](https://github.com/crbnos/carbon/blob/main/README.md)의 Tech Stack 섹션에 따르면, UI는 Tailwind 4, Radix, React Aria를 사용합니다. 이는 단순한 정적 페이지가 아닌, 서버 사이드 렌더링(SSR)과 클라이언트 사이드 네비게이션을 모두 지원하는 현대적인 SPA(Single Page Application) 아키텍처입니다. ERP와 MES는 별도의 앱(`/apps/erp`, `/apps/mes`)으로 분리되어 있지만, 동일한 데이터베이스와 API 레이어를 공유합니다.
+
+3. **MCP (Model Context Protocol) 서버:**
+   Carbon은 단순한 REST API를 넘어, AI 에이전트와의 통합을 위해 [MCP](https://docs.carbon.ms/api/mcp) 서버를 제공합니다. 이는 외부 AI 도구(예: Claude Code 등)가 Carbon의 데이터와 기능을 안전하게 접근할 수 있도록 하는 표준 프로토콜입니다. [README.md](https://github.com/crbnos/carbon/blob/main/README.md)에서는 "The Carbon API exposes the same manufacturing operations used by the application"이라고 명시하며, HTTP와 MCP 두 가지 인터페이스로 동일한 작업을 수행할 수 있도록 설계되었음을 강조합니다.
+
+## 저장소 구조와 실제 동작 흐름
+
+Carbon은 [pnpm](https://pnpm.io)과 [Turborepo](https://turbo.build)를 사용한 모노레포 구조로 관리됩니다. [README.md](https://github.com/crbnos/carbon/blob/main/README.md)의 Monorepo 섹션과 실제 파일 구조를 통해 그 책임 분리를 확인할 수 있습니다.
+
+```
+carbon/
+├── apps/
+│   ├── erp/          # ERP 애플리케이션 (React Router)
+│   ├── mes/          # MES 애플리케이션 (React Router)
+│   └── assembler/    # Rust 기반의 어셈블러 (3D 모델 처리 등)
+├── packages/
+│   ├── api/          # 공통 API 레이어 및 데이터 접근 로직
+│   ├── database/     # 데이터베이스 마이그레이션 및 시드 데이터
+│   ├── ee/           # Enterprise 기능 (상업 라이선스)
+│   └── ...           # 기타 공통 패키지 (ui, config 등)
+├── crates/           # Rust 크레이트 (어셈블러 관련)
+├── docs/             # 공식 문서 및 콘텐츠
+└── scripts/          # 빌드 및 개발 도구 스크립트
+```
+
+**동작 흐름:**
+1. **빌드 및 배포:** `Dockerfile`([Dockerfile](https://github.com/crbnos/carbon/blob/main/Dockerfile))을 보면, `node:24.22.1-slim` 이미지를 기반으로 `pnpm install` 후 `turbo run build`로 `erp`와 `mes` 앱을 빌드합니다. 또한, `crates/*`와 `apps/assembler`는 Rust로 빌드되며, `Cargo.toml`([Cargo.toml](https://github.com/crbnos/carbon/blob/main/Cargo.toml))에서 `gltf`, `meshopt`, `nalgebra` 등의 라이브러리를 사용하여 3D 모델 처리 성능을 최적화합니다.
+2. **데이터베이스 초기화:** `Dockerfile`의 `bootstrap-deps` 단계에서 `supabase migration up`과 `tsx src/seed.ts`를 실행하여 데이터베이스 스키마를 생성하고 기본 데이터를 삽입합니다.
+3. **실행:** 개발 환경에서는 `crbn up --no-portless` 명령어([package.json](https://github.com/crbnos/carbon/blob/main/package.json)의 scripts 참조)를 통해 Docker Compose 기반의 스택을 기동합니다. 이는 PostgreSQL, Inngest(배경 작업 처리), 그리고 React Router 앱을 포함합니다.
+4. **배경 작업:** Inngest를 통해 데이터베이스의 변경 이벤트를 감지하고, 비동기 작업(예: 리포트 생성, 알림 발송)을 처리합니다.
+
+## 구체적인 예제로 보는 설계 선택
+
+Carbon의 설계 선택 중 하나는 **외부 시스템과의 통합을 위한 `CarbonClient` 패턴**입니다. [contrib/building/examples/upload-3d-model/app/lib/carbon.server.ts](https://github.com/crbnos/carbon/blob/main/contrib/building/examples/upload-3d-model/app/lib/carbon.server.ts) 파일을 통해 이를 확인할 수 있습니다.
+
+이 예제 코드는 외부 애플리케이션이 Carbon의 저장소(Storage)와 데이터베이스에 3D 모델을 업로드하는 방법을 보여줍니다.
+
+```typescript
+class CarbonClient {
+  private readonly client: SupabaseClient;
+  // ...
+  async uploadModel(file: File) {
+    const modelId = nanoid();
+    const fileName = `${this.companyId}/models/${modelId}.${fileExtension}`;
+
+    const [fileUpload, recordInsert] = await Promise.all([
+      this.client.storage.from(this.companyId).upload(fileName, file),
+      this.client.from("modelUpload").insert({
+        id: modelId,
+        modelPath: fileName,
+        size: file.size,
+        name: file.name,
+        companyId: this.companyId,
+        createdBy: "system"
+      })
+    ]);
+    // ...
+  }
+}
+```
+
+**설계 분석:**
+1. **Supabase 클라이언트 사용:** Carbon은 내부적으로 Supabase를 데이터베이스 및 인증 레이어로 활용합니다. `createClient` 함수를 통해 Supabase 클라이언트를 초기화하고, `storage`와 `from` 메서드를 사용하여 데이터에 접근합니다. 이는 Carbon이 Supabase의 기능을 확장하여 다중 테넌ancy와 RLS를 구현했음을 시사합니다.
+2. **동시 실행 (Promise.all):** 파일 업로드와 메타데이터 데이터베이스 삽입을 `Promise.all`로 동시에 실행합니다. 이는 성능을 최적화하기 위한 선택으로 보이지만, 트랜잭션 일관성을 위해 주의가 필요합니다. 만약 파일 업로드는 성공했지만 데이터베이스 삽입이 실패하면, 오버플로우된 파일이 남을 수 있습니다. (실제 구현에서는 에러 처리 로직이 추가되어 있을 것으로 추정됩니다.)
+3. **회사별 격리:** `fileName`과 `companyId`를 사용하여 업로드된 파일이 특정 회사에 속하도록 격리합니다. 이는 PostgreSQL의 RLS와 함께 작동하여 데이터 보안성을 높입니다.
+
+이와 같은 설계는 Carbon이 단순한 CRUD 애플리케이션이 아니라, 외부 시스템과 통합 가능한 플랫폼으로서의 역할을 수행하도록 합니다.
+
+## 대안과 비교했을 때의 장단점
+
+Carbon을 유사한 오픈소스 제조 관리 시스템(예: Odoo, ERPNext)과 비교했을 때의 장단점은 다음과 같습니다.
+
+| 비교 항목 | Carbon | Odoo / ERPNext |
+| :--- | :--- | :--- |
+| **아키텍처** | 단일 데이터베이스, React Router 기반의 모노레포 | 모듈별 데이터베이스 또는 복잡한 ORM 기반 |
+| **개발자 경험** | TypeScript, pnpm, Turborepo 기반의 현대적 스택 | Python (Odoo), Python/JS (ERPNext) |
+| **통합성** | ERP, MES, QMS가 동일한 스키마에서 동작 | 모듈 간 데이터 동기화에 별도 설정 필요 |
+| **AI 통합** | MCP 서버를 통한 AI 에이전트 네이티브 지원 | 플러그인 또는 별도 API를 통한 간접 지원 |
+| **확장성** | React Router와 Rust 기반의 고성능 컴포넌트 | Python 기반의 스크립팅 언어로 유연성 제공 |
+
+**장점:**
+- **데이터 일관성:** 단일 데이터베이스를 사용하므로, ERP와 MES 간 데이터 불일치 문제가 최소화됩니다.
+- **현대적 기술 스택:** TypeScript와 React Router를 사용하여 개발자의 생산성을 높이고, 유지보수를 용이하게 합니다.
+- **AI 네이티브:** MCP 서버를 통해 AI 에이전트와의 통합을 쉽게 할 수 있어, 미래 지향적인 설계입니다.
+
+**단점:**
+- **학습 곡선:** PostgreSQL RLS와 Supabase의 복잡한 설정을 이해해야 하므로, 진입 장벽이 높을 수 있습니다.
+- **커뮤니티 규모:** Odoo나 ERPNext에 비해 커뮤니티와 생태계가 아직 작습니다.
+- **기능 완성도:** 모든 제조 시나리오를 커버하지 않을 수 있으며, Enterprise 기능은 상용 라이선스가 필요합니다.
+
+## 보안·라이선스·도입 시 확인할 점
+
+**라이선스:**
+Carbon은 [AGPLv3](https://github.com/crbnos/carbon/blob/main/LICENSE) 라이선스를 따릅니다. 이는 네트워크를 통해 서비스를 제공해도 소스 코드를 공개해야 하는 강력한 copyleft 라이선스입니다. 다만, `packages/ee` 디렉토리와 `.ee.` 파일명은 [Carbon Commercial License](https://github.com/crbnos/carbon/blob/main/packages/ee/LICENSE)를 따르므로, Enterprise 기능을 사용하려면 상용 라이선스를 구매해야 합니다.
+
+**보안:**
+- **Row-Level Security (RLS):** 모든 테이블은 `company_id`로 격리되며, PostgreSQL의 RLS를 통해 데이터 접근이 제어됩니다. [README.md](https://github.com/crbnos/carbon/blob/main/README.md)의 Security 섹션에서 이를 강조합니다.
+- **API 키:** 외부 시스템과의 통합에는 API 키를 사용하며, [contrib/building/examples/upload-3d-model/app/lib/carbon.server.ts](https://github.com/crbnos/carbon/blob/main/contrib/building/examples/upload-3d-model/app/lib/carbon.server.ts)에서 `carbon-key` 헤더를 통해 인증합니다.
+- **보안 취약점 보고:** [SECURITY.md](https://github.com/crbnos/carbon/blob/main/.github/SECURITY.md)에 따라 취약점은 공개 이슈가 아닌 이메일로 보고해야 합니다.
+
+**도입 시 확인할 점:**
+- **Supabase 의존성:** Carbon은 Supabase를 핵심 레이어로 사용하므로, Supabase의 서비스 가용성과 정책 변경에 영향을 받을 수 있습니다.
+- **데이터 마이그레이션:** 기존 ERP/MES 시스템에서 Carbon으로 데이터를 마이그레이션하는 과정이 복잡할 수 있습니다.
+- **Enterprise 기능:** 필요한 기능이 Enterprise 라이선스에 포함되어 있는지 확인해야 합니다.
+
+## 한계와 추천 대상
+
+**한계:**
+- **커뮤니티 및 생태계:** 아직 초기 단계이므로, 다양한 제조 시나리오를 커버하는 플러그인이나 커넥터가 부족할 수 있습니다.
+- **고급 기능:** 복잡한 공급망 관리(SCM)나 고급 계획(APC) 기능은 아직 완전히 구현되지 않았을 수 있습니다.
+- **지원:** 오픈소스 버전은 커뮤니티 지원에 의존해야 하며, 상용 지원은 Enterprise 라이선스 구매 시에만 제공됩니다.
+
+**추천 대상:**
+- **하드웨어 스타트업:** 빠르게 프로토타이핑하고, 제조 프로세스를 통합 관리하려는 스타트업.
+- **제조 중소기업:** ERP와 MES를 통합하여 데이터 일관성을 확보하려는 중소기업.
+- **개발자 친화적인 조직:** TypeScript와 React 기반의 현대적 기술 스택을 선호하고, 자체적으로 시스템을 커스터마이징할 수 있는 조직.
+
+Carbon은 제조 관리 시스템의 새로운 패러다임을 제시하며, 특히 AI 통합과 현대적 기술 스택을 통해 차별화됩니다. 하지만 도입 전에 라이선스와 지원 모델을 신중히 검토하고, 기존 시스템과의 통합 가능성을 평가해야 합니다.
+
+## 출처
+
+- GitHub: [crbnos/carbon](https://github.com/crbnos/carbon) — 작성자: crbnos
+- GitHub: [crbnos/carbon / LICENSE](https://github.com/crbnos/carbon/blob/main/LICENSE) — 작성자: crbnos
+- GitHub: [crbnos/carbon / Cargo.toml](https://github.com/crbnos/carbon/blob/main/Cargo.toml) — 작성자: crbnos
+- GitHub: [crbnos/carbon / Dockerfile](https://github.com/crbnos/carbon/blob/main/Dockerfile) — 작성자: crbnos
+- GitHub: [crbnos/carbon / package.json](https://github.com/crbnos/carbon/blob/main/package.json) — 작성자: crbnos
+- GitHub: [crbnos/carbon / contrib/building/examples/upload-3d-model/app/lib/carbon.server.ts](https://github.com/crbnos/carbon/blob/main/contrib/building/examples/upload-3d-model/app/lib/carbon.server.ts) — 작성자: crbnos
+- GitHub: [crbnos/carbon / contrib/building/examples/quote-configurator/app/lib/carbon.server.ts](https://github.com/crbnos/carbon/blob/main/contrib/building/examples/quote-configurator/app/lib/carbon.server.ts) — 작성자: crbnos
+- GitHub: [crbnos/carbon / ci/src/client.ts](https://github.com/crbnos/carbon/blob/main/ci/src/client.ts) — 작성자: crbnos
+- GitHub: [crbnos/carbon / .ai/docs/outer-loop.md](https://github.com/crbnos/carbon/blob/main/.ai/docs/outer-loop.md) — 작성자: crbnos
+- GitHub: [crbnos/carbon / docs/content/docs/index.mdx](https://github.com/crbnos/carbon/blob/main/docs/content/docs/index.mdx) — 작성자: crbnos
