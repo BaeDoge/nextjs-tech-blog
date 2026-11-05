@@ -1,0 +1,52 @@
+---
+title: "[코딩테스트] 연결리스트 이진수 변환"
+publishedAt: "2026-11-05"
+summary: "각 노드의 값이 0 또는 1인 단일 연결리스트가 주어질 때, 이진수로 나타낸 값을 십진수로 변환하여 리턴한다."
+tag: "Algorithm"
+---
+
+## 문제
+
+주어진 연결리스트는 각 노드의 값이 0 또는 1이며, 헤드 노드가 가장 높은 자릿수를 나타낸다. 이 연결리스트는 이진수를 표현하고 있으며, 해당 이진수의 십진수 값을 리턴해야 한다. 연결리스트는 비어 있지 않으며, 노드 개수는 최대 30개이다.
+
+## 접근 방법
+
+헤드부터 노드를 순회하며 값을 읽고, 매 단계마다 현재 결과에 2를 곱한 후 노드 값을 더한다. 이를 통해 이진수를 십진수로 변환할 수 있다. 추가 자료 구조를 사용하지 않으므로 공간 복잡도는 O(1)이다.
+
+## 풀이
+
+다음은 반복문을 이용한 풀이이다.
+
+```python
+def getDecimalValue(head):
+    result = 0
+    while head:
+        result = result * 2 + head.val
+        head = head.next
+    return result
+```
+
+이 방법은 노드를 한 번만 순회하므로 시간 복잡도는 O(n)이고, 추가 변수만 사용하므로 공간 복잡도는 O(1)이다.
+
+## 다른 풀이 방법
+
+재귀를 이용한 방법은 노드를 재귀적으로 방문하여 값을 계산한다.
+
+```python
+def getDecimalValue(head):
+    def dfs(node):
+        if not node:
+            return 0
+        return dfs(node.next) * 2 + node.val
+    return dfs(head)
+```
+
+이 방법은 순환 스택을 사용하므로 공간 복잡도가 O(n)이며, 반복문을 사용한 방법보다 추가 공간이 필요하다.
+
+## 추가 참고사항
+
+노드 개수가 최대 30개이므로 결과 값은 32비트 정수 범위를 벗어나지 않는다. 따라서 별도의 오버플로 처리 없이도 안정적으로 계산할 수 있다.
+
+## 출처
+
+- LeetCode: [LeetCode 1290 - Convert Binary Number in a Linked List to Integer](https://leetcode.com/problems/convert-binary-number-in-a-linked-list-to-integer/)
