@@ -161,3 +161,29 @@
 .python-completion-list button.is-active,.python-completion-list button:hover{background:#36594a}
 .python-completion-list code{font:12px var(--mono)}
 .python-completion-list span{font:9px var(--mono);color:#9ab3a3}
+
+
+/* Explanatory flow diagrams used by paper and open-source notes */
+.article-layout--single{grid-template-columns:minmax(0,900px)}
+.article-layout--single .prose{width:100%}
+.flow-diagram{margin:26px 0 30px;padding:20px 22px;border:1px solid #dfe9dc;border-radius:14px;background:linear-gradient(180deg,#f8fbf6 0%,#fff 100%)}
+.flow-diagram figcaption{margin-bottom:16px;color:#73816f;font-size:11px;font-weight:700;letter-spacing:.02em}
+.flow-diagram ol{display:flex;flex-direction:column;align-items:stretch;gap:19px;list-style:none;padding:0;margin:0 auto;max-width:540px}
+.flow-diagram li{position:relative;display:flex;align-items:center;gap:12px;min-height:52px;padding:12px 16px;border:1px solid #dce8d7;border-radius:10px;background:#fff;box-shadow:0 4px 12px #1c33210a}
+.flow-diagram li:not(:last-child)::after{content:'↓';position:absolute;left:50%;top:100%;height:19px;display:flex;align-items:center;color:#7e9d70;font-size:15px;font-weight:700;transform:translateX(-50%)}
+.flow-diagram li strong{font-size:13px;font-weight:650;color:#26382b;line-height:1.5}
+.flow-step-number{display:grid;place-items:center;flex:0 0 25px;height:25px;border-radius:8px;background:#eaf4e3;color:#527b45;font:500 11px var(--mono)}
+@media(max-width:680px){.flow-diagram{padding:16px 13px}.flow-diagram li{padding:11px 12px}.flow-diagram li strong{font-size:12px}}
+
+
+/* Keep the expanded category navigation usable on tablet and mobile screens. */
+@media(max-width:900px){
+  .header-inner nav{gap:10px}
+  .header-inner nav a{font-size:12px}
+  .search-compact{width:150px}
+}
+@media(max-width:680px){
+  .header-inner nav{flex:1;min-width:0;overflow-x:auto;overflow-y:hidden;white-space:nowrap;scrollbar-width:none}
+  .header-inner nav::-webkit-scrollbar{display:none}
+  .header-inner nav a{flex:0 0 auto}
+}

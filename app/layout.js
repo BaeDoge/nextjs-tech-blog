@@ -5,10 +5,10 @@ import { getAllPosts, getSiteUrl } from '@/lib/posts';
 
 export const metadata = {
   metadataBase: new URL(getSiteUrl()),
-  title: { default: 'baejoon | 알고리즘과 개발 기록', template: '%s | baejoon' },
-  description: '알고리즘 문제와 개발하면서 부딪친 에러를 정리했어요. 함께 공부하고 성장하는 주니어 개발자 기술 블로그입니다.',
+  title: { default: 'baejoon | 개발과 기술을 함께 공부하는 기록', template: '%s | baejoon' },
+  description: '알고리즘, 트러블슈팅, 논문과 오픈소스 분석을 기록하는 개발 블로그입니다.',
   applicationName: 'baejoon',
-  openGraph: { type: 'website', locale: 'ko_KR', siteName: 'baejoon', title: 'baejoon', description: '알고리즘 문제와 개발하면서 부딪친 에러를 정리했어요.' },
+  openGraph: { type: 'website', locale: 'ko_KR', siteName: 'baejoon', title: 'baejoon', description: '개발 과정에서 배운 기술과 연구를 쉽게 풀어 기록합니다.' },
   robots: { index: true, follow: true },
 };
 
