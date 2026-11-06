@@ -6,9 +6,11 @@ import rehypeSlug from 'rehype-slug';
 import rehypeAutolinkHeadings from 'rehype-autolink-headings';
 import AdSlot from '@/components/AdSlot';
 import PythonPlayground from '@/components/PythonPlayground';
+import ArticlePre from '@/components/ArticlePre';
 import { getAllPosts, getPost, getRelatedPosts, CATEGORIES, getSiteUrl } from '@/lib/posts';
 
 const mdxOptions = { mdxOptions: { remarkPlugins: [remarkGfm], rehypePlugins: [rehypeSlug, [rehypeAutolinkHeadings, { behavior: 'append' }]] } };
+const mdxComponents = { pre: ArticlePre };
 
 export async function generateStaticParams() {
   return getAllPosts().map((post) => ({ category: post.category, slug: post.slug }));
@@ -52,6 +54,7 @@ export default async function ArticlePage({ params }) {
   const post = getPost(category, slug);
   if (!post) notFound();
   const related = getRelatedPosts(post);
+  const hasCodePlayground = ['algorithm', 'troubleshooting'].includes(post.category);
 
   return (
     <>
@@ -73,16 +76,16 @@ export default async function ArticlePage({ params }) {
         </div>
       </header>
       <AdSlot className="ad-article-top" />
-      <div className="article-layout">
+      <div className={`article-layout ${hasCodePlayground ? '' : 'article-layout--single'}`}>
         <article className="prose">
-          <MDXRemote source={post.content} options={mdxOptions} />
-          <div className="article-end"><span>END OF NOTE</span><p>이 글을 읽으며 궁금한 코드를 직접 실행해 보세요.</p><small>작은 실험이 이해를 도와줄 수 있어요.</small></div>
+          <MDXRemote source={post.content} options={mdxOptions} components={mdxComponents} />
+          {hasCodePlayground && <div className="article-end"><span>END OF NOTE</span><p>읽다가 궁금한 코드를 직접 실행해 보세요.</p><small>작은 실험이 이해를 도와줄 수 있어요.</small></div>}
         </article>
-        <aside className="article-sidebar">
+        {hasCodePlayground && <aside className="article-sidebar">
           <PythonPlayground title={post.title} />
           <div className="sidebar-card"><span className="eyebrow">IN THIS ARTICLE</span><p>본문의 제목을 활용해 필요한 부분을 빠르게 찾아보세요.</p><a href="#top">맨 위로 ↑</a></div>
           <AdSlot className="ad-sidebar" />
-        </aside>
+        </aside>}
       </div>
       <AdSlot className="ad-article-bottom" />
       <section className="related-section">
