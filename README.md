@@ -3,7 +3,7 @@
 개발 과정에서 마주친 문제와 해결 방법, 알고리즘 풀이를 기록하는 한국어 기술 블로그입니다. Next.js App Router와 MDX를 기반으로 구성했으며, Vercel 배포를 지원합니다.
 
 - **운영 사이트:** https://baejoon.vercel.app
-- **콘텐츠:** 알고리즘 풀이, 개발 트러블슈팅
+- **콘텐츠:** 알고리즘 풀이, 개발 트러블슈팅, 개발 관련 논문 리뷰, 오픈소스 분석
 - **배포:** GitHub push를 통한 Vercel 자동 배포
 
 ## 주요 기능
@@ -59,7 +59,7 @@ npm run build
 
 ## 콘텐츠 추가
 
-1. `content/algorithm/` 또는 `content/troubleshooting/`에 MDX 파일을 추가합니다.
+1. `content/algorithm/`, `content/troubleshooting/`, `content/paper/`, `content/opensource/` 중 알맞은 폴더에 MDX 파일을 추가합니다.
 2. 아래 frontmatter 형식을 사용합니다.
 
 ```yaml
@@ -94,3 +94,20 @@ public/               정적 자산
 ## 라이선스
 
 저장소의 `LICENSE` 파일을 참고하세요.
+
+## MDX 시각 요소
+
+일반 Markdown과 함께 아래 시각 컴포넌트를 사용할 수 있습니다. 설명에 도움이 되는 경우에만 선택해서 사용하고, 한 글에 모든 요소를 넣지는 않습니다.
+
+- 강조 박스: `<Callout type="tip" title="기억할 점">내용</Callout>`
+- 핵심 수치: `<StatGrid><Stat value="1M+" label="분석한 세포" /></StatGrid>`
+- 순서형 과정: `<Steps><Step title="데이터 준비">설명</Step></Steps>`
+- 방식 비교: `<Compare><ComparePanel title="기존">설명</ComparePanel><ComparePanel title="개선">설명</ComparePanel></Compare>`
+- 터미널 명령: `<Terminal title="실행 예시">언어 지정 코드 블록</Terminal>`
+- 저장소 트리: `<FileTree title="프로젝트 구조">언어 지정 코드 블록</FileTree>`
+- 이미지와 캡션: `<Figure src="/blogs/example.png" alt="설명" caption="그림 설명" />`
+- 시간 순서: `<Timeline><TimelineItem date="2026-01" title="이벤트">설명</TimelineItem></Timeline>`
+- 체크 목록: `<Checklist><ul><li>확인 항목</li></ul></Checklist>`
+- 인라인 보조: `<Badge>핵심</Badge>`, `<Kbd>Ctrl</Kbd>`
+
+기존 `flow` 코드 블록도 계속 사용할 수 있습니다.

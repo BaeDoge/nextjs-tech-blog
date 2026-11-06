@@ -5,6 +5,10 @@ summary: "단일세포 다중오믹 데이터를 기반으로 유전자 조절 �
 tag: "Paper Review"
 ---
 
+<Callout type="info" title="이 논문은 어떤 분야에 가까울까요?">
+  이 연구는 일반적인 웹·백엔드 개발 논문은 아닙니다. 신경교모세포종을 분석하는 계산생물학 연구이며, 그 과정에서 단일세포 멀티오믹스 데이터를 처리하는 딥러닝 도구 scDORI를 개발했다는 점에서 AI·데이터 분석 기술과 연결됩니다. 아래에서는 질병 자체보다 모델과 공개 구현체를 중심으로 살펴보겠습니다.
+</Callout>
+
 ## 신경교모세포종의 치료 저항성, 왜 발생할까요?
 
 신경교모세포종(Glioblastoma)은 성인에서 가장 흔하게 발생하는 뇌종양 중 하나로, 아직까지 완치가 불가능하고 치료에도 잘 반응하지 않습니다. 흥미로운 점은, 종양 세포들의 유전자 변이 패턴은 치료 전후로 크게 달라지지 않는다는 것입니다. 그럼에도 불구하고 종양은 지속적으로 자라고 치료에 적응하죠.
@@ -51,9 +55,12 @@ scDORI를 적용한 결과, 신경교모세포종 세포들의 상태 전환이 
 
 실제로 MYT1L을 강화하면 종양 성장과 침습이 억제되는 효과가 확인되었습니다. 이는 신경교모세포종뿐만 아니라, 표현형 전환이 치료 저항성을 주도하는 다른 암종들에서도 보호 억제자를 치료 표적으로 삼는 전략이 유효할 수 있음을 시사합니다.
 
-현재 공개된 공식 코드 저장소는 없으며, 분석 도구인 scDORI와 관련 유전체 분석 도구인 Genrich의 존재만 확인되었습니다. Genrich는 염색질 접근성 데이터에서 유의미한 영역을 찾는 데 사용되는 피크 콜링(Peak-calling) 도구로, 본 연구의 전처리 단계에 활용되었을 가능성이 있으나 구체적인 구현 상세는 공식 문서로만 확인 가능합니다.
+이 논문은 코드가 공개되지 않은 연구가 아닙니다. 원문의 Code availability에는 scDORI 모델 구현체와 논문 분석용 스크립트 저장소가 각각 명시되어 있습니다. scDORI는 모델 본체이고, GBM_analysis는 논문에서 수행한 멀티오믹스 분석과 후속 시각화 코드를 담고 있습니다. 기존 글에서 Genrich를 공식 구현 저장소처럼 소개한 부분은 원문의 Code availability와 일치하지 않아 제외합니다.
+
+scDORI는 동일 세포에서 측정한 RNA·ATAC 데이터가 필요한 전문 도구입니다. 따라서 일반적인 개발자가 바로 활용할 수 있는 범용 AI 라이브러리라기보다는 계산생물학·바이오인포매틱스 분야의 연구 도구에 가깝습니다.
 
 ## 출처
 
 - OpenAlex / 논문 원문: [Decoding the regulatory programs governing glioblastoma plasticity](https://doi.org/10.1038/s41586-026-11177-0) — 작성자: Manu Saraswat, Laura Rueda-Gensini, Elisa Heinzelmann, Tannia Gracia, Fani Memi, Grant de Jong, Jannes Straub, Cedar Schloo, Dirk C. Hoffmann, Erik Jung, Tim Kindinger, Louis Masclef
-- GitHub 저장소: [jsh58/Genrich](https://github.com/jsh58/Genrich)
+- scDORI 모델 구현체: [bioFAM/scDORI](https://github.com/bioFAM/scDORI)
+- 논문 분석 코드: [PMBio/GBM_analysis](https://github.com/PMBio/GBM_analysis)
