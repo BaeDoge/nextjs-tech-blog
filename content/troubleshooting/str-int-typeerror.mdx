@@ -1,0 +1,102 @@
+---
+title: "[트러블슈팅] str과 int 연결 시 TypeError 해결"
+publishedAt: "2026-11-06"
+summary: "문자열과 정수형 객체를 연결할 때 발생하는 TypeError의 원인과 해결 방법을 정리한다."
+tag: "Troubleshooting"
+---
+
+## 현상
+
+파이썬에서 문자열(str)과 정수(int)를 `+` 연산자로 연결하려고 하면 TypeError가 발생한다.
+<Callout type="warning" title="오류 상황">
+`TypeError: can only concatenate str (not "int") to str`
+</Callout>
+
+다음과 같은 코드를 실행할 때 에러가 발생한다.
+
+```python
+things = 5
+print("You have " + things + " things.")
+```
+
+이 에러는 Python 3.x 환경에서 공통적으로 나타나는 현상이다.
+
+![현상 스크린샷](/blogs/str-int-typeerror-1.png)
+
+## 원인
+
+파이썬은 객체를 다른 타입으로 암시적으로 변환하지 않는다.
+`+` 연산자는 숫자 타입 간에는 합을 구하고, 시퀀스 타입 간에는 연결을 의미한다.
+문자열과 정수는 서로 다른 타입이므로, 명시적인 변환 없이 연산하면 TypeError를 일으킨다.
+혼란스러운 동작을 방지하기 위해 개발자가 명시적으로 타입을 지정해야 한다.
+
+```python
+>>> '3' + 5
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+TypeError: can only concatenate str (not "int") to str
+```
+
+## 해결 방법
+
+연결하려는 정수 객체를 `str()` 함수를 사용하여 명시적으로 문자열 타입으로 변환한다.
+변환된 문자열끼리 연결하면 에러 없이 원하는 결과를 얻는다.
+
+```python
+things = 5
+print("You have " + str(things) + " things.")
+# 출력: You have 5 things.
+```
+
+## 다른 해결 방법
+
+문자열 포맷팅 기능을 사용하면 명시적인 타입 변환 없이 값을 삽입할 수 있다.
+세 가지 주요 방법 중 Python 3.6 이상에서는 f-string을 사용할 수 있다.
+
+```python
+things = 5
+
+# 1. % 인터폴레이션 (가장 오래됨, C 언어 배경 개발자에게 익숙함)
+print('You have %d things.' % things)
+
+# 2. str.format() 메서드 (다양한 기능 제공)
+print('You have {} things.'.format(things))
+
+# 3. f-string (Python 3.6 이상)
+print(f'You have {things} things.')
+```
+
+`print` 함수의 여러 인자 구분은 `sep` 키워드로 연결할 수도 있다.
+
+```python
+things = 5
+print("You have", things, "things.")
+```
+
+## 추가 참고사항
+
+문자열과 정수를 `/` 연산자로 연산하면 TypeError가 발생한다.
+
+```python
+a = "100"
+print(a / 4)
+# TypeError: unsupported operand type(s) for /: 'str' and 'int'
+```
+
+이 경우에도 `int()`로 명시적 변환이 필요하다.
+
+```python
+a = "100"
+print(int(a) / 4)
+# 25.0
+```
+
+외부 데이터나 키보드 입력 값은 주로 문자열로 제공되므로, 수학적 연산을 수행할 때는 반드시 타입을 확인하고 변환해야 한다.
+
+## 출처
+
+- StackOverflow: [How can I concatenate str and int objects?](https://stackoverflow.com/questions/25675943/how-can-i-concatenate-str-and-int-objects) — 작성자: Zero Piraeus(질문), Zero Piraeus(답변) (CC BY-SA)
+- Tistory: [(파이썬) TypeError: unsupported operand type(s) for /: 'str' and 'int'](https://springcoming.tistory.com/20) — 작성자: 봄이오네
+- Tistory: [파이썬 에러 해결 방법: 자주 만나는 오류 총정리!](https://infobox9644.tistory.com/entry/%ED%8C%8C%EC%9D%B4%EC%8D%AC-%EC%97%90%EB%9F%AC-%ED%95%B4%EA%B2%B0-%EB%B0%A9%EB%B2%95-%EC%9E%90%EC%A3%BC-%EB%A7%8C%EB%82%98%EB%8A%94-%EC%98%A4%EB%A5%98-%EC%B4%9D%EC%A0%95%EB%A6%AC) — 작성자: infobox9644 님의 블로그
+
+본문 이미지는 위 출처에서 가져왔습니다.
