@@ -174,3 +174,16 @@
 .flow-diagram li strong{font-size:13px;font-weight:650;color:#26382b;line-height:1.5}
 .flow-step-number{display:grid;place-items:center;flex:0 0 25px;height:25px;border-radius:8px;background:#eaf4e3;color:#527b45;font:500 11px var(--mono)}
 @media(max-width:680px){.flow-diagram{padding:16px 13px}.flow-diagram li{padding:11px 12px}.flow-diagram li strong{font-size:12px}}
+
+
+/* Keep the expanded category navigation usable on tablet and mobile screens. */
+@media(max-width:900px){
+  .header-inner nav{gap:10px}
+  .header-inner nav a{font-size:12px}
+  .search-compact{width:150px}
+}
+@media(max-width:680px){
+  .header-inner nav{flex:1;min-width:0;overflow-x:auto;overflow-y:hidden;white-space:nowrap;scrollbar-width:none}
+  .header-inner nav::-webkit-scrollbar{display:none}
+  .header-inner nav a{flex:0 0 auto}
+}
