@@ -12,6 +12,8 @@ export default function Header({ posts }) {
         <nav aria-label="주 메뉴">
           <Link href="/category/algorithm">알고리즘</Link>
           <Link href="/category/troubleshooting">트러블슈팅</Link>
+          <Link href="/category/paper">논문</Link>
+          <Link href="/category/opensource">오픈소스 분석</Link>
           <Link href="/lab">실습실</Link>
           <Link href="/about">소개</Link>
         </nav>
