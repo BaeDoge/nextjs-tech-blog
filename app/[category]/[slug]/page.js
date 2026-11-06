@@ -7,10 +7,18 @@ import rehypeAutolinkHeadings from 'rehype-autolink-headings';
 import AdSlot from '@/components/AdSlot';
 import PythonPlayground from '@/components/PythonPlayground';
 import ArticlePre from '@/components/ArticlePre';
+import {
+  Callout, Badge, StatGrid, Stat, Steps, Step, Compare, ComparePanel,
+  Terminal, FileTree, Figure, Timeline, TimelineItem, Checklist, Kbd,
+} from '@/components/ArticleBlocks';
 import { getAllPosts, getPost, getRelatedPosts, CATEGORIES, getSiteUrl } from '@/lib/posts';
 
 const mdxOptions = { mdxOptions: { remarkPlugins: [remarkGfm], rehypePlugins: [rehypeSlug, [rehypeAutolinkHeadings, { behavior: 'append' }]] } };
-const mdxComponents = { pre: ArticlePre };
+const mdxComponents = {
+  pre: ArticlePre,
+  Callout, Badge, StatGrid, Stat, Steps, Step, Compare, ComparePanel,
+  Terminal, FileTree, Figure, Timeline, TimelineItem, Checklist, Kbd,
+};
 
 export async function generateStaticParams() {
   return getAllPosts().map((post) => ({ category: post.category, slug: post.slug }));
