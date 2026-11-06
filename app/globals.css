@@ -187,3 +187,47 @@
   .header-inner nav::-webkit-scrollbar{display:none}
   .header-inner nav a{flex:0 0 auto}
 }
+
+/* Reusable MDX visual blocks */
+.prose .mdx-callout{display:block;margin:24px 0;padding:17px 19px;border:1px solid #dfe9dc;border-left:4px solid #8caf75;border-radius:12px;background:#f7faf5;color:#405044}
+.prose .mdx-callout--tip,.prose .mdx-callout--success{border-color:#dcebd5;border-left-color:#70a45f;background:#f3f9ef}
+.prose .mdx-callout--warning{border-color:#f0e3c7;border-left-color:#d6a34b;background:#fffaf0}
+.prose .mdx-callout--important{border-color:#f0d9d6;border-left-color:#c9786e;background:#fff7f6}
+.prose .mdx-callout-title{display:block;margin-bottom:5px;color:#26372c;font-size:13px}
+.prose .mdx-callout-body>:first-child{margin-top:0}.prose .mdx-callout-body>:last-child{margin-bottom:0}
+.prose .mdx-badge{display:inline-flex;align-items:center;vertical-align:middle;margin:0 3px;padding:2px 8px;border:1px solid #e2e8e3;border-radius:999px;background:#f5f7f5;color:#5b675f;font-size:10px;font-weight:700;line-height:1.7;white-space:nowrap}
+.prose .mdx-badge--green{background:#eff8e9;border-color:#d8eacb;color:#47743d}.prose .mdx-badge--blue{background:#eff5ff;border-color:#dbe6fa;color:#476b9d}.prose .mdx-badge--amber{background:#fff7e8;border-color:#f0e3c7;color:#8b682f}.prose .mdx-badge--red{background:#fff0ee;border-color:#f0d8d4;color:#9c554b}
+.prose .mdx-stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:10px;margin:22px 0}
+.prose .mdx-stat{display:flex;min-width:0;flex-direction:column;gap:3px;padding:17px 16px;border:1px solid #e5ebe5;border-radius:12px;background:linear-gradient(145deg,#fff,#f8faf7)}
+.prose .mdx-stat strong{color:#274b36;font:800 clamp(20px,3vw,27px)/1.25 var(--mono);letter-spacing:-1px;overflow-wrap:anywhere}
+.prose .mdx-stat span{font-size:11px;font-weight:800;color:#48584c}.prose .mdx-stat small{font-size:10px;color:#879188;line-height:1.6}
+.prose .mdx-steps{list-style:none;counter-reset:mdx-step;padding:0;margin:23px 0}
+.prose .mdx-step{position:relative;counter-increment:mdx-step;display:grid;grid-template-columns:30px minmax(0,1fr);gap:12px;margin:0;padding:0 0 20px}
+.prose .mdx-step:before{content:counter(mdx-step);display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:#eaf4e4;color:#4f7845;font:700 11px var(--mono)}
+.prose .mdx-step:not(:last-child):after{content:'';position:absolute;left:13px;top:30px;bottom:0;width:1px;background:#dfe9db}
+.prose .mdx-step-content{min-width:0;padding:2px 0 0}.prose .mdx-step-content>strong{display:block;color:#2d4032;font-size:13px;margin-bottom:3px}.prose .mdx-step-content>div>:first-child{margin-top:0}.prose .mdx-step-content>div>:last-child{margin-bottom:0}
+.prose .mdx-compare{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:22px 0}
+.prose .mdx-compare-panel{min-width:0;padding:16px 17px;border:1px solid #e5eae6;border-radius:12px;background:#fafbfa}
+.prose .mdx-compare-panel--good{background:#f4f9f1;border-color:#dfebd8}.prose .mdx-compare-panel--bad{background:#fff7f5;border-color:#f0e0dc}
+.prose .mdx-compare-panel h4{font-size:13px;margin:0 0 9px;color:#304334}.prose .mdx-compare-panel>div>:first-child{margin-top:0}.prose .mdx-compare-panel>div>:last-child{margin-bottom:0}
+.prose .mdx-terminal{margin:22px 0;overflow:hidden;border:1px solid #263e32;border-radius:12px;background:#172a22}
+.prose .mdx-terminal-bar{display:flex;align-items:center;gap:6px;padding:10px 13px;border-bottom:1px solid #385043;background:#20372d}
+.prose .mdx-terminal-bar>span{width:7px;height:7px;border-radius:50%;background:#d08d76}.prose .mdx-terminal-bar>span:nth-child(2){background:#d9c37d}.prose .mdx-terminal-bar>span:nth-child(3){background:#8acb88}
+.prose .mdx-terminal-bar b{margin-left:auto;color:#a9c0ae;font:10px var(--mono);font-weight:500}
+.prose .mdx-terminal-content{padding:2px 14px 12px}.prose .mdx-terminal-content pre{margin:0;padding:12px 3px;background:transparent}
+.prose .mdx-file-tree{margin:22px 0;overflow:hidden;border:1px solid #e3e9e4;border-radius:12px;background:#f8faf8}
+.prose .mdx-file-tree-title{padding:9px 14px;border-bottom:1px solid #e5ebe6;color:#637168;font-size:10px;font-weight:800;letter-spacing:.3px}
+.prose .mdx-file-tree pre{margin:0;padding:15px 17px;background:transparent;color:#3e5144;font:11px/1.85 var(--mono);white-space:pre;overflow-x:auto}
+.prose .mdx-figure{margin:26px 0;text-align:center}.prose .mdx-figure img{display:block;max-width:100%;height:auto;margin:auto;border:1px solid var(--line);border-radius:12px}
+.prose .mdx-figure figcaption{margin:8px auto 0;max-width:90%;color:#879188;font-size:10px;line-height:1.7}
+.prose .mdx-timeline{list-style:none;position:relative;padding:0 0 0 21px;margin:22px 0}
+.prose .mdx-timeline:before{content:'';position:absolute;left:5px;top:7px;bottom:7px;width:1px;background:#dce7da}
+.prose .mdx-timeline-item{position:relative;padding:0 0 19px 13px;margin:0}
+.prose .mdx-timeline-item:before{content:'';position:absolute;left:-20px;top:8px;width:9px;height:9px;border:2px solid #fff;border-radius:50%;background:#82a976;box-shadow:0 0 0 1px #cbdcc5}
+.prose .mdx-timeline-item time{display:block;color:#789071;font:10px var(--mono);margin-bottom:3px}
+.prose .mdx-timeline-item>strong{display:block;color:#304334;font-size:13px;margin-bottom:3px}
+.prose .mdx-checklist{margin:18px 0;padding:15px 18px;border:1px solid #e5ebe5;border-radius:12px;background:#fafcf9}
+.prose .mdx-checklist ul{list-style:none;padding:0;margin:0}.prose .mdx-checklist li{position:relative;padding-left:25px;margin:8px 0}
+.prose .mdx-checklist li:before{content:'✓';position:absolute;left:0;top:1px;display:grid;place-items:center;width:17px;height:17px;border-radius:5px;background:#e7f3df;color:#4f7a43;font-size:11px;font-weight:800}
+.prose .mdx-kbd{display:inline-block;padding:1px 6px;border:1px solid #d7ded8;border-bottom-width:2px;border-radius:5px;background:#f7f9f7;color:#48564c;font:10px var(--mono);white-space:nowrap}
+@media(max-width:600px){.prose .mdx-compare{grid-template-columns:1fr}.prose .mdx-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.prose .mdx-callout{padding:14px 15px}.prose .mdx-figure figcaption{max-width:100%}}
