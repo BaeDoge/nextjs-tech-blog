@@ -97,47 +97,17 @@ public/               정적 자산
 
 ## MDX 시각 요소
 
-본문에서는 일반 Markdown과 함께 아래 컴포넌트를 사용할 수 있습니다. 내용 이해에 도움이 될 때만 선택해서 사용하고, 한 글에 모든 요소를 억지로 넣지는 않습니다.
+일반 Markdown과 함께 아래 시각 컴포넌트를 사용할 수 있습니다. 설명에 도움이 되는 경우에만 선택해서 사용하고, 한 글에 모든 요소를 넣지는 않습니다.
 
-```mdx
-<Callout type="tip" title="기억할 점">
-  핵심 개념이나 주의할 점을 짧게 강조합니다.
-</Callout>
+- 강조 박스: `<Callout type="tip" title="기억할 점">내용</Callout>`
+- 핵심 수치: `<StatGrid><Stat value="1M+" label="분석한 세포" /></StatGrid>`
+- 순서형 과정: `<Steps><Step title="데이터 준비">설명</Step></Steps>`
+- 방식 비교: `<Compare><ComparePanel title="기존">설명</ComparePanel><ComparePanel title="개선">설명</ComparePanel></Compare>`
+- 터미널 명령: `<Terminal title="실행 예시">언어 지정 코드 블록</Terminal>`
+- 저장소 트리: `<FileTree title="프로젝트 구조">언어 지정 코드 블록</FileTree>`
+- 이미지와 캡션: `<Figure src="/blogs/example.png" alt="설명" caption="그림 설명" />`
+- 시간 순서: `<Timeline><TimelineItem date="2026-01" title="이벤트">설명</TimelineItem></Timeline>`
+- 체크 목록: `<Checklist><ul><li>확인 항목</li></ul></Checklist>`
+- 인라인 보조: `<Badge>핵심</Badge>`, `<Kbd>Ctrl</Kbd>`
 
-<StatGrid>
-  <Stat value="1M+" label="분석한 세포" detail="논문에 보고된 규모" />
-  <Stat value="31" label="발견한 Topic" />
-</StatGrid>
-
-<Steps>
-  <Step title="입력 데이터 준비">필요한 입력을 설명합니다.</Step>
-  <Step title="모델 실행">핵심 처리 단계를 설명합니다.</Step>
-  <Step title="결과 확인">출력과 해석을 설명합니다.</Step>
-</Steps>
-
-<Compare>
-  <ComparePanel title="기존 방식" tone="bad">기존 접근의 특징과 한계</ComparePanel>
-  <ComparePanel title="새로운 방식" tone="good">개선된 접근의 특징</ComparePanel>
-</Compare>
-
-<Terminal title="실행 예시">
-
-```bash
-uv run python main.py
-```
-
-</Terminal>
-
-<FileTree title="저장소 구조">
-
-src/
-  app.py
-  services/
-  tests/
-
-</FileTree>
-
-<Figure src="/blogs/example.png" alt="구조 설명 이미지" caption="그림에 담긴 핵심 내용을 설명합니다." />
-```
-
-지원 컴포넌트: `Callout`, `Badge`, `StatGrid`, `Stat`, `Steps`, `Step`, `Compare`, `ComparePanel`, `Terminal`, `FileTree`, `Figure`, `Timeline`, `TimelineItem`, `Checklist`, `Kbd`. 기존 `flow` 코드 블록도 계속 사용할 수 있습니다.
+기존 `flow` 코드 블록도 계속 사용할 수 있습니다.
