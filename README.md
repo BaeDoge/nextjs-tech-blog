@@ -3,7 +3,7 @@
 개발 과정에서 마주친 문제와 해결 방법, 알고리즘 풀이를 기록하는 한국어 기술 블로그입니다. Next.js App Router와 MDX를 기반으로 구성했으며, Vercel 배포를 지원합니다.
 
 - **운영 사이트:** https://baejoon.vercel.app
-- **콘텐츠:** 알고리즘 풀이, 개발 트러블슈팅
+- **콘텐츠:** 알고리즘 풀이, 개발 트러블슈팅, 개발 관련 논문 리뷰, 오픈소스 분석
 - **배포:** GitHub push를 통한 Vercel 자동 배포
 
 ## 주요 기능
@@ -59,7 +59,7 @@ npm run build
 
 ## 콘텐츠 추가
 
-1. `content/algorithm/` 또는 `content/troubleshooting/`에 MDX 파일을 추가합니다.
+1. `content/algorithm/`, `content/troubleshooting/`, `content/paper/`, `content/opensource/` 중 알맞은 폴더에 MDX 파일을 추가합니다.
 2. 아래 frontmatter 형식을 사용합니다.
 
 ```yaml
@@ -94,3 +94,50 @@ public/               정적 자산
 ## 라이선스
 
 저장소의 `LICENSE` 파일을 참고하세요.
+
+## MDX 시각 요소
+
+본문에서는 일반 Markdown과 함께 아래 컴포넌트를 사용할 수 있습니다. 내용 이해에 도움이 될 때만 선택해서 사용하고, 한 글에 모든 요소를 억지로 넣지는 않습니다.
+
+```mdx
+<Callout type="tip" title="기억할 점">
+  핵심 개념이나 주의할 점을 짧게 강조합니다.
+</Callout>
+
+<StatGrid>
+  <Stat value="1M+" label="분석한 세포" detail="논문에 보고된 규모" />
+  <Stat value="31" label="발견한 Topic" />
+</StatGrid>
+
+<Steps>
+  <Step title="입력 데이터 준비">필요한 입력을 설명합니다.</Step>
+  <Step title="모델 실행">핵심 처리 단계를 설명합니다.</Step>
+  <Step title="결과 확인">출력과 해석을 설명합니다.</Step>
+</Steps>
+
+<Compare>
+  <ComparePanel title="기존 방식" tone="bad">기존 접근의 특징과 한계</ComparePanel>
+  <ComparePanel title="새로운 방식" tone="good">개선된 접근의 특징</ComparePanel>
+</Compare>
+
+<Terminal title="실행 예시">
+
+```bash
+uv run python main.py
+```
+
+</Terminal>
+
+<FileTree title="저장소 구조">
+
+src/
+  app.py
+  services/
+  tests/
+
+</FileTree>
+
+<Figure src="/blogs/example.png" alt="구조 설명 이미지" caption="그림에 담긴 핵심 내용을 설명합니다." />
+```
+
+지원 컴포넌트: `Callout`, `Badge`, `StatGrid`, `Stat`, `Steps`, `Step`, `Compare`, `ComparePanel`, `Terminal`, `FileTree`, `Figure`, `Timeline`, `TimelineItem`, `Checklist`, `Kbd`. 기존 `flow` 코드 블록도 계속 사용할 수 있습니다.
