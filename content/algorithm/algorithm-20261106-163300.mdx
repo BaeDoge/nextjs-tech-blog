@@ -1,0 +1,99 @@
+---
+title: "[코딩테스트] 이진 트리 병합"
+publishedAt: "2026-11-06"
+summary: "두 이진 트리를 재귀 및 반복 방식으로 병합하여 새로운 트리를 생성하는 알고리즘을 설명합니다."
+tag: "Algorithm"
+---
+
+## 문제
+
+두 이진 트리 `root1`과 `root2`가 주어집니다. 두 트리의 노드가 겹치는 경우 값의 합계를 새로운 노드 값으로 설정하고, 겹치지 않는 경우 null이 아닌 노드를 그대로 사용합니다. 병합은 루트부터 시작하며, 결과를 반환해야 합니다. 트리의 노드 수는 0에서 2000 사이이며, 노드 값의 범위는 -104에서 104입니다.
+
+## 접근 방법
+
+두 트리를 루트부터 동시에 탐색하며 병합합니다. 재귀 함수는 두 노드가 모두 존재하면 값을 합산한 새 노드를 반환하고, 하나만 존재하면 해당 노드를 그대로 반환하며, 모두 null이면 null을 반환합니다. 이 과정은 자식 노드까지 재귀적으로 반복됩니다.
+
+```python
+# Definition for a binary tree node.
+class TreeNode:
+    def __init__(self, val=0, left=None, right=None):
+        self.val = val
+        self.left = left
+        self.right = right
+
+def mergeTrees(root1: TreeNode, root2: TreeNode) -> TreeNode:
+    if not root1:
+        return root2
+    if not root2:
+        return root1
+    
+    root1.val += root2.val
+    root1.left = mergeTrees(root1.left, root2.left)
+    root1.right = mergeTrees(root1.right, root2.right)
+    return root1
+```
+
+## 풀이
+
+재귀 함수는 두 노드가 모두 null인 경우 None을 반환하고, 한쪽만 존재하면 그 노드를 그대로 사용합니다. 두 노드가 모두 존재할 경우, `root1`의 값을 `root2`의 값으로 업데이트하고 자식 노드에 대해 재귀 호출을 수행합니다. 이 방식은 노드당 상수 시간의 연산을 수행하므로 시간 복잡도는 O(N + M)이며, N과 M은 각 트리의 노드 수입니다. 재귀 호출 스택의 깊이가 높이가 될 수 있으므로 공간 복잡도는 O(H + K)입니다.
+
+```python
+# 전체 실행 예시 (간소화)
+def mergeTrees(root1: TreeNode, root2: TreeNode) -> TreeNode:
+    if not root1:
+        return root2
+    if not root2:
+        return root1
+    
+    root1.val += root2.val
+    root1.left = mergeTrees(root1.left, root2.left)
+    root1.right = mergeTrees(root1.right, root2.right)
+    return root1
+```
+
+## 다른 풀이 방법
+
+반복적 접근법에서는 스택(DFS) 또는 큐(BFS)를 사용하여 노드 쌍을 처리합니다. 스택에 `(node1, node2)` 쌍을 넣고, 한 노드가 null일 경우 다른 노드를 붙여주고, 두 노드가 모두 있을 경우 값을 합산한 후 자식 노드 쌍을 스택에 추가합니다. 이 방법은 재귀 호출 오버헤드를 제거하므로 시간 복잡도는 O(N + M)이지만, 명시적 스택 사용으로 인한 공간 복잡도 오버헤드가 있을 수 있습니다.
+
+```python
+def mergeTreesIterative(root1: TreeNode, root2: TreeNode) -> TreeNode:
+    if not root1:
+        return root2
+    if not root2:
+        return root1
+        
+    stack = [(root1, root2)]
+    while stack:
+        n1, n2 = stack.pop()
+        if not n1 or not n2:
+            continue
+            
+        n1.val += n2.val
+        
+        if not n1.left:
+            n1.left = n2.left
+        else:
+            stack.append((n1.left, n2.left))
+            
+        if not n1.right:
+            n1.right = n2.right
+        else:
+            stack.append((n1.right, n2.right))
+            
+    return root1
+```
+
+반복적 풀이는 명시적 스택을 사용하므로 공간 복잡도는 O(min(N, M)) 또는 트리의 높이에 비례하여 재귀적 풀이와 유사합니다.
+
+## 추가 참고사항
+
+- 하나의 트리가 비어 있으면 다른 트리를 그대로 반환합니다.
+- 노드 값은 음수일 수 있지만, 합산 로직은 동일하게 적용됩니다.
+- 재귀적 풀이는 코드가 간결하지만, 매우 깊은 트리에서는 Python의 재귀 깊이 제한에 도달할 수 있습니다. 이 경우 반복적 접근법을 사용하세요.
+<Callout type="tip" title="효율성 비교">
+재귀적 풀이는 코드가 간결하지만, 매우 깊은 트리에서는 Python의 재귀 깊이 제한에 도달할 수 있습니다. 이 경우 반복적 접근법을 사용하세요.
+</Callout>
+
+## 출처
+
+- LeetCode: [LeetCode 617 - Merge Two Binary Trees](https://leetcode.com/problems/merge-two-binary-trees/)
