@@ -46,7 +46,7 @@ export function Terminal({ title = 'Terminal', children }) {
 }
 
 export function FileTree({ title = 'Project structure', children }) {
-  return <section className="mdx-file-tree"><div className="mdx-file-tree-title">{title}</div><pre>{children}</pre></section>;
+  return <section className="mdx-file-tree"><div className="mdx-file-tree-title">{title}</div><div className="mdx-file-tree-content">{children}</div></section>;
 }
 
 export function Figure({ src, alt = '', caption, width = '100%' }) {
