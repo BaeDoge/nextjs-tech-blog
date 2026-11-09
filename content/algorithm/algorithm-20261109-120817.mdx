@@ -1,0 +1,100 @@
+---
+title: "[코딩테스트] 문자열 덧셈 구현"
+publishedAt: "2026-11-09"
+summary: "BigInteger 미사용 조건에서 문자열 역순 순회와 carry 처리를 통해 두 수를 더하는 알고리즘입니다."
+tag: "Algorithm"
+---
+
+## 문제
+
+두 개의 음이 아닌 정수 `num1`과 `num2`가 문자열로 주어집니다. 이 두 수의 합을 문자열로 반환해야 합니다.
+
+대형 정수 처리 라이브러리(예: `BigInteger`)를 사용하거나, 입력을 정수형으로 직접 변환하여 연산하는 것은 금지되어 있습니다.
+
+*   제약 조건: 두 문자열의 길이는 최대 10^4까지 가능하고, '0'을 제외한 선행 영문자는 존재하지 않습니다.
+
+## 접근 방법
+
+일반적인 손더셈 기법을 적용해야 합니다. 오른쪽 끝(일 자리)부터 시작하여 왼쪽으로 이동하며 각 자릿수별로 더합니다.
+
+*   **역순 순회**: 두 문자열의 끝 인덱스에서 시작하여 0까지 이동합니다.
+*   **자릿수 합산**: 각 위치의 숫자를 추출하여 합산하고, `carry`(올림수)를 관리합니다.
+*   **결과 저장**: 계산된 자릿수를 임시 리스트에 추가합니다.
+*   **최종 조합**: 모든 연산 후 저장된 결과의 순서를 뒤집어 최종 문자열을 완성합니다.
+
+<Callout type="tip" title="주의">문자열 인덱싱은 0부터 시작하므로, 끝에서 0까지 진행하려면 `index--`를 사용하여 감소시켜야 합니다.</Callout>
+
+## 풀이
+
+두 문자열을 뒤에서부터 동시에 더하면서 `carry` 변수로 자릿수 올림을 처리합니다.
+
+*   루프 조건: 두 문자열 중 더 긴 쪽의 길이까지 반복하며, 남은 올림수가 있을 경우에도 계속 진행합니다.
+*   숫자 추출: 인덱스가 문자열 범위를 벗어나면 0으로 간주합니다.
+*   합산 및 carry: `(digit1 + digit2 + carry) % 10`을 현재 자릿수로, `(digit1 + digit2 + carry) // 10`을 다음 `carry`로 계산합니다.
+
+```python
+def addStrings(num1: str, num2: str) -> str:
+    result = []
+    carry = 0
+    i, j = len(num1) - 1, len(num2) - 1
+
+    while i >= 0 or j >= 0 or carry:
+        digit1 = int(num1[i]) if i >= 0 else 0
+        digit2 = int(num2[j]) if j >= 0 else 0
+
+        total = digit1 + digit2 + carry
+        carry = total // 10
+        result.append(str(total % 10))
+
+        i -= 1
+        j -= 1
+
+    return "".join(reversed(result))
+```
+
+*   시간복잡도: O(max(N, M)) — 두 문자열 중 긴 쪽의 길이만큼 순회합니다.
+*   공간복잡도: O(max(N, M)) — 결과를 저장하기 위해 필요한 리스트의 크기입니다.
+
+## 다른 풀이 방법
+
+정확한 알고리즘 로직은 동일하나, 숫자 추출 과정만 `int()` 대신 ASCII 코드 차이를 활용하는 방법이 있습니다.
+
+*   **ASCII 변환**: `ord(num1[i]) - ord('0')`을 사용하여 문자를 정수로 변환합니다.
+*   **동일한 덧셈**: digit1, digit2, carry를 사용하여 동일한 덧셈 로직을 적용하고, 결과를 문자열에 추가합니다.
+
+<Compare>
+<ComparePanel title="기존 (int() 사용)" tone="good">Python에서 `int()`를 사용하여 문자를 정수로 변환하는 일반적인 방법입니다.</ComparePanel>
+<ComparePanel title="제안 (ord() 사용)" tone="neutral">ASCII 코드 차이를 직접 사용하여 변환 오버헤드를 줄일 수 있는 대체 방법입니다.</ComparePanel>
+</Compare>
+
+```python
+def addStrings(num1: str, num2: str) -> str:
+    result = []
+    carry = 0
+    i, j = len(num1) - 1, len(num2) - 1
+
+    while i >= 0 or j >= 0 or carry:
+        digit1 = ord(num1[i]) - ord('0') if i >= 0 else 0
+        digit2 = ord(num2[j]) - ord('0') if j >= 0 else 0
+
+        total = digit1 + digit2 + carry
+        carry = total // 10
+        result.append(str(total % 10))
+
+        i -= 1
+        j -= 1
+
+    return "".join(reversed(result))
+```
+
+## 추가 참고사항
+
+문자열 길이 제약이 최대 10^4이므로, $O(N^2)$ 알고리즘은 적합하지 않습니다. 반드시 한 번의 순회로 해결해야 합니다.
+
+*   **carry 처리**: 마지막 루프에서 `carry`가 1인 경우, 루프가 한 번 더 실행되어 '1'이 추가됩니다.
+*   **공통점**: 모든 문자열 합산 문제는 동일한 논리를 따릅니다.
+*   **확장성**: 부호 처리나 곱셈 등 다른 연산으로 확장 시 구조가 유사하게 적용됩니다.
+
+## 출처
+
+- LeetCode: [LeetCode 415 - Add Strings](https://leetcode.com/problems/add-strings/)
