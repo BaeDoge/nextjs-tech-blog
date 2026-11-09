@@ -1,0 +1,175 @@
+---
+title: "[오픈소스 분석] Cherry Studio 아키텍처 분석"
+publishedAt: "2026-11-09"
+summary: "Electron 기반의 데스크톱 AI 클라이언트 Cherry Studio의 멀티 프로세스 구조, AI SDK 통합 방식, 그리고 MCP 및 에이전트 확장 아키텍처를 분석합니다."
+tag: "OpenSource"
+---
+
+## 한눈에 보는 프로젝트와 해결하려는 문제
+
+Cherry Studio는 단일 AI 모델에 국한되지 않고, OpenAI, Anthropic, Gemini, 로컬 모델(Ollama, LM Studio) 등 다양한 AI 서비스와 에이전트(Agents) 기능을 하나의 데스크톱 워크스페이스에서 통합하는 **실행 가능한 데스크톱 애플리케이션**입니다. 이 프로젝트는 개발자와 연구자들이 여러 LLM(대규모 언어 모델)의 응답을 비교하거나, 파일 처리, 브라우저 자동화, MCP(Model Context Protocol) 서버 연동 등 복잡한 작업을 수행할 때 발생하는 환경 설정의 번거로움과 데이터 단편화 문제를 해결하기 위해 설계되었습니다.
+
+GitHub 통계에 따르면 53,000개 이상의 스타를 기록하며 높은 인기를 얻고 있으며, TypeScript를 주력으로 사용하여 Electron 프레임워크 위에서 동작합니다. AGPL-3.0 라이선스를 채택하여 커뮤니티 기반의 개방성을 유지하면서도, 기업용 기능은 별도의 상용 라이선스로 분리하는 전략을 취하고 있습니다.
+
+<StatGrid>
+<Stat value="53,359" label="GitHub Stars" detail="2024년 5월 생성 이후 급속한 성장" />
+<Stat value="TypeScript" label="주요 언어" detail="Electron 기반 데스크톱 앱" />
+<Stat value="AGPL-3.0" label="라이선스" detail="커뮤니티 에디션 기준" />
+</StatGrid>
+
+## 이해에 필요한 핵심 개념
+
+Cherry Studio의 기술적 깊이를 이해하기 위해서는 다음 세 가지 핵심 개념을 파악해야 합니다.
+
+1.  **Electron 멀티 프로세스 아키텍처**: Cherry Studio는 단일 프로세스가 아닌, `main` 프로세스(시스템 제어), `renderer` 프로세스(UI 렌더링), 그리고 `utility-process` 또는 별도 프로세스(네트워크 처리 등)로 분리된 구조를 가집니다. 이는 UI의 끊김 없는 반응성을 보장하면서도, AI 모델 호출과 같은 무거운 작업을 백그라운드에서 처리할 수 있게 합니다.
+2.  **AI SDK 및 런타임 추상화**: `@cherrystudio/ai-core`와 같은 내부 라이브러리를 통해 다양한 벤더의 API를 추상화합니다. 이는 사용자가 UI에서 모델을 선택할 때, 하위 API 호출 방식이 OpenAI 호환인지, Anthropic 전용인지, 또는 Ollama 로컬 호출인지에 대해 신경 쓰지 않고 일관된 인터페이스로 채팅, 이미지 생성, 임베딩 등을 수행할 수 있게 합니다.
+3.  **MCP(Model Context Protocol) 및 에이전트 워크스페이스**: 단순한 채팅을 넘어, 에이전트(Agent)가 외부 도구(Tool)와 파일 시스템, 브라우저를 제어할 수 있도록 합니다. MCP는 AI 모델이 표준화된 프로토콜을 통해 외부 데이터 소스와 상호작용할 수 있게 하는 오픈 표준으로, Cherry Studio는 이를 클라이언트 측에서 구현하여 에이전트의 확장성을 높였습니다.
+
+## 저장소 구조와 실제 동작 흐름
+
+Cherry Studio의 저장소 구조는 Electron의 표준적인 폴더 레이아웃을 따르지만, AI 서비스의 복잡한 생명주기를 관리하기 위해 세분화된 서비스 레이어를 갖추고 있습니다.
+
+### 주요 폴더 구조
+
+-   `src/main/main.ts`: 애플리케이션의 진입점입니다. Chromium 플래그 설정, 단일 인스턴스 제어, 데이터 마이그레이션, 서비스 초기화 순서를 정의합니다.
+-   `src/main/ai/AiService.ts`: AI 모델 호출의 핵심 로직을 담당하는 메인 프로세스 서비스입니다.
+-   `src/renderer/`: React 기반의 UI를 렌더링하는 렌더러 프로세스 코드입니다.
+-   `src/shared/`: 메인과 렌더러가 공유하는 타입 정의 및 유틸리티 함수입니다.
+-   `.agents/notes/`: 프로젝트의 아키텍처 결정과 구현 이력을 기록한 내부 문서들입니다.
+
+### 실제 동작 흐름 (시작부터 AI 호출까지)
+
+`src/main/main.ts` 파일을 통해 애플리케이션의 부팅 흐름을 추적해 보면, Cherry Studio가 단순한 UI 프레임이 아니라 복잡한 상태 관리 시스템임을 알 수 있습니다.
+
+1.  **Preboot 단계**: `resolveUserDataLocation()`으로 사용자 데이터 경로를 결정하고, `requireSingleInstance()`로 중복 실행을 방지합니다.
+2.  **마이그레이션 및 복구**: `runV2MigrationGate()`를 통해 이전 버전의 데이터 호환성을 처리하고, `runBackupRestoreGate()`로 백업된 데이터베이스를 복원합니다.
+3.  **서비스 부트스트랩**: `application.bootstrap()`를 호출하여 `AiService`, `ProviderService` 등 핵심 서비스를 초기화합니다.
+4.  **IPC 등록**: `registerIpc()`를 통해 렌더러 프로세스의 UI 요청을 메인 프로세스의 서비스로 연결합니다.
+
+이 흐름은 `src/main/main.ts`의 주석에서 "DO NOT add new code here... New services belong in the lifecycle system"이라고 명시된 것처럼, 진입점의 단순화를 위해 서비스 레지스트리 패턴을 엄격히 적용하고 있음을 보여줍니다.
+
+## 구체적인 예제로 보는 설계 선택
+
+`src/main/ai/AiService.ts` 파일은 Cherry Studio가 어떻게 AI 호출을 처리하는지 보여주는 가장 구체적인 예시입니다. 이 파일은 메인 프로세스에서 AI 모델을 호출할 때의 복잡한 로직을 담고 있습니다.
+
+### 1. 도구 호출과 승인 (Tool Approval)
+
+에이전트가 외부 도구를 사용할 때, 사용자의 승인을 받아야 하는 보안 설계가 적용되어 있습니다.
+
+```typescript
+// AiService.ts 내부의 도구 호출 관련 로직 (요약)
+// ...
+// unknown id is a no-op.
+// TODO(abort-registry): collapse with MCP/stream/LAN registries once
+// the shared `ipcHandleWithAbort` helper lands.
+private readonly requests = new Map<string, AbortController>()
+// ...
+```
+
+이 코드에서 `AbortController`를 사용하여 각 AI 요청을 추적하고 취소할 수 있는 리소스를 관리합니다. 이는 긴 스트리밍 응답 중 사용자가 채팅을 중단하거나 다른 모델로 전환할 때, 불필요한 네트워크 호출과 리소스 소모를 방지하기 위한 설계입니다.
+
+### 2. 제공자(Provider) 추상화
+
+`src/renderer/utils/api.ts` 파일은 다양한 API 호스트를 포맷팅하는 로직을 보여줍니다.
+
+```typescript
+export function formatOllamaApiHost(host: string): string {
+  const normalizedHost = withoutTrailingSlash(host)
+    ?.replace(/\/v1$/, '')
+    ?.replace(/\/api$/, '')
+    ?.replace(/\/chat$/, '')
+  return formatApiHost(normalizedHost + '/api', false)
+}
+```
+
+Ollama는 기본 엔드포인트 구조가 표준 OpenAI 호환 API와 다를 수 있습니다. Cherry Studio는 이러한 벤더별 차이를 `formatOllamaApiHost`와 같은 유틸리티 함수로 흡수하여, UI에서는 일관된 URL 형식으로 입력받되 내부적으로 벤더에 맞게 변환하는 추상화 레이어를 구축했습니다. 이는 사용자가 Ollama, LM Studio, Cloud API 등을 혼용해서 사용할 때 발생하는 설정 오류를 줄이는 데 기여합니다.
+
+### 3. 이미지 생성 및 작업 처리
+
+`AiService.ts`에서는 이미지 생성 모델의 호출도 별도 처리합니다.
+
+```typescript
+// AiService.ts
+this.registerDisposable(installProviderUserAgentInterceptor())
+application.get('JobManager').registerHandler('image-generation.generate', imageGenerationJobHandler)
+```
+
+`JobManager`를 통해 이미지 생성과 같은 비동기적이고 시간이 오래 걸리는 작업을 큐로 관리합니다. 이는 AI 응답 스트리밍과 이미지 생성 요청이 충돌하지 않도록 분리한 설계로, 데스크톱 앱의 안정성을 높이는 중요한 선택입니다.
+
+## 대안과 비교했을 때의 장단점
+
+Cherry Studio와 유사한 역할을 하는 다른 접근 방식(예: 웹 기반 클라이언트, 단일 모델 전용 앱)과 비교했을 때의 장단점은 다음과 같습니다.
+
+<Compare>
+<ComparePanel title="Cherry Studio (Electron 데스크톱)" tone="good">
+<ul>
+<li><strong>로컬 모델 통합 용이성:</strong> Ollama, LM Studio 등 로컬 모델을 로컬 네트워크 또는 로컬 파일 시스템과 직접 연동하기 용이합니다.</li>
+<li><strong>다중 모델 비교:</strong> 하나의 대화창에서 여러 모델의 응답을 비교하거나, 에이전트가 여러 모델을 순차적으로 호출하는 시나리오에 최적화되어 있습니다.</li>
+<li><strong>오프라인/네트워크 유연성:</strong> 로컬 모델 사용 시 네트워크 의존도가 낮으며, 데스크톱 OS의 파일 시스템 접근성을 활용합니다.</li>
+</ul>
+</ComparePanel>
+<ComparePanel title="웹 기반 AI 클라이언트 (예: Open WebUI)" tone="bad">
+<ul>
+<li><strong>플랫폼 종속성:</strong> 브라우저에 의존하며, 로컬 하드웨어(예: 로컬 GPU)와의 직접적인 연동이 제한될 수 있습니다.</li>
+<li><strong>데이터 프라이버시:</strong> 서버 측 처리가 많을 경우, 데이터가 외부로 유출될 위험이 상대적으로 높습니다.</li>
+<li><strong>확장성 한계:</strong> 데스크톱 OS의 네이티브 기능(시스템 알림, 트레이 아이콘, 전역 단축키 등)을 활용하기 어렵습니다.</li>
+</ul>
+</ComparePanel>
+</Compare>
+
+Cherry Studio의 Electron 기반 설계는 이러한 장점을 제공하지만, 대신 앱의 초기 로딩 시간과 메모리 사용량이 웹 앱보다 높을 수 있다는 단점이 있습니다. 또한, Electron 앱 특성상 Windows, macOS, Linux 각 플랫폼별 빌드 및 테스트 부담이 큽니다.
+
+## 보안·라이선스·도입 시 확인할 점
+
+### 라이선스: AGPL-3.0
+Cherry Studio는 **AGPL-3.0** 라이선스를 사용합니다. 이는 GPL보다 엄격한 라이선스로, 네트워크를 통해 서비스를 제공하더라도 소스 코드를 공개해야 할 의무가 있습니다.
+-   **개인/연구용:** 자유롭게 사용, 수정, 배포 가능합니다.
+-   **상용/기업용:** Cherry Studio의 기능을 수정하여 SaaS 서비스로 제공하거나, 내부 사내 시스템에 통합하여 외부에 공개할 경우, 수정된 코드의 소스를 공개해야 할 수 있습니다. 기업 도입 시에는 반드시 [Cherry Studio Enterprise Edition](https://enterprise.cherryai.com)의 라이선스를 확인하거나 법률 자문을 받아야 합니다.
+
+### 보안 정책
+`SECURITY.md`에 따르면, Cherry Studio는 보안 취약점 보고를 위해 GitHub Security Advisories를 사용합니다.
+-   **취약점 보고:** 공개 이슈가 아닌 Security Advisories 탭을 통해 보고해야 합니다.
+-   **지원 버전:** 최신 릴리스와 그 이전 마이너 버전만 지원합니다.
+-   **데이터 처리:** 로컬 모델 사용 시 데이터는 로컬에 저장되지만, 클라우드 API 사용 시 API 키와 대화 내용은 해당 클라우드 제공자의 정책에 따릅니다. Cherry Studio는 API 키를 로컬에 안전하게 저장하는 메커니즘을 제공하지만, 최종 데이터 보안은 사용자의 설정과 클라우드 제공자의 정책에 의존합니다.
+
+### 도입 시 확인 사항
+1.  **API 키 관리:** 다양한 클라우드 API 키를 한 곳에 저장하므로, 키의 유출 시 피해가 클 수 있습니다. 강력한 비밀번호 관리자 연동이나 키 암호화 저장 여부를 확인해야 합니다.
+2.  **에이전트 권한:** 에이전트가 파일 시스템과 브라우저를 제어할 수 있으므로, 신뢰할 수 없는 에이전트 스크립트나 MCP 서버를 사용할 경우 보안 위험이 있습니다.
+
+## 한계와 추천 대상
+
+### 한계
+1.  **복잡도:** 에이전트, MCP, 다중 모델, 파일 처리 등 기능이 방대하여, 초보 사용자에게는 설정과 사용이 복잡하게 느껴질 수 있습니다.
+2.  **리소스 소비:** Electron 기반의 다중 프로세스 아키텍처는 메모리 사용량이 많을 수 있으며, 구형 PC에서는 성능 저하가 발생할 수 있습니다.
+3.  **모바일 부재:** 현재는 데스크톱(Windows, macOS, Linux) 전용이며, 모바일 버전은 별도의 프로젝트([Cherry Studio Mobile](https://github.com/CherryHQ/cherry-studio-app))로 개발 중이거나 별개입니다.
+
+### 추천 대상
+-   **다중 AI 모델 사용자:** OpenAI, Anthropic, 로컬 모델 등을 혼용하여 비교하거나 협업하는 개발자, 연구자.
+-   **에이전트 개발자:** MCP 서버를 활용하거나 커스텀 도구를 통해 AI 에이전트를 구축하고 테스트하려는 개발자.
+-   **로컬 AI 애호가:** Ollama, LM Studio 등을 사용하여 로컬에서 AI 모델을 실행하면서도, 클라우드 API와 통합하여 사용하고 싶은 사용자.
+-   **개인 지식 관리자:** 파일, 노트, 웹 페이지를 AI와 연계하여 지식을 구축하고 활용하려는 사용자.
+
+Cherry Studio는 단순한 채팅 클라이언트를 넘어, AI 워크스페이스의 가능성을 보여주는 강력한 오픈소스 프로젝트입니다. 하지만 AGPL-3.0 라이선스와 높은 기능 복잡도를 고려하여, 도입 전에 자신의 사용 시나리오와 라이선스 조건을 신중히 검토해야 합니다.
+
+---
+
+### 출처
+-   [README.md](https://github.com/CherryHQ/cherry-studio/blob/main/README.md)
+-   [LICENSE](https://github.com/CherryHQ/cherry-studio/blob/main/LICENSE)
+-   [SECURITY.md](https://github.com/CherryHQ/cherry-studio/blob/main/SECURITY.md)
+-   [package.json](https://github.com/CherryHQ/cherry-studio/blob/main/package.json)
+-   [src/main/main.ts](https://github.com/CherryHQ/cherry-studio/blob/main/src/main/main.ts)
+-   [src/main/ai/AiService.ts](https://github.com/CherryHQ/cherry-studio/blob/main/src/main/ai/AiService.ts)
+-   [src/renderer/utils/api.ts](https://github.com/CherryHQ/cherry-studio/blob/main/src/renderer/utils/api.ts)
+-   [CONTRIBUTING.md](https://github.com/CherryHQ/cherry-studio/blob/main/CONTRIBUTING.md)
+
+## 출처
+
+- GitHub: [CherryHQ/cherry-studio](https://github.com/CherryHQ/cherry-studio) — 작성자: CherryHQ
+- GitHub: [CherryHQ/cherry-studio / LICENSE](https://github.com/CherryHQ/cherry-studio/blob/main/LICENSE) — 작성자: CherryHQ
+- GitHub: [CherryHQ/cherry-studio / SECURITY.md](https://github.com/CherryHQ/cherry-studio/blob/main/SECURITY.md) — 작성자: CherryHQ
+- GitHub: [CherryHQ/cherry-studio / package.json](https://github.com/CherryHQ/cherry-studio/blob/main/package.json) — 작성자: CherryHQ
+- GitHub: [CherryHQ/cherry-studio / CONTRIBUTING.md](https://github.com/CherryHQ/cherry-studio/blob/main/CONTRIBUTING.md) — 작성자: CherryHQ
+- GitHub: [CherryHQ/cherry-studio / src/main/main.ts](https://github.com/CherryHQ/cherry-studio/blob/main/src/main/main.ts) — 작성자: CherryHQ
+- GitHub: [CherryHQ/cherry-studio / src/main/ai/AiService.ts](https://github.com/CherryHQ/cherry-studio/blob/main/src/main/ai/AiService.ts) — 작성자: CherryHQ
+- GitHub: [CherryHQ/cherry-studio / src/renderer/utils/api.ts](https://github.com/CherryHQ/cherry-studio/blob/main/src/renderer/utils/api.ts) — 작성자: CherryHQ
