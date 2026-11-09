@@ -1,0 +1,116 @@
+---
+title: "[트러블슈팅] UnboundLocalError 전역 변수 할당"
+publishedAt: "2026-11-09"
+summary: "함수 내부에서 전역 변수를 읽다가 할당 연산이 발견되어 발생하는 UnboundLocalError를 해결하는 방법을 정리합니다."
+tag: "Troubleshooting"
+---
+
+## 현상
+
+함수 외부에 정의된 전역 변수를 함수 내부에서 읽으려 할 때, 해당 변수에 대한 할당 연산이 함수 내 어딘가에 존재하면 에러가 발생합니다.
+
+<Callout type="warning" title="오류 상황">
+UnboundLocalError: local variable 'c' referenced before assignment
+</Callout>
+
+에러를 재현하는 최소 코드는 다음과 같습니다.
+
+```python
+a, b, c = (1, 2, 3)
+
+def test():
+    print(a)
+    print(b)
+    print(c)
+    c += 1
+
+test()
+```
+
+위 코드에서 `c += 1` 줄을 주석 처리하면 정상 작동하지만, 주석을 해제하면 `print(c)` 단계에서 에러가 발생합니다.
+
+![현상 스크린샷](/blogs/unboundlocalerror-120320-1.png)
+
+## 원인
+
+파이썬은 함수를 컴파일할 때 함수 본문 내의 모든 할당문을 스캔하여 변수의 스코프를 결정합니다.
+
+함수 내부에서 변수에 값을 할당하는 구문(예: `c = ...`, `c += 1`)이 발견되면, 해당 변수는 전역 변수가 아닌 지역 변수로 취급됩니다.
+
+이로 인해 함수 실행 시 `c += 1`이 호출되기 전이라도, 이미 `c`가 지역 변수로 선언된 것으로 간주하여 초기화되지 않은 지역 변수를 참조하는 것으로 판단합니다.
+
+## 해결 방법
+
+함수 내부에서 전역 변수를 수정하려면 `global` 키워드를 사용하여 변수의 범위를 명시해야 합니다.
+
+```python
+a, b, c = (1, 2, 3)
+
+def test():
+    global c
+    print(a)
+    print(b)
+    print(c)
+    c += 1
+
+test()
+```
+
+`global c`를 함수 시작 부분에 명시하면, `c`가 지역 변수가 아닌 모듈 수준의 전역 변수를 참조하게 됩니다.
+
+## 다른 해결 방법
+
+함수 파라미터와 반환값을 활용하여 순수 함수(Pure function) 구조로 리팩토링할 수 있습니다.
+
+이 방법은 전역 상태에 의존하지 않고 데이터 흐름을 명확히 하여 유지보수를 용이하게 합니다.
+
+```python
+def increment_pure(current_count):
+    return current_count + 1
+
+c = 3
+c = increment_pure(c)
+```
+
+중첩 함수(클로저) 내부에서 바깥쪽 함수의 지역 변수를 수정해야 할 때는 `nonlocal` 키워드를 사용합니다.
+
+```python
+def outer_function():
+    total = 100
+
+    def inner_function():
+        nonlocal total
+        total -= 10
+        print("남은 수량:", total)
+
+    inner_function()
+
+outer_function()
+```
+
+## 추가 참고사항
+
+함수 내부에서 변수를 단순히 읽는 것(`print`, `return` 등)은 `global` 키워드 없이도 전역 변수를 참조할 수 있습니다.
+
+할당 연산이 함수 본문 어디에 있든 상관없이, 함수 내 할당문이 변수를 지역 변수로 격리시킵니다.
+
+<Compare>
+<ComparePanel title="global 사용" tone="good">
+전역 변수를 직접 수정해야 할 때 명확하고 직관적인 방법입니다.
+</ComparePanel>
+<ComparePanel title="파라미터/반환값" tone="good">
+상태 변경이 없는 순수 함수를 지향하며, 대규모 코드에서 버그 추적을 용이하게 합니다.
+</ComparePanel>
+</Compare>
+
+<Callout type="tip" title="디버깅 팁">
+함수 안에서 해당 변수가 어디서 정의되는지 먼저 확인하고, 전역 변수를 사용하고자 한다면 반드시 `global`을 명시해야 합니다.
+</Callout>
+
+## 출처
+
+- StackOverflow: [UnboundLocalError trying to use a variable (supposed to be global) that is (re)assigned (even after first use)](https://stackoverflow.com/questions/370357/unboundlocalerror-trying-to-use-a-variable-supposed-to-be-global-that-is-rea) — 작성자: tba(질문), recursive(답변) (CC BY-SA)
+- Tistory: [UnboundLocalError: local variable referenced before assignment: 원인과 해결 방법](https://ksmk.tistory.com/entry/UnboundLocalError-local-variable-referenced-before-assignment-%EC%9B%90%EC%9D%B8%EA%B3%BC-%ED%95%B4%EA%B2%B0-%EB%B0%A9%EB%B2%95) — 작성자: IT 잇슈 | 칼퇴를 부르는 실무 치트키
+- Tistory: [[파이썬][Error] 019. UnboundLocalError - local variable 'x' referenced before assignment](https://about-ittt.tistory.com/346) — 작성자: about_IT
+
+본문 이미지는 위 출처에서 가져왔습니다.
