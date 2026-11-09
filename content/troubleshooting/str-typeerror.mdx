@@ -1,0 +1,111 @@
+---
+title: "[트러블슈팅] 내장 함수 str 재정의 TypeError"
+publishedAt: "2026-11-09"
+summary: "전역 변수로 내장 함수 str을 재정의할 때 발생하는 TypeError 원인과 해결 방법을 설명합니다."
+tag: "Troubleshooting"
+---
+
+## 현상
+
+`str`이라는 이름의 전역 변수를 사용하여 문자열을 저장하는 과정에서 두 번째 호출 시 `TypeError`가 발생합니다.
+
+에러를 재현하는 최소 코드는 다음과 같습니다.
+
+```python
+def example(parameter):
+    global str
+    str = str(parameter)
+    print(str)
+
+example(1)  # 정상 실행
+example(2)  # TypeError 발생
+```
+
+첫 번째 호출은 성공하지만, 두 번째 호출 시 `str` 객체를 호출(callable)할 수 없다는 오류가 출력됩니다.
+
+<Callout type="warning" title="오류 상황">
+
+```python
+TypeError: 'str' object is not callable
+```
+
+</Callout>
+
+## 원인
+
+`str`은 파이썬의 내장 함수(built-in function)로, 객체를 문자열로 변환하는 역할을 합니다.
+
+코드 내 `global str` 선언과 할당문 `str = str(parameter)`는 전역 네임스페이스의 `str` 내장 함수를 로컬 변수로 덮어씁니다.
+
+첫 번째 호출 시 `str(parameter)`는 내장 함수를 호출하여 문자열을 생성하고, 그 결과를 `str` 변수에 저장합니다.
+
+두 번째 호출 시 `str(parameter)`는 이미 문자열 값으로 재정의된 `str` 변수를 호출하려고 시도합니다.
+
+문자열 객체는 호출할 수 없으므로 파이썬은 `TypeError`를 발생시킵니다.
+
+## 해결 방법
+
+내장 함수 이름과 충돌하지 않도록 로컬 변수의 이름을 변경합니다.
+
+또한 전역 네임스페이스를 오염시키지 않기 위해 `global` 선언을 제거합니다.
+
+<Steps>
+<Step title="변수명 변경">
+`str` 대신 `result` 또는 `msg` 등 의미 있는 변수명을 사용합니다.
+</Step>
+<Step title="global 선언 제거">
+함수 내부에서 전역 변수를 참조하지 않으므로 `global` 키워드를 삭제합니다.
+</Step>
+</Steps>
+
+수정된 코드는 다음과 같습니다.
+
+```python
+def example(parameter):
+    result = str(parameter)
+    print(result)
+
+example(1)  # 정상 실행
+example(2)  # 정상 실행
+```
+
+## 다른 해결 방법
+
+이미 실행 중인 인터프리터 세션에서 실수로 `str`을 재정의한 경우, 인터프리터를 재시작하지 않고 복구할 수 있습니다.
+
+`builtins` 모듈을 import하여 원래의 `str` 내장 함수를 다시 할당합니다.
+
+```python
+import builtins
+str = builtins.str
+```
+
+이 명령 실행 후 `str`은 다시 내장 함수로 동작합니다.
+
+이는 `str`이 기본적으로 `builtins` 모듈에서 가져오기 때문에 가능한 동작입니다.
+
+## 추가 참고사항
+
+<Callout type="tip" title="내장 함수 이름 사용 금지">
+`str`, `list`, `dict`, `int` 등 파이썬의 내장 함수나 타입 이름은 변수명으로 사용하지 않는 것이 좋습니다.
+</Callout>
+
+유사한 에러로 `list = list(...)`나 `dict = dict(...)`를 사용할 때 발생하는 `TypeError`도 동일한 원리입니다.
+
+내장 함수를 덮어쓰지 않도록 변수명 충돌을 피하는 습관이 필요합니다.
+
+```python
+# 잘못된 예시
+list = [1, 2, 3]
+print(list())  # TypeError: 'list' object is not callable
+
+# 올바른 예시
+my_list = [1, 2, 3]
+print(my_list)  # 정상 실행
+```
+
+## 출처
+
+- StackOverflow: [Why does code like `str = str(...)` cause a TypeError, but only the second time?](https://stackoverflow.com/questions/6039605/why-does-code-like-str-str-cause-a-typeerror-but-only-the-second-time) — 작성자: P'sao(질문), Greg Hewgill(답변) (CC BY-SA)
+- Tistory: [[Python] 파이썬 TypeError: can only concatenate str (not "int") to str 오류 해결](https://diary-developer.tistory.com/19) — 작성자: 일반인의 웹 개발일기
+- Tistory: [[파이썬][Error] 025. TypeError - can't multiply sequence by non-int of type 'str'](https://about-ittt.tistory.com/352) — 작성자: about_IT
