@@ -1,0 +1,110 @@
+---
+title: "[트러블슈팅] numpy.ndarray 해시 에러 해결"
+publishedAt: "2026-11-09"
+summary: "numpy 배열을 집합이나 딕셔너리 키로 사용할 때 발생하는 TypeError를 해결하는 방법을 정리합니다."
+tag: "Troubleshooting"
+---
+
+## 현상
+
+`set`이나 `dict`에 `numpy.ndarray` 객체를 직접 포함하거나 키로 사용하려고 하면 에러가 발생합니다. 이는 배열 자체가 해시 불가능한 타입이기 때문입니다.
+
+<Callout type="warning" title="오류 상황">
+
+```python
+import numpy as np
+
+arr = np.array([1, 2, 3])
+my_dict = {arr: "value"}
+```
+
+</Callout>
+
+```python
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+    my_dict = {arr: "value"}
+TypeError: unhashable type: 'numpy.ndarray'
+```
+
+## 원인
+
+파이썬의 `set`과 `dict` 키는 해시(hashable) 객체여야 하며, 해시 값은 `__hash__` 메서드를 통해 생성됩니다. `numpy.ndarray`는 `__hash__` 속성이 `None`으로 설정되어 있어 해시 값을 생성할 수 없으므로, 이를 집합의 원소로 추가하거나 딕셔너리의 키로 사용하려 할 때 에러가 발생합니다.
+
+## 해결 방법
+
+`numpy.ndarray`를 해시 가능한 `tuple`로 변환하여 사용합니다. `tuple()` 함수를 통해 배열을 튜플로 바꾸면 해시 값이 생성되어 집합이나 딕셔너리 키로 사용할 수 있습니다.
+
+```python
+import numpy as np
+
+arr = np.array([1, 2, 3])
+# 배열을 튜플로 변환하여 딕셔너리 키로 사용
+my_dict = {tuple(arr): "value"}
+print(my_dict)
+# { (1, 2, 3): 'value' }
+```
+
+## 다른 해결 방법
+
+`numpy.ndarray`를 집합 연산에 직접 넣기보다, 인덱싱을 통해 1차원 배열로 추출한 후 `np.unique()`로 중복을 제거하여 집합과 연산해야 합니다. 2차원 이상 배열을 집합에 넣으려 할 때 자주 발생하는 상황을 해결하는 방법입니다.
+
+<Compare>
+<ComparePanel title="기존 (에러 발생)" tone="bad">
+
+```python
+import numpy as np
+
+data = np.arange(9).reshape(-1, 3)
+energies = np.hsplit(data, 3)[0] # 2차원 배열 유지
+above = {1, 5, 10}
+
+# 에러: 2차원 배열은 해시 불가
+slice = set(energies) & above 
+```
+
+</ComparePanel>
+<ComparePanel title="제안 (인덱싱)" tone="good">
+
+```python
+import numpy as np
+
+data = np.arange(9).reshape(-1, 3)
+# 1차원 배열로 추출
+energies = data[:, 0] 
+above = {1, 5, 10}
+
+# 중복 제거 후 집합으로 변환하여 연산
+slice = set(np.unique(energies)) & above
+```
+
+</ComparePanel>
+</Compare>
+
+## 추가 참고사항
+
+`functools.lru_cache`와 같은 캐싱 데코레이터는 함수의 인자가 해시 가능해야 합니다. `numpy.ndarray`를 인자로 받는 함수에 캐싱을 적용할 때는 인자 전달 전에 `tolist()` 등을 통해 변환해야 합니다.
+
+<Callout type="info" title="캐싱 시 주의">
+
+```python
+import functools
+import pygmo
+import numpy as np
+
+# 인자가 numpy.ndarray인 경우, 캐싱 적용 전 리스트로 변환 필요
+@functools.lru_cache(maxsize=None)
+def calculate_hypervolume(obj_y, reference):
+    y_points = obj_y.tolist() if isinstance(obj_y, np.ndarray) else obj_y
+    ref = reference.tolist() if isinstance(reference, np.ndarray) else reference
+    hv = pygmo.hypervolume(y_points)
+    return hv.compute(ref)
+```
+
+</Callout>
+
+## 출처
+
+- StackOverflow: [TypeError: unhashable type: 'numpy.ndarray'](https://stackoverflow.com/questions/9022656/typeerror-unhashable-type-numpy-ndarray) — 작성자: user1171835(질문), DSM(답변) (CC BY-SA)
+- Tistory: [Python : TypeError: unhashable type: 'numpy.ndarray'](https://mambo-coding-note.tistory.com/entry/Python-TypeError-unhashable-type-numpyndarray) — 작성자: 월곡동 로봇팔의 대학원일지
+- Tistory: [NumPy TypeError: unhashable type: 'numpy.ndarray' 오류 해결하기](https://workauto.tistory.com/entry/NumPy-TypeError-unhashable-type-numpyndarray-%EC%98%A4%EB%A5%98-%ED%95%B4%EA%B2%B0%ED%95%98%EA%B8%B0-1) — 작성자: 업무 자동화
