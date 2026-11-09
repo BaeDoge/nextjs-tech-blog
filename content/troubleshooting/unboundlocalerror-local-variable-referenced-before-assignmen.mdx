@@ -1,104 +1,97 @@
 ---
 title: "[트러블슈팅] UnboundLocalError local variable referenced before assignment"
-publishedAt: "2026-10-20"
-summary: "함수 내에서 전역 변수의 할당 연산을 수행하기 전에 참조할 때 발생하는 에러를 해결하는 방법입니다."
+publishedAt: "2026-11-09"
+summary: "조건문 미실행으로 지역 변수가 초기화되지 않을 때 발생하는 에러의 원인과 해결 방법을 정리한다."
 tag: "Troubleshooting"
 ---
 
 ## 현상
 
-함수 내에서 전역 변수를 읽기만 할 때는 문제가 없으나, 값을 수정하는 할당 연산이 포함된 경우 에러가 발생합니다. 에러는 변수에 값이 할당되기 전에 해당 변수가 참조되었다고 알립니다.
+함수 내부의 조건문이 False로 평가되어 변수 할당문이 실행되지 않으면, `return` 구문에서 정의되지 않은 지역 변수를 참조하게 되어 에러가 발생한다.
+
+<Callout type="warning" title="오류 상황">
+UnboundLocalError: local variable 'T' referenced before assignment
+</Callout>
+
+다음 코드는 첫 번째 호출에서는 조건이 만족하여 정상 실행되지만, 두 번째 호출에서는 조건이 불만족하여 변수 `T`가 생성되지 않아 에러를 발생시킨다. 외부의 `tfile` 객체는 함수 바깥에서 열려 있다.
 
 ```python
-count = 10
+tfile = open("/home/path/to/file",'r')
 
-def myfunc():
-    count = count + 1
-    print(count)
+def temp_sky(lreq, breq):
+    for line in tfile:
+        data = line.split()
+        # 조건이 만족하지 않으면 T = data[2]가 실행되지 않음
+        if abs(float(data[0]) - lreq) <= 0.1 and abs(float(data[1]) - breq) <= 0.1:
+            T = data[2]
+    return T
 
-myfunc()
+print(temp_sky(60, 60))
+print(temp_sky(10, -10))  # UnboundLocalError 발생
 ```
-
-```text
-UnboundLocalError: local variable 'count' referenced before assignment
-```
-
-![현상 스크린샷](/blogs/unboundlocalerror-local-variable-referenced-before-assignmen-1.png)
 
 ## 원인
 
-파이썬은 함수 내에서 변수에 할당 연산(예: `+=`, `-=` 또는 `=`)이 있는 경우, 해당 변수를 전역 변수가 아닌 지역 변수로 간주합니다.
-따라서 할당 연산 전에 해당 변수를 참조하면, 아직 초기화되지 않은 지역 변수를 읽으려 시도하여 에러가 발생합니다.
+파이썬은 함수 본문에 변수에 값을 할당하는 구문(예: `T = ...`)이 하나라도 있으면, 해당 변수를 **지역 변수**로 취급하여 바이트코드를 생성한다.
 
-```python
-Var1 = 1
-Var2 = 0
+이러한 스코프 결정은 함수가 컴파일(바이트코드 생성)되는 시점에 이루어진다. 따라서 조건문 실패로 인해 `T = data[2]` 구문이 실행되지 않으면, `T`는 아직 값이 할당되지 않은 지역 변수로 인식된 채로 남아 있다.
 
-def function(): 
-    # Var2는 읽기 전용이므로 전역 변수를 정상 참조합니다.
-    if Var2 == 0 and Var1 > 0:
-        print("Result 1")
-    
-    # Var1에 -= 연산이 있으므로 Var1은 지역 변수로 취급됩니다.
-    # 하지만 앞서 Var1을 참조했기 때문에 에러가 발생합니다.
-    Var1 -= 1
-```
+함수 실행이 `return T`에 도달했을 때, 아직 초기화되지 않은 지역 변수 `T`를 읽으려 하므로 `UnboundLocalError`가 발생한다.
 
 ## 해결 방법
 
-함수 내에서 수정하려는 변수가 전역 변수임을 명시적으로 선언하여 `global` 키워드를 사용합니다.
-변수 수정 연산 전, 함수 시작 부분에 `global 변수명`을 명시하면 에러가 해결됩니다.
+조건문 외부에서 변수를 먼저 기본값(예: `None`)으로 초기화하여, 조건이 만족하든 하지 않든 변수 `T`가 항상 존재하도록 한다.
 
 ```python
-count = 10
-
-def myfunc():
-    global count
-    count = count + 1
-    print(count)
-
-myfunc()
+def temp_sky(lreq, breq):
+    T = None  # 변수를 먼저 초기화하여 할당되지 않을 수 있는 상태 방지
+    for line in tfile:
+        data = line.split()
+        if abs(float(data[0]) - lreq) <= 0.1 and abs(float(data[1]) - breq) <= 0.1:
+            T = data[2]
+    return T
 ```
 
-![해결 방법 스크린샷](/blogs/unboundlocalerror-local-variable-referenced-before-assignmen-2.png)
+![해결 방법 스크린샷](/blogs/unboundlocalerror-local-variable-referenced-before-assignmen-1.png)
 
 ## 다른 해결 방법
 
-전역 변수의 직접 수정을 피하고, 함수의 파라미터로 값을 전달받은 후 결과값을 `return`으로 반환하는 방식을 사용합니다.
-이 방법은 순수 함수를 구성하여 상태 변경의 추적성을 높이고 유지보수를 용이하게 합니다.
+`return` 구문에서 변수를 직접 참조하지 않고, 조건문 실패 시 반환할 값을 명시적으로 처리하는 방법이다.
+
+<Compare>
+<ComparePanel title="변수 초기화 (기존)" tone="good">
+변수를 미리 선언하여 스코프 문제를 해결하지만, 반환값이 None일 때 의도치 않은 동작이 발생할 수 있다.
+</ComparePanel>
+<ComparePanel title="조건부 반환 (제안)" tone="good">
+변수 할당 없이 조건이 만족할 때만 반환하므로, 초기화 문제를 근본적으로 피할 수 있다.
+</ComparePanel>
+</Compare>
 
 ```python
-def increment_pure(current_count):
-    return current_count + 1
-
-count = 10
-count = increment_pure(count)
-print(count)
+def temp_sky(lreq, breq):
+    for line in tfile:
+        data = line.split()
+        if abs(float(data[0]) - lreq) <= 0.1 and abs(float(data[1]) - breq) <= 0.1:
+            return data[2]  # 조건 만족 시 즉시 반환
+    return None  # 조건을 만족하지 않으면 None 반환
 ```
 
 ## 추가 참고사항
 
-중첩 함수(클로저) 내부에서 바깥쪽 함수의 지역 변수를 수정해야 할 때는 `global` 대신 `nonlocal` 키워드를 사용합니다.
-`global`은 모듈 최상단의 전역 변수만 참조하므로, 함수 스코프 내의 변수 수정에는 사용되지 않습니다.
+함수 내에서 변수에 값을 할당하면 자동으로 지역 변수가 되므로, 외부 전역 변수를 수정하려는 의도가 아니라면 `global`이나 `nonlocal`을 사용할 필요가 없다.
 
-```python
-def outer_function():
-    total = 100
+실무에서는 전역 상태 의존을 피하고, 함수 인자로 값을 전달하거나 반환값을 활용하는 순수 함수(Pure Function) 구조를 권장한다.
 
-    def inner_function():
-        nonlocal total
-        total -= 10
-        print("남은 수량:", total)
-
-    inner_function()
-
-outer_function()
-```
+<Steps>
+<Step title="에러 확인">함수 내에서 할당문이 실행되지 않는 조건이 있는지 확인합니다.</Step>
+<Step title="초기화 위치 변경">변수 선언을 조건문 외부로 빼거나 기본값을 설정하여 미할당 상태를 방지합니다.</Step>
+<Step title="반환 구조 개선">조건이 만족할 때 즉시 반환하도록 하여 변수 스코프 문제를 근본적으로 피합니다.</Step>
+</Steps>
 
 ## 출처
 
-- StackOverflow: [How can I fix "UnboundLocalError: local variable referenced before assignment"?](https://stackoverflow.com/questions/10851906/how-can-i-fix-unboundlocalerror-local-variable-referenced-before-assignment) — 작성자: Eden Crow(질문), Jakob Bowyer(답변) (CC BY-SA)
-- Tistory: [(Python/Pandas) UnboundLocalError: local variable referenced before assignment](https://pylife.tistory.com/entry/PythonPandas-UnboundLocalError-local-variable-referenced-before-assignment) — 작성자: Py Life
+- StackOverflow: ["UnboundLocalError: local variable referenced before assignment" after an if statement](https://stackoverflow.com/questions/15367760/unboundlocalerror-local-variable-referenced-before-assignment-after-an-if-sta) — 작성자: user1958508(질문), shx2(답변) (CC BY-SA)
+- Tistory: [[파이썬][Error] 019. UnboundLocalError - local variable 'x' referenced before assignment](https://about-ittt.tistory.com/346) — 작성자: about_IT
 - Tistory: [UnboundLocalError: local variable referenced before assignment: 원인과 해결 방법](https://ksmk.tistory.com/entry/UnboundLocalError-local-variable-referenced-before-assignment-%EC%9B%90%EC%9D%B8%EA%B3%BC-%ED%95%B4%EA%B2%B0-%EB%B0%A9%EB%B2%95) — 작성자: IT 잇슈 | 칼퇴를 부르는 실무 치트키
 
 본문 이미지는 위 출처에서 가져왔습니다.
