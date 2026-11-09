@@ -1,0 +1,97 @@
+---
+title: "[코딩테스트] 주식 거래 최대 이익"
+publishedAt: "2026-11-09"
+summary: "주어진 주가 배열에서 단일 매수-매도 거래로 얻을 수 있는 최대 이익을 계산합니다."
+tag: "Algorithm"
+---
+
+## 문제
+
+`prices` 배열은 각 날의 주가를 나타냅니다. 한 번만 주식을 매수하고 그 후 다른 날에 매도하여 최대 이익을 얻어야 합니다. 매수일은 반드시 매도일보다 앞서야 하며, 이익이 발생하지 않으면 0을 반환합니다.
+
+```python
+# 예시 1
+Input: prices = [7, 1, 5, 3, 6, 4]
+Output: 5
+# 1에 매수하고 6에 매도 (이익 5)
+
+# 예시 2
+Input: prices = [7, 6, 4, 3, 1]
+Output: 0
+# 모든 날 주가가 하락하여 거래 불가
+```
+
+## 접근 방법
+
+최대 이익을 얻기 위해서는 이전의 최저가에 매수하고 그 이후의 최고가에 매도해야 합니다. 배열을 왼쪽에서 오른쪽으로 한 번 순회하며, 현재까지의 최저가를 기록하고 현재 가격에서 최저가를 뺀 값으로 최대 이익을 갱신하는 방식이 효율적입니다.
+
+```python
+min_price = float('inf')
+max_profit = 0
+for price in prices:
+    min_price = min(min_price, price)
+    max_profit = max(max_profit, price - min_price)
+```
+
+## 풀이
+
+배열을 순회하며 `min_price`를 가장 낮은 주가로 유지합니다. 각 날의 주가는 `min_price`와의 차이를 통해 이득을 계산하는 데 활용되며, 최대 이익은 이 차이의 최댓값으로 결정됩니다. 이 방법은 전체 배열을 한 번만 훑기 때문에 매우 빠릅니다.
+
+```python
+class Solution:
+    def maxProfit(self, prices: List[int]) -> int:
+        min_price = float('inf')
+        max_profit = 0
+        for price in prices:
+            if price < min_price:
+                min_price = price
+            elif price - min_price > max_profit:
+                max_profit = price - min_price
+        return max_profit
+```
+
+시간 복잡도: O(n) (배열 길이만큼 한 번 순회)
+공간 복잡도: O(1) (변수 두 개만 사용)
+
+## 다른 풀이 방법
+
+다이나믹 프로그래밍(DP) 접근법을 통해 문제를 해결할 수 있습니다. `dp[i]`를 `i`번째 날까지의 최대 이익이라고 정의합니다. `dp[i]`는 `dp[i-1]`(이전 날까지의 최대 이익)과 `prices[i] - min_price`(오늘 매도 시 이익) 중 최댓값으로 계산됩니다. 이는 문제를 배열을 순회하며 각 날의 최대 이익을 누적하는 방식으로 접근합니다.
+
+```python
+class Solution:
+    def maxProfit(self, prices: List[int]) -> int:
+        if not prices:
+            return 0
+        
+        # dp[i]는 i번째 날까지의 최대 이익을 의미
+        dp = [0] * len(prices)
+        min_price = prices[0]
+        
+        for i in range(1, len(prices)):
+            min_price = min(min_price, prices[i])
+            dp[i] = max(dp[i - 1], prices[i] - min_price)
+            
+        return dp[-1]
+```
+
+시간 복잡도: O(n) (배열을 한 번 순회)
+공간 복잡도: O(n) (dp 배열을 저장하기 위해 추가 공간 필요)
+
+<Compare>
+<ComparePanel title="일괄 순회(주 풀이)" tone="good">공간 복잡도 O(1)로, 최대 이익만 추적하여 불필요한 배열 저장을 피함.</ComparePanel>
+<ComparePanel title="다이나믹 프로그래밍(다른 방법)" tone="bad">시간 복잡도는 동일하나, dp 배열 저장을 위해 O(n)의 추가 공간이 필요.</ComparePanel>
+</Compare>
+
+## 추가 참고사항
+
+입력 배열의 길이는 최대 $10^5$입니다. 완전 탐색(두 중첩 루프) 방식의 시간 복잡도는 $O(n^2)$이므로, 이 크기에서 사용하면 시간 제한을 초과합니다. 따라서 반드시 O(n) 시간 복잡도를 갖는 접근법을 사용해야 합니다.
+
+<StatGrid>
+<Stat value="O(n)" label="시간 복잡도" detail="한 번의 반복문으로 해결" />
+<Stat value="O(1)" label="공간 복잡도" detail="필요한 변수만 상수 개수" />
+<Stat value="10^5" label="입력 길이 제한" detail="O(n^2) 알고리즘은 부적합" />
+</StatGrid>
+
+## 출처
+
+- LeetCode: [LeetCode 121 - Best Time to Buy and Sell Stock](https://leetcode.com/problems/best-time-to-buy-and-sell-stock/)
