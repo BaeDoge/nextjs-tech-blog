@@ -1,0 +1,94 @@
+---
+title: "[코딩테스트] 쇼핑 오프저 최적화"
+publishedAt: "2026-11-09"
+summary: "필요 물품 수를 채우는 최저 가격을 특수 오퍼 조합을 통해 찾는 재귀 탐색 문제입니다."
+tag: "Algorithm"
+---
+
+## 문제
+
+'LeetCode Store'에서 $n$개의 물품을 사려고 합니다. 각 물품은 개별 가격이 있으며, 여러 종류의 물품이 묶인 특수 오퍼(Special Offer)도 제공됩니다.
+
+구매하려는 각 물품의 수량이 주어질 때, 물품의 총 구매 개수가 요청된 수량을 초과하지 않으면서 최소 금액으로 정확히 필요한 수량을 채우는 방법을 찾아야 합니다. 특수 오퍼는 여러 번 사용할 수 있습니다.
+
+입력:
+- `price`: 각 물품의 개별 가격 배열
+- `special`: 각 오퍼의 구성($n$개 물품 수량 + 오퍼 가격) 배열
+- `needs`: 각 물품별 필요 수량 배열
+
+제약 사항: 물품 종류 $n$은 6 이하이며, 필요 수량과 오퍼 가격은 각각 10, 50 이하입니다.
+
+## 접근 방법
+
+이 문제는 '완전 배낭 문제'의 변형으로 볼 수 있습니다. 주어진 오퍼 목록에서 어떤 오퍼를 사용할지 선택하고, 남은 필요 수량을 다시 처리하는 재귀 구조로 접근할 수 있습니다.
+
+핵심은 **메모이징(Memoization)**을 적용하는 것입니다. 각 단계에서 '남은 필요 물품 수량'이 상태를 결정하며, 같은 상태(남은 수량)가 다시 방문되면 이전에 계산한 최저 가격을 재사용하여 중복 계산을 제거합니다.
+
+또한, 오퍼를 적용할 때 필요 수량을 초과하지 않도록 유효성 검사를 수행해야 합니다. 모든 오퍼를 사용하지 않고 개별 가격으로만 구매하는 것이 더 싸다면, 그 경우도 고려해야 하므로 개별 가격으로 구매하는 시나리오를 마지막에 비교하거나 초기값으로 설정합니다.
+
+## 풀이
+
+재귀 함수 `dfs`를 사용하여 남은 `needs` 배열을 기준으로 최저 가격을 구합니다. `memo` 딕셔너리를 사용하여 상태(튜플로 변환된 `needs`)별 최저 가격을 저장합니다.
+
+```python
+class Solution:
+    def shoppingOffers(self, price: List[int], special: List[List[int]], needs: List[int]) -> int:
+        # memoization을 위한 딕셔너리
+        memo = {}
+        n = len(price)
+
+        def dfs(current_needs):
+            # 이미 계산한 상태라면 저장된 값 반환
+            if tuple(current_needs) in memo:
+                return memo[tuple(current_needs)]
+            
+            # 1. 현재 남은 물품을 개별 가격으로만 모두 구매하는 경우 (기본값)
+            direct_cost = sum(c * p for c, p in zip(current_needs, price))
+            min_cost = direct_cost
+            
+            # 2. 각 special offer를 적용해보기
+            for offer in special:
+                # offer의 마지막 값은 가격, 나머지는 물품 수량
+                offer_price = offer[-1]
+                offer_counts = offer[:-1]
+                
+                # offer를 적용했을 때 필요 수량을 초과하는지 확인
+                next_needs = []
+                valid = True
+                for i in range(n):
+                    if current_needs[i] < offer_counts[i]:
+                        valid = False
+                        break
+                    next_needs.append(current_needs[i] - offer_counts[i])
+                
+                # 유효한 오퍼라면 재귀 호출
+                if valid:
+                    min_cost = min(min_cost, offer_price + dfs(next_needs))
+            
+            # 계산된 최저 가격 저장
+            memo[tuple(current_needs)] = min_cost
+            return min_cost
+
+        return dfs(needs)
+```
+
+- **시간 복잡도**: $O(M^N)$ 또는 $O(S \cdot M^N)$. 여기서 $N$은 물품 종류 수(최대 6), $M$은 각 물품의 최대 필요 수량(최대 10), $S$는 오퍼 수입니다. 메모이징 덕분에 실제로는 훨씬 적은 상태 수만 탐색합니다.
+- **공간 복잡도**: $O(M^N)$. 상태 공간의 크기만큼 `memo` 테이블이 사용되며, 재귀 호출 스택 깊이도 최대 $N \times M$ 수준입니다.
+
+## 다른 풀이 방법
+
+**DP 테이블 사용**: 재귀 대신 다차원 배열(DP Table)을 사용할 수 있습니다. 각 차원이 각 물품의 필요 수량을 나타내며, `dp[a][b][c]...` 형태로 상태를 정의합니다. 초기값은 개별 가격으로 구매했을 때의 비용으로 채우고, 오퍼를 하나씩 적용하며 최소값을 갱신하는 순방향 DP로도 해결 가능합니다. 이 경우 구현이 다소 길어지지만, 재귀 오버헤드가 없어 상수 시간이 더 작을 수 있습니다.
+
+**가지치기(Branch and Bound) 강화**: 오퍼의 단가(unit price)가 개별 가격보다 비싸거나 동등한 오퍼는 사전에 필터링하여 탐색 공간을 줄일 수 있습니다. 또한, 재귀 순서에서 가장 값이 큰 오퍼부터 적용하면 최적해를 빨리 찾아가지치기 효율이 높아질 수 있습니다.
+
+## 추가 참고사항
+
+<Callout type="tip" title="상태 표현">
+`needs` 배열을 딕셔너리의 키로 사용하려면 불변 타입인 튜플(`tuple`)로 변환해야 합니다. 파이썬에서 리스트는 해시화가 불가능하므로 주의합니다.
+</Callout>
+
+이 문제는 $N$이 매우 작다는 점(6 이하)을 활용한 상태 공간 탐색이 핵심입니다. 물품 종류가 늘어나면 차원 폭발로 인해 비효율적이 되므로, 문제 제약 조건을 반드시 확인해야 합니다.
+
+## 출처
+
+- LeetCode: [LeetCode 638 - Shopping Offers](https://leetcode.com/problems/shopping-offers/)
