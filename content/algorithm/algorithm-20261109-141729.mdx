@@ -1,0 +1,75 @@
+---
+title: "[코딩테스트] 3차원 정사영 합 계산"
+publishedAt: "2026-11-09"
+summary: "격자에 쌓인 큐브의 상단, 정면, 측면 투영 면적의 총합을 구합니다."
+tag: "Algorithm"
+---
+
+## 문제
+
+$n \times n$ 크기의 격자 `grid`가 주어집니다. 각 셀 `grid[i][j]`에는 높이 `v`인 1x1x1 큐브가 `v`개 쌓여 있습니다. 이 입체를 세 평면에 투영했을 때의 면적 합을 구해야 합니다.
+* **xy 투영 (top)**: 위에서 본 모습으로, 큐브가 하나라도 있는 셀은 면적 1을 가집니다.
+* **yz 투영 (front)**: x축 방향(정면)에서 본 모습으로, 각 행의 최대 높이가 투영 면적에 기여합니다.
+* **zx 투영 (side)**: y축 방향(측면)에서 본 모습으로, 각 열의 최대 높이가 투영 면적에 기여합니다.
+격자 크기 $n$과 큐브 높이는 모두 50 이하로 제한되어 있습니다.
+
+## 접근 방법
+
+세 투영 영역의 면적을 각각 독립적으로 계산하여 합산합니다.
+1. **xy 면적**: `grid` 내에서 0보다 큰 값을 갖는 셀의 개수를 세면 됩니다.
+2. **yz 면적**: 각 행(row)의 원소 중 최댓값을 구하여 합산합니다.
+3. **zx 면적**: 각 열(column)의 원소 중 최댓값을 구하여 합산합니다.
+각 평면의 투영은 해당 축에 직교하는 방향에서 바라보았을 때의 외형 높이로 결정되므로, 행과 열 단위의 최대값만 추출하면 정사영을 구할 수 있습니다.
+
+## 풀이
+
+```python
+class Solution:
+    def projectionArea(self, grid: List[List[int]]) -> int:
+        n = len(grid)
+        
+        # xy 투영: 큐브가 존재하는 셀의 개수
+        xy_area = sum(1 for row in grid for v in row if v > 0)
+        
+        # yz 투영: 각 행의 최대 높이 합
+        yz_area = sum(max(row) for row in grid)
+        
+        # zx 투영: 각 열의 최대 높이 합
+        zx_area = 0
+        for col_idx in range(n):
+            col_max = max(grid[row_idx][col_idx] for row_idx in range(n))
+            zx_area += col_max
+            
+        return xy_area + yz_area + zx_area
+```
+
+- **시간 복잡도**: $O(n^2)$. $n \times n$ 크기의 격자에서 전체 원소를 순회하며 각 행과 열의 최대값을 구하므로 $O(n^2)$이 소요됩니다.
+- **공간 복잡도**: $O(1)$. 추가적인 자료구조를 사용하지 않고 상수 크기의 변수만 사용합니다.
+
+## 다른 풀이 방법
+
+`zip(*grid)`를 사용하면 행렬을 전치시켜 열을 쉽게 순회할 수 있어 코드를 간결하게 작성할 수 있습니다.
+
+```python
+class Solution:
+    def projectionArea(self, grid: List[List[int]]) -> int:
+        xy = sum(v > 0 for row in grid for v in row)
+        yz = sum(max(row) for row in grid)
+        zx = sum(max(col) for col in zip(*grid))
+        return xy + yz + zx
+```
+
+- **비교**: 위 방법은 `zip`을 사용해 열 데이터를 생성하므로 코드 가독성이 높습니다. `zip`은 새로운 튜플 리스트를 생성하므로 공간 복잡도 측면에서 $O(n^2)$의 추가 메모리가 소모될 수 있습니다. 그러나 제약 조건에서 $n \le 50$이므로 실용적인 제약 범위를 초과하지 않습니다.
+
+## 추가 참고사항
+
+<Callout type="tip" title="투영 방향 확인">
+문제에서 'front'와 'side'의 방향 정의가 모호할 수 있으나, 직교 좌표계에서의 '프로젝션 면적'은 해당 축에 수직인 평면의 최대 외형으로 정의됩니다. 따라서 각 행과 열의 최대값만 취하면 됩니다.
+</Callout>
+* **xy 투영**: 큐브의 높이(세로)는 영향을 주지 않습니다. 유무만 중요합니다.
+* **yz/xz 투영**: 큐브의 유무와 높이에 모두 영향을 받습니다. 벽돌처럼 쌓인 구조에서 가장 높은 기둥이 나머지 낮은 기둥의 그림자를 가리기 때문입니다.
+* **경계 조건**: 모든 값이 0인 경우, 각 투영 면적은 0이 되어 총합 0을 반환합니다.
+
+## 출처
+
+- LeetCode: [LeetCode 883 - Projection Area of 3D Shapes](https://leetcode.com/problems/projection-area-of-3d-shapes/)
