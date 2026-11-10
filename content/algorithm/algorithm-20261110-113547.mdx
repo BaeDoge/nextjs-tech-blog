@@ -1,0 +1,62 @@
+---
+title: "[코딩테스트] 이진 트리 레벨 순회 알고리즘"
+publishedAt: "2026-11-10"
+summary: "이진 트리의 레벨 순회 traversal을 구현한다."
+tag: "Algorithm"
+---
+
+## 문제
+
+주어진 이진 트리의 루트 노드를 받아 level order traversal을 수행하여 각 레벨의 노드 값을 왼쪽에서 오른쪽으로 순서대로 담은 리스트의 리스트를 반환한다. 레벨은 루트부터 시작하며, 노드가 없는 경우 빈 리스트를 반환한다. 노드 개수는 0~2000개이며, 값은 -1000~1000이다.
+
+## 접근 방법
+
+BFS 전략을 사용해 큐에 현재 레벨 노드를 저장하고, 레벨별로 순환하면서 값을 수집한다. 매 레벨에서 큐의 현재 길이를 기록한 뒤, 해당 길이만큼 노드를 꺼내어 값을 리스트에 추가하고 자식 노드를 다음 레벨 큐에 삽입한다. 이렇게 하면 각 레VEL을 한 번에 처리할 수 있다.
+
+## 풀이
+
+아래 코드는 deque를 이용해 BFS를 구현한 파이썬 함수이다. 루트 노드가 없으면 빈 리스트를 반환하고, 각 레벨마다 새로운 리스트를 만들어 값을 채운다.  
+
+```python
+from collections import deque
+from typing import List, Optional
+
+# Definition for a binary tree node.
+class TreeNode:
+    def __init__(self, val: int = 0, left: Optional['TreeNode'] = None, right: Optional['TreeNode'] = None):
+        self.val = val
+        self.left = left
+        self.right = right
+
+def levelOrder(root: Optional[TreeNode]) -> List[List[int]]:
+    if not root:
+        return []
+    result = []
+    queue = deque([root])
+    while queue:
+        level_size = len(queue)
+        level_vals = []
+        for _ in range(level_size):
+            node = queue.popleft()
+            level_vals.append(node.val)
+            if node.left:
+                queue.append(node.left)
+            if node.right:
+                queue.append(node.right)
+        result.append(level_vals)
+    return result
+```
+
+시간 복잡도는 O(n)이고, 추가 공간 복잡도는 O(n)이다.
+
+## 다른 풀이 방법
+
+DFS를 이용해 각 노드에 레벨 정보를 저장하고 재귀적으로 순회하면 같은 결과를 얻는다. 이 방법은 스택 공간 사용량이 레 tree 깊이만큼 증가하므로 최악의 경우 O(n) 공간 복잡도를 갖는다. BFS와 DFS의 시간 복잡도는 모두 O(n)이지만, BFS는 큐 연산이 간단해 구현이 더 직관적이다.
+
+## 추가 참고사항
+
+이 문제에서 레벨 순회는 트리 구조 자체와 무관하게 큐 기반 접근을 통해 구현한다. 테스트 케이스로 예시 1, 2, 3이 제공되며, 빈 트리와 단일 노드도 정상 동작한다.
+
+## 출처
+
+- LeetCode: [LeetCode 102 - Binary Tree Level Order Traversal](https://leetcode.com/problems/binary-tree-level-order-traversal/)
