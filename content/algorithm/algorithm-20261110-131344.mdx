@@ -1,0 +1,61 @@
+---
+title: "[코딩테스트] 정수 해밍 거리 계산"
+publishedAt: "2026-11-10"
+summary: "XOR 연산과 비트 카운팅을 통해 두 정수의 이진수 차이 위치 개수 구하기"
+tag: "Algorithm"
+---
+
+## 문제
+
+두 정수 `x`와 `y`의 해밍 거리(Hamming Distance)를 구하는 문제입니다. 해밍 거리는 두 정수의 이진수 표현에서 서로 다른 비트가 위치한 위치의 총 개수를 의미합니다. 입력으로 두 정수 `x`와 `y`가 주어질 때, 해당 두 정수 간의 해밍 거리를 정수로 반환해야 합니다. 제약 조건은 `x`와 `y`가 0 이상 `2^31 - 1` 이하의 32비트 정수 범위 내에 있다는 것입니다.
+
+<Callout type="warning" title="문제 유형 구분">
+본 문제(LC 461)는 해밍 거리를 구하는 문제이며, LeetCode 2220(Minimum Bit Flips to Convert Number)와 문제의 본질은 동일하나 다른 문제입니다.
+</Callout>
+
+## 접근 방법
+
+두 수의 이진수 표현에서 서로 다른 비트를 찾아내는 가장 명확한 방법은 XOR 연산입니다. XOR 연산자는 두 비트가 서로 다를 경우 `1`, 같을 경우 `0`을 반환합니다. 따라서 `x`와 `y`에 XOR 연산(`^`)을 수행하면, 두 정수의 서로 다른 비트가 위치한 위치에는 `1`, 같은 위치에는 `0`으로 구성된 새로운 정수가 생성됩니다. 이후 이 XOR 연산 결과에서 `1`의 개수(비트 카운팅)를 세면 두 수의 해밍 거리가 됩니다.
+
+## 풀이
+
+`x`와 `y`의 XOR 연산 결과에서 `1`의 개수를 세어 해밍 거리를 구하는 풀이입니다. Python의 `bin()` 함수와 `count()` 메서드를 활용하여 코드를 구현했습니다. `0`의 개수 세기나 문자열 슬라이싱을 이용한 변환 방식은 계산 비용이 더 크기 때문에 `count('1')`을 사용하는 것이 효율적입니다.
+
+```python
+class Solution:
+    def hammingDistance(self, x: int, y: int) -> int:
+        # 두 수의 XOR 연산: 서로 다른 비트가 1, 같은 비트가 0
+        xor_result = x ^ y
+        # 이진수 문자열에서 '1'의 개수 세기
+        return bin(xor_result).count('1')
+```
+
+- 시간 복잡도: `O(1)` (입력 정수가 32비트 고정 범위이므로 연산 횟수는 상수)
+- 공간 복잡도: `O(1)` (결과를 저장하는 상수 크기의 변수만 사용)
+
+## 다른 풀이 방법
+
+Python 내장 함수 대신 비트 연산자를 직접 활용하는 Brian Kernighan 알고리즘을 사용할 수 있습니다. 이 알고리즘은 `n`과 `n - 1`에 AND 연산(`&`)을 수행하면 `n`의 이진수 표현에서 가장 오른쪽에 있는 `1`이 `0`으로 바뀌는 성질을 이용합니다. XOR 연산 결과에서 `1`의 개수만큼 루프를 반복하여 해밍 거리를 계산합니다.
+
+```python
+class Solution:
+    def hammingDistance(self, x: int, y: int) -> int:
+        xor_result = x ^ y
+        distance = 0
+        # 가장 오른쪽의 1이 제거될 때까지 반복
+        while xor_result:
+            xor_result &= (xor_result - 1)
+            distance += 1
+        return distance
+```
+
+- 시간 복잡도: `O(1)` (32비트 정수이므로 최대 32번 반복)
+- 공간 복잡도: `O(1)`
+
+## 추가 참고사항
+
+본 문제는 `x`와 `y`의 이진수 표현에서 비트를 뒤바꿔야 하는 최소 횟수가 해밍 거리가 되는 것을 이해하고 적용하면 됩니다. XOR 연산은 이진수 비교에 가장 기본이 되는 연산자이므로 비트 조작(Bit Manipulation) 문제에서 자주 사용됩니다. Python의 `bin()`은 부호 없는 양수일 때 올바르게 동작하며, `count()`를 통해 문자열을 탐색하는 방식이 코드 구현이 가장 간결합니다.
+
+## 출처
+
+- LeetCode: [LeetCode 461 - Hamming Distance](https://leetcode.com/problems/hamming-distance/)
