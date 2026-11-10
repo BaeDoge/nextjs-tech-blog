@@ -1,0 +1,98 @@
+---
+title: "[코딩테스트] Add Two Numbers II"
+publishedAt: "2026-11-10"
+summary: "가장 큰 자릿수부터 나열된 두 연결 sublist의 합을 연결 sublist로 계산하는 방법을 설명한다."
+tag: "Algorithm"
+---
+
+## 문제
+
+두 비어 있지 않은 연결 sublist가 주어지며, 각 노드는 0 이상 9 이하의 한 자리 숫자를 저장한다. 두 연결 sublist는 가장 큰 자릿수부터 노드로 연결되어 있으며, 입력 숫자는 선행 0을 가지지 않는다. 두 숫자를 더한 결과를 동일한 형태의 연결 sublist로 변환하여반환한다. 각 sublist의 노드 개수는 1 이상 100 이하이다.
+
+```python
+# ListNode 정의 (참고용)
+class ListNode:
+    def __init__(self, val=0, next=None):
+        self.val = val
+        self.next = next
+```
+
+## 접근 방법
+
+가장 큰 자릿수부터 계산해야 하므로, 두 입력 sublist를 순회하면서 각 노드의 값을 스택에 push한다. 스택은 LIFO 구조이므로, 이후 pop하면 자릿수가 작은 순서대로 나오게 된다. 두 스택에서 값을 꺼내며 자릿수별로 더하고, 올림(carry)을 처리한다. 결과 노드는 매번 이전에 생성한 노드를 next로 연결하면 자동으로 올른 순서(가장 큰 자릿수부터)가 된다. 최종적으로 prev 포인트가 가장 큰 자릿수 노드를 가리키므로 이를 그대로반환한다.
+
+```python
+def addTwoNumbersII(l1: ListNode, l2: ListNode) -> ListNode:
+    stack1, stack2 = [], []
+    while l1:
+        stack1.append(l1.val)
+        l1 = l1.next
+    while l2:
+        stack2.append(l2.val)
+        l2 = l2.next
+
+    carry = 0
+    prev = None
+    while stack1 or stack2 or carry:
+        v1 = stack1.pop() if stack1 else 0
+        v2 = stack2.pop() if stack2 else 0
+        total = v1 + v2 + carry
+        carry = total // 10
+        node = ListNode(total % 10)
+        node.next = prev
+        prev = node
+
+    return prev
+```
+
+## 풀이
+
+주어진 스택 기반 해결법은 두 연결 sublist를 각각 스택에 옮겨서 역순으로 만든 후, 자릿수별로 더하며 올림을 처리한다. 결과 노드는 매번 이전 노드를 next로 연결하므로, 최종적으로 가장 큰 자릿수부터 작은 자릿수 순서로 연결된 sublist가 된다. 이 방법은 입력 sublist를 수정하지 않으며, 추가로 두 스택과 결과 sublist를 저장한다.
+
+- **시간 복잡도:** `O(N + M)` – 각 노드를 한 번씩만 처리한다.
+- **공간 복잡도:** `O(N + M)` – 두 스택과 결과 sublist에 노드를 저장한다.
+
+```python
+def addTwoNumbersII(l1: ListNode, l2: ListNode) -> ListNode:
+    stack1, stack2 = [], []
+    while l1:
+        stack1.append(l1.val)
+        l1 = l1.next
+    while l2:
+        stack2.append(l2.val)
+        l2 = l2.next
+
+    carry = 0
+    prev = None
+    while stack1 or stack2 or carry:
+        v1 = stack1.pop() if stack1 else 0
+        v2 = stack2.pop() if stack2 else 0
+        total = v1 + v2 + carry
+        carry = total // 10
+        node = ListNode(total % 10)
+        node.next = prev
+        prev = node
+
+    return prev
+```
+
+## 다른 풀이 방법
+
+| 방법 | 설명 | 복잡도 |
+|--------|-------------|---------|
+| **입력 sublist 뒤집기** | 각 sublist를 역순으로 만든 후 일반적인 Add Two Numbers 알고리즘을 적용하고 다시 뒤집는다. | 시간 `O(N + M)`, 공간 `O(1)` (재귀 스택 제외) |
+| **재귀적 접근** | sublist를 역순으로 탐색하면서 재귀적으로 합계를 계산하고, 반환 시 올림을 처리한다. | 시간 `O(N + M)`, 공간 `O(max(N, M))` (재귀 깊이) |
+| **길이 기반 병합** | 두 sublist의 길이를 계산한 후, 더 긴 sublist부터 시작하여 동일한 깊이에서 자릿수를 더한다. | 시간 `O(N + M)`, 공간 `O(max(N, M))` (결과 sublist) |
+
+위 방법 모두 제약 조건을 만족하지만, 스택 방식은 입력을 변경하지 않으며, 뒤집기 방식은 추가 공간 없이 제자리에서 작업할 수 있다.
+
+## 추가 참고사항
+
+- 결과가 0인 경우 단일 노드(0)로반환되며, 이는 유효한 답이다.
+- 마지막 자릿수에서 올림이 발생하면, 새로운 가장 큰 자릿수 노드를 추가로 생성한다.
+- 후속 문제에서는 스택을 사용하지 않고 재귀 또는 길이 기반 방법으로 입력을 변경하지 않고 해결할 수 있다.
+- 노드 개수가 최대 100개이므로, 모든 접근 방식은 허용된 시간 내에 완료된다.
+
+## 출처
+
+- LeetCode: [LeetCode 445 - Add Two Numbers II](https://leetcode.com/problems/add-two-numbers-ii/)
