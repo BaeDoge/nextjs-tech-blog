@@ -1,0 +1,78 @@
+---
+title: "[트러블슈팅] Python 동적 import 모듈 문자열"
+publishedAt: "2026-11-11"
+summary: "문자열로 주어진 모듈 이름을 로드할 때 `importlib.import_module`를 사용하는 표준 방법을 정리합니다."
+tag: "Troubleshooting"
+---
+
+## 현상
+
+Python 애플리케이션에서 명령줄 인자 등으로 받은 모듈 이름(문자열)을 기반으로 동적으로 모듈을 로드하고자 할 때, 내장 함수인 `__import__`를 직접 호출하는 방식은 복잡하고 오류의 여지가 많습니다.
+예를 들어, `python myapp.py command1`과 같은 구조에서 `command1`이라는 문자열을 모듈 경로로 매핑하여 실행해야 하는 경우입니다.
+<Callout type="warning" title="오류 상황">
+`__import__`를 사용할 때 `fromlist` 인수를 적절히 설정하지 않으면, 패키지의 루트만 로드되고 실제 요청한 서브모듈의 객체를 얻지 못합니다.
+</Callout>
+
+```python
+import sys
+
+command = sys.argv[1]
+try:
+    # fromlist에 모듈 이름 리스트를 전달해야 서브모듈을 올바르게 가져옴
+    command_module = __import__("myapp.commands.%s" % command, fromlist=["myapp.commands"])
+except ImportError:
+    # Display error message
+    pass
+```
+
+## 원인
+
+`__import__` 함수는 모듈 이름을 문자열로 받아 로드하는 내장 함수이지만, 패키지 컨텍스트에서의 동작이 복잡합니다.
+특히 `fromlist` 인수를 사용하지 않거나 잘못 사용하면, 패키지의 루트만 로드되고 실제 요청한 서브모듈의 객체를 얻지 못하는 문제가 발생할 수 있습니다.
+Python 2.7 및 3.1 이후에는 표준 라이브러리에 이를 보완하는 명확한 API가 제공되어 내장 함수를 직접 사용하는 것이 권장되지 않습니다.
+<Steps>
+<Step title="동적 로드 필요성 확인">
+사용자 입력이나 설정값에서 모듈 이름(예: 'myapp.commands.command1')을 문자열로 받습니다.
+</Step>
+<Step title="모듈 로드 시도">
+받은 문자열을 바탕으로 해당 모듈을 찾아 객체로 반환해야 합니다.
+</Step>
+</Steps>
+
+## 해결 방법
+
+Python 2.7 이상 및 Python 3에서는 `importlib` 모듈의 `import_module` 함수를 사용하는 것이 표준 권장 사항입니다.
+이 함수는 모듈 이름을 문자열로 받아 명확하게 모듈 객체를 반환하며, 예외 처리도 직관적입니다.
+
+```python
+import importlib
+
+module_name = "myapp.commands.command1"
+try:
+    command_module = importlib.import_module(module_name)
+    command_module.run()
+except ImportError:
+    print(f"모듈 {module_name}을(를) 찾을 수 없습니다.")
+```
+
+## 다른 해결 방법
+
+`__import__` 함수를 직접 사용해야 한다면, `fromlist` 인수를 반드시 리스트(또는 튜플) 형태로 전달해야 합니다.
+여러 모듈을 한 번에 로드해야 할 경우 `map` 함수와 결합하여 사용할 수 있으나, 이는 서브모듈이 아닌 루트 모듈 로드 상황에 적합합니다.
+
+```python
+# 여러 모듈 동시 로드 예시
+module_names = ['sys', 'os', 're', 'unittest']
+modules = map(__import__, module_names)
+```
+
+## 추가 참고사항
+
+`importlib.import_module`는 Python 3.1부터 도입되었으며, 현재 모든 주요 Python 버전에서 권장되는 방식입니다.
+동적 로딩 시 보안상 위험이 있을 수 있으므로, 입력값에 대한 검증(예: 허용된 모듈 목록 체크)이 필요합니다.
+
+## 출처
+
+- StackOverflow: [How can I import a module dynamically given its name as string?](https://stackoverflow.com/questions/301134/how-can-i-import-a-module-dynamically-given-its-name-as-string) — 작성자: Kamil Kisiel(질문), Harley Holcombe(답변) (CC BY-SA)
+- Tistory: [Python 파이썬에서 딕셔너리를 확장하는 "extend", Python "extend" for a dictionary](https://stcodelab.tistory.com/entry/Python-%ED%8C%8C%EC%9D%B4%EC%8D%AC%EC%97%90%EC%84%9C-%EB%94%95%EC%85%94%EB%84%88%EB%A6%AC%EB%A5%BC-%ED%99%95%EC%9E%A5%ED%95%98%EB%8A%94-extend) — 작성자: 독학코딩
+- Tistory: [Python 파이썬을 사용하여 파일 이름을 바꾸는 방법, How to rename a file using Python](https://stcodelab.tistory.com/entry/Python-%ED%8C%8C%EC%9D%B4%EC%8D%AC%EC%9D%84-%EC%82%AC%EC%9A%A9%ED%95%98%EC%97%AC-%ED%8C%8C%EC%9D%BC-%EC%9D%B4%EB%A6%84%EC%9D%84-%EB%B0%94%EA%BE%B8%EB%8A%94-%EB%B0%A9%EB%B2%95) — 작성자: 독학코딩
