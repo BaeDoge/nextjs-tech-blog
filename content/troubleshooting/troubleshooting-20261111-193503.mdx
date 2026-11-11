@@ -1,0 +1,108 @@
+---
+title: "[트러블슈팅] 문자열로 모듈 함수 동적 호출"
+publishedAt: "2026-11-11"
+summary: "문자열로 된 함수 이름을 사용하여 모듈의 함수를 동적으로 호출하는 방법을 정리합니다."
+tag: "Troubleshooting"
+---
+
+## 현상
+
+함수 이름이 저장된 문자열 변수를 이용하여 모듈의 함수를 호출하려 할 때, 파이썬은 이를 자동으로 해석하지 않습니다.
+
+<Callout type="warning" title="오류 상황">
+'foo'가 변수일 때 'call(foo, func_name)'과 같은 구문은 Python 문법상 존재하지 않거나 NameError를 발생시킵니다.
+</Callout>
+
+```python
+import foo
+
+func_name = "bar"
+
+# 직접적인 함수 호출 시도 (오류 발생)
+# call(foo, func_name) 
+# 위 코드는 실행되지 않으며, 객체의 속성을 동적으로 참조하려면 별도 메커니즘이 필요합니다.
+```
+
+## 원인
+
+파이썬에서 변수(`foo`)는 모듈 객체를 가리키며, `bar`는 해당 객체의 속성입니다.
+
+문자열(`func_name`)은 단순히 텍스트이므로, 이를 모듈 객체의 속성 탐색이나 호출 로직으로 직접 연결하는 동작이 내장되지 않았습니다.
+
+따라서 문자열로 된 이름에 해당하는 객체를 찾아내는 과정을 명시적으로 수행해야 합니다.
+
+## 해결 방법
+
+`getattr` 내장 함수를 사용하여 모듈 객체에서 문자열로 된 이름의 속성(함수)을 동적으로 가져온 후 호출합니다.
+
+```python
+import foo
+
+func_name = "bar"
+
+# getattr(대상 객체, '속성명')으로 함수 객체를 가져옵니다.
+bar_func = getattr(foo, func_name)
+
+# 가져온 함수 객체를 호출합니다.
+result = bar_func()
+```
+
+<Steps>
+<Step title="모듈 또는 클래스 인스턴스 준비">
+호출할 함수가 포함된 모듈이나 클래스 인스턴스를 준비합니다.
+</Step>
+<Step title="getattr로 함수 객체 가져오기">
+`getattr(target_object, 'function_name_string')`을 사용하여 함수 객체를 변수에 할당합니다.
+</Step>
+<Step title="함수 호출">
+할당된 변수에 괄호를 붙여 일반적인 함수 호출처럼 실행합니다.
+</Step>
+</Steps>
+
+## 다른 해결 방법
+
+`locals()` 또는 `globals()` 함수를 사용하여 현재 로컬 또는 전역 네임스페이스의 함수를 문자열로 호출할 수 있습니다.
+
+```python
+def my_function():
+    return "Called successfully"
+
+func_name = "my_function"
+
+# 현재 로컬 네임스페이스에서 함수 객체를 가져와 호출
+result = locals()[func_name]()
+```
+
+<Compare>
+<ComparePanel title="getattr 사용" tone="good">
+모듈, 클래스, 인스턴스 등 객체의 속성 접근에 범용적으로 사용하며 네임스페이스 경로를 명확히 지정할 수 있습니다.
+</ComparePanel>
+<ComparePanel title="locals()/globals() 사용" tone="info">
+현재 실행 중인 함수의 로컬 또는 전역 스코프 내 함수만 접근 가능하므로, 모듈화된 코드에서는 `getattr`가 더 적합합니다.
+</ComparePanel>
+</Compare>
+
+## 추가 참고사항
+
+동적으로 모듈 자체를 가져와야 하는 경우 `__import__` 함수를 사용할 수 있습니다.
+
+```python
+module_name = "foo"
+func_name = "bar"
+
+# 모듈 동적 import
+module = __import__(module_name)
+
+# 모듈의 함수 동적 호출
+func = getattr(module, func_name)
+func()
+```
+
+`getattr`는 클래스 인스턴스 바인딩 메서드, 모듈 수준 메서드, 클래스 메서드 등 다양한 객체 타입에 동일하게 적용됩니다.
+실제 코드에서는 함수가 존재하지 않을 경우 발생할 수 있는 `AttributeError`를 처리하기 위해 `hasattr`를 사전에 체크하거나 `try-except` 블록을 사용하는 것이 좋습니다.
+
+## 출처
+
+- StackOverflow: [Calling a function of a module by using its name (a string)](https://stackoverflow.com/questions/3061/calling-a-function-of-a-module-by-using-its-name-a-string) — 작성자: ricree(질문), Patrick Johnmeyer(답변) (CC BY-SA)
+- Tistory: [[python] 이름(문자열)을 사용하여 모듈의 함수 호출](https://zooheon.tistory.com/entry/python-%EC%9D%B4%EB%A6%84%EB%AC%B8%EC%9E%90%EC%97%B4%EC%9D%84-%EC%82%AC%EC%9A%A9%ED%95%98%EC%97%AC-%EB%AA%A8%EB%93%88%EC%9D%98-%ED%95%A8%EC%88%98-%ED%98%B8%EC%B6%9C) — 작성자: 잡다한 이야기
+- Tistory: [[Python] if __name__ == "__main__": 의미](https://pinocc.tistory.com/175) — 작성자: 땅뚱 창고
