@@ -1,0 +1,90 @@
+---
+title: "[트러블슈팅] Python list에 safe get 메서드 없는 이유"
+publishedAt: "2026-11-11"
+summary: "`list`에 `dict`와 같은 `get()` 메서드가 없는 구조적 이유와 구현 방법을 다룹니다."
+tag: "Troubleshooting"
+---
+
+## 현상
+
+`dict`는 존재하지 않는 키에 대해 `KeyError`를 발생시키지만, `get()` 메서드를 통해 기본값을 설정하여 예외 없이 값을 조회할 수 있습니다.
+반면, `list`에서 인덱스 범위를 초과하는 요소를 접근하면 `IndexError`가 발생하며, `list`에는 이와 같은 `get()` 메서드가 내장되어 있지 않습니다.
+
+```python
+>>> d = {'a':'b'}
+>>> d.get('c', 'fail')
+'fail'
+
+>>> l = [1]
+>>> l[10]
+IndexError: list index out of range
+```
+
+<Callout type="warning" title="오류 상황">
+인덱스 오류로 인해 실행이 중단되는 것을 방지하기 위한 `dict`의 `get()` 메서드와 같은 기능을 `list`에서 직접 사용할 수 없습니다.
+</Callout>
+
+![현상 스크린샷](/blogs/python-list-safe-get-1.png)
+
+## 원인
+
+`dict`는 이름과 값이 연결된 집합으로, 키가 존재하는지 확인하고 값을 반환하는 과정이 예외를 던지는 방식과 효율적으로 연결되어 있습니다.
+`list`는 순서가 있는 집합으로, 인덱스 접근 시 `len()` 메서드를 통해 길이를 확인하는 비용이 매우 낮습니다.
+인덱스 접근 시 예외를 던지는 방식(`IndexError`)만으로도 충분히 효율적이기 때문에, 별도의 `get()` 메서드가 필요하지 않게 설계되었습니다.
+
+## 해결 방법
+
+`list`에서 기본값을 반환하는 안전 접근 메서드를 자체적으로 구현하려면 `try-except`문을 사용하여 `IndexError`를 캐치해야 합니다.
+
+```python
+def safe_list_get(l, idx, default):
+  try:
+    return l[idx]
+  except IndexError:
+    return default
+```
+
+## 다른 해결 방법
+
+내장 타입인 `list`에 `get` 메서드를 직접 추가하는 Monkeypatching은 모든 코드에서 영향을 주지 않아 권장되지 않습니다.
+대신, `list` 클래스를 상속받아 `get` 메서드를 추가한 서브클래스를 정의하면, 코드에서 사용하는 특정 `list` 인스턴스에만 이 기능을 적용할 수 있습니다.
+
+```python
+class SafeList(list):
+    def get(self, idx, default=None):
+        try:
+            return self[idx]
+        except IndexError:
+            return default
+```
+
+<Compare>
+<ComparePanel title="기존 방식" tone="bad">
+인덱스 접근 시 `IndexError` 발생으로 인해 매번 `try-except` 블록을 작성해야 합니다.
+</ComparePanel>
+<ComparePanel title="대안 방식" tone="good">
+`list`를 상속받아 `SafeList` 클래스를 만들면 서브클래스 인스턴스에서는 `get()` 메서드를 자연스럽게 사용할 수 있습니다.
+</ComparePanel>
+</Compare>
+
+## 추가 참고사항
+
+`dict.get()` 메서드는 키가 연결된 값을 조회하는 데 최적화되어 있어, `list`처럼 인덱스로 값을 찾는 자료 구조와는 접근 방식이 다릅니다.
+`list`의 인덱스 오류는 인덱스 값이 데이터 길이와 맞지 않음을 즉각 알리는 방식의 예외 처리에 더 적합합니다.
+
+<Steps>
+<Step title="함수 정의">
+`safe_list_get` 함수를 정의하여 `try-except` 구조를 생성합니다.
+</Step>
+<Step title="서브클래스화">
+`list`를 상속받는 클래스를 만들고 `get()` 메서드를 추가하여 재사용성을 높입니다.
+</Step>
+</Steps>
+
+## 출처
+
+- StackOverflow: [Why doesn't list have safe "get" method like dictionary?](https://stackoverflow.com/questions/5125619/why-doesnt-list-have-safe-get-method-like-dictionary) — 작성자: Mikhail M.(질문), Nick Bastin(답변) (CC BY-SA)
+- Tistory: [음성인식, 합성 및 가상비서 만들기](https://yjhtpi.tistory.com/186) — 작성자: AI Agent
+- Tistory: [AFL++ 구조 분석[1]](https://ddyoru.tistory.com/entry/AFL-%EA%B5%AC%EC%A1%B0-%EB%B6%84%EC%84%9D1) — 작성자: Ddyoru
+
+본문 이미지는 위 출처에서 가져왔습니다.
