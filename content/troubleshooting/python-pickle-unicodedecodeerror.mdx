@@ -1,0 +1,111 @@
+---
+title: "[트러블슈팅] Python pickle UnicodeDecodeError"
+publishedAt: "2026-11-11"
+summary: "pickle로 직렬화한 바이너리 파일을 텍스트 모드로 읽을 때 발생하는 인코딩 오류를 해결한다."
+tag: "Troubleshooting"
+---
+
+## 현상
+
+파이썬에서 `pickle.dump`로 직렬화한 파일을 `pickle.load`로 역직렬화할 때 다음과 같은 오류가 발생한다.
+
+<Callout type="warning" title="오류 상황">
+
+```
+UnicodeDecodeError: 'utf-8' codec can't decode byte 0x80 in position 0: invalid start byte
+```
+
+</Callout>
+
+예상되는 실패 코드는 다음과 같다.
+
+```python
+import pickle
+
+# 파일 모드 오류 발생 지점
+f = open('sample_classifier.pickle', encoding="utf8")
+cl = pickle.load(f)    
+f.close()
+```
+
+![현상 스크린샷](/blogs/python-pickle-unicodedecodeerror-1.png)
+
+## 원인
+
+`pickle` 모듈은 객체를 바이트 스트림(binary stream)으로 직렬화한다. 
+따라서 `pickle.dump` 실행 시 파일은 `'wb'(바이너리 쓰기)` 모드로 열어야 한다.
+반대로 파일을 읽을 때는 인코딩을 적용하는 텍스트 모드 `'r'`이 아닌, 바이너리 모드 `'rb'`로 열어야 한다.
+`encoding="utf8"`을 지정하면 파이썬은 원시 바이트를 UTF-8 텍스트로 변환하려고 시도하지만, pickle의 바이트 시퀀스는 유효한 UTF-8 문자가 아니기 때문에 변환이 실패한다.
+
+## 해결 방법
+
+파일 열기 모드와 인코딩 설정을 수정하여 바이너리 모드로 처리한다.
+
+**수정 전 (오류 발생):**
+
+```python
+f = open('sample_classifier.pickle', encoding="utf8")
+```
+
+**수정 후 (정상 동작):**
+
+```python
+import pickle
+
+# 'rb'(read binary) 모드로 변경하고 인코딩 제거
+with open('sample_classifier.pickle', 'rb') as f:
+    cl = pickle.load(f)    
+```
+
+<Steps title="수정 절차">
+<Step title="파일 열기 모드 변경">
+`open` 함수의 모드 인자를 `'r'`에서 `'rb'`로 변경한다.
+</Step>
+<Step title="인코딩 제거">
+바이너리 모드에서는 `encoding` 매개변수를 지정하지 않는다.
+</Step>
+</Steps>
+
+![해결 방법 스크린샷](/blogs/python-pickle-unicodedecodeerror-2.png)
+
+## 다른 해결 방법
+
+만약 `textblob`의 `NaiveBayesClassifier` 객체 대신 텍스트 파일(예: CSV)을 직접 처리하는 경우, 실제 파일 인코딩을 확인하여 명시해야 한다.
+하지만 pickle 직렬화 객체에 대해서는 바이너리 모드 변경이 유일한 올바른 방법이다.
+
+<Compare title="파일 모드 비교">
+<ComparePanel title="텍스트 파일 읽기" tone="good">
+
+```python
+# 일반 텍스트 파일인 경우 인코딩 명시
+with open('data.csv', 'r', encoding='cp949') as f:
+    text = f.read()
+```
+
+</ComparePanel>
+<ComparePanel title="Pickle 파일 읽기" tone="good">
+
+```python
+# 바이너리 직렬화 파일인 경우 인코딩 없이 rb 모드 사용
+with open('data.pkl', 'rb') as f:
+    obj = pickle.load(f)
+```
+
+</ComparePanel>
+</Compare>
+
+## 추가 참고사항
+
+`pickle`로 저장된 파일은 플랫폼이나 파이썬 버전에 따라 호환되지 않을 수 있다.
+이와 유사한 인코딩 오류는 `encoding` 인자가 필요 없는 바이너리 파일 읽기 시에도 자주 발생하므로, 파일 형식에 따라 `'b'` 모드 사용 여부를 항상 확인한다.
+<Callout type="info" title="인코딩 참고">
+텍스트 파일의 인코딩이 UTF-8과 다른 경우(예: CP949), `encoding` 매개변수를 정확히 지정해야 `UnicodeDecodeError`를 피할 수 있다.
+</Callout>
+
+## 출처
+
+- StackOverflow: [Python pickle error: UnicodeDecodeError](https://stackoverflow.com/questions/32957708/python-pickle-error-unicodedecodeerror) — 작성자: 90abyss(질문), donkopotamus(답변) (CC BY-SA)
+- Tistory: [파이썬 에러 해결 방법 UnicodeDecodeError / UnicodeEncodeError](https://digital-play.tistory.com/103) — 작성자: 디지털 플레이
+- Tistory: [파이썬 UTF-8 디코딩 오류 해결｜UnicodeDecodeError 원인과 인코딩 설정](https://neos35.tistory.com/entry/%ED%8C%8C%EC%9D%B4%EC%8D%AC-UTF-8-%EB%94%94%EC%BD%94%EB%94%A9-%EC%98%A4%EB%A5%98-%ED%95%B4%EA%B2%B0%EF%BD%9CUnicodeDecodeError-%EC%9B%90%EC%9D%B8%EA%B3%BC-%EC%9D%B8%EC%BD%94%EB%94%A9-%EC%84%A4%EC%A0%95) — 작성자: 컴공대생 mr.ko
+
+본문 이미지는 위 출처에서 가져왔습니다.
