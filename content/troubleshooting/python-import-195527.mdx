@@ -1,0 +1,113 @@
+---
+title: "[트러블슈팅] Python 상대 경로 import 오류 해결"
+publishedAt: "2026-11-11"
+summary: "스크립트 실행 시 발생하는 상대 경로 import 오류의 원인과 해결 방법을 정리합니다."
+tag: "Troubleshooting"
+---
+
+## 현상
+
+패키지 내부의 모듈을 실행 파일로 직접 실행할 때, 같은 패키지의 다른 모듈을 상대 경로로 import하면 오류가 발생합니다.
+에러 메시지는 다음과 같습니다.
+
+<Callout type="warning" title="오류 상황">
+ImportError: attempted relative import with no known parent package
+</Callout>
+
+```python
+# myothermodule.py
+from .mymodule import as_int
+```
+
+```bash
+$ python mypackage/myothermodule.py
+Traceback (most recent call last):
+  File "mypackage/myothermodule.py", line 1, in <module>
+    from .mymodule import as_int
+ImportError: attempted relative import with no known parent package
+```
+
+![현상 스크린샷](/blogs/python-import-195527-1.png)
+
+## 원인
+
+파이썬 인터프리터는 모듈을 import할 때 기준이 되는 모듈의 위치를 `__name__` 속성에 의해 결정합니다.
+파이썬 인터프리터를 통해 파일을 직접 실행하면 `__name__`이 `'__main__'`으로 설정됩니다.
+이 경우 인터프리터는 해당 모듈이 속한 패키지의 상위 경로를 알 수 없으므로, 상대 경로(`.`)를 해석할 수 없습니다.
+
+## 해결 방법
+
+파이썬 공식 문서에 따르면, 애플리케이션의 메인 모듈로 사용될 모듈은 항상 절대 경로를 사용해야 합니다.
+상대 경로 대신 패키지 전체 경로를 명시하여 import하면 오류가 해결됩니다.
+
+```python
+# myothermodule.py
+# 수정 전: from .mymodule import as_int
+# 수정 후: 절대 경로 사용
+from mypackage.mymodule import as_int
+```
+
+```python
+# main.py
+from mypackage.myothermodule import add
+
+def main():
+    print(add('1', '1'))
+
+if __name__ == '__main__':
+    main()
+```
+
+![해결 방법 스크린샷](/blogs/python-import-195527-2.png)
+
+## 다른 해결 방법
+
+상대 경로 import를 유지하면서 스크립트로 실행하려면 `-m` 옵션을 사용하여 모듈로 실행해야 합니다.
+이 방법은 `__name__`이 `'__main__'`이 아닌 모듈 이름으로 설정되므로 상대 경로가 정상 작동합니다.
+
+<Steps>
+<Step title="모듈 실행 명령어 사용">
+`python3 -m mypackage.myothermodule` 명령을 사용합니다.
+</Step>
+</Steps>
+
+<Callout type="info" title="주의">
+이 방법은 shebang(`#!/usr/bin/env python3`)와 함께 사용하기 번거로울 수 있습니다.
+</Callout>
+
+또한, 프로젝트 구조상 절대 경로가 길어지거나 복잡할 경우 `sys.path`를 수정하여 해결할 수 있습니다.
+
+```python
+import sys
+import os
+
+SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
+sys.path.append(os.path.dirname(SCRIPT_DIR))
+
+from mypackage.mymodule import as_int
+```
+
+## 추가 참고사항
+
+`__init__.py` 파일은 해당 디렉토리가 패키지의 일부임을 알리는 역할을 합니다.
+Python 3.3부터는 `__init__.py` 파일이 없어도 패키지로 인식하지만, 하위 버전 호환성을 위해 생성하는 것이 안전합니다.
+
+<Compare>
+<ComparePanel title="상대 경로 import" tone="bad">
+스크립트 실행 시 오류 발생. 코드 가독성은 높으나 실행 환경에 제약이 있음.
+</ComparePanel>
+<ComparePanel title="절대 경로 import" tone="good">
+스크립트 실행 시 오류 없음. 메인 모듈에서는 권장되는 방식.
+</ComparePanel>
+</Compare>
+
+이와 유사한 오류로 `SystemError: Parent module '' not loaded, cannot perform relative import`가 발생할 수 있습니다.
+이 역시 동일한 원인으로, 절대 경로 import 또는 `-m` 옵션 실행으로 해결할 수 있습니다.
+
+## 출처
+
+- StackOverflow: [Relative imports in Python 3](https://stackoverflow.com/questions/16981921/relative-imports-in-python-3) — 작성자: John Smith Optional(질문), Aya(답변) (CC BY-SA)
+- Velog: [[python]절대경로&상대경로, 상대경로 import 에러 이유와 해결](https://velog.io/@anjaekk/python%EC%A0%88%EB%8C%80%EA%B2%BD%EB%A1%9C%EC%83%81%EB%8C%80%EA%B2%BD%EB%A1%9C-%EC%83%81%EB%8C%80%EA%B2%BD%EB%A1%9C-import-%EC%97%90%EB%9F%AC%EC%9D%B4%EC%9C%A0%EC%99%80-%ED%95%B4%EA%B2%B0)
+- Velog: [[Python] calculator 패키지](https://velog.io/@chaduri7913/Python-calculator-%ED%8C%A8%ED%82%A4%EC%A7%80)
+
+본문 이미지는 위 출처에서 가져왔습니다.
