@@ -1,0 +1,89 @@
+---
+title: "[트러블슈팅] attempted relative import 해결"
+publishedAt: "2026-11-11"
+summary: "Python에서 스크립트를 직접 실행할 때 발생하는 'attempted relative import' 오류의 원인과 해결 방법을 정리한다."
+tag: "Troubleshooting"
+---
+
+## 현상
+
+Python 스크립트에서 현재 디렉토리(`.`)나 상위 디렉토리(`..`)의 모듈을 가져오려 할 때 다음과 같은 오류가 발생한다.
+
+<Callout type="warning" title="오류 상황">
+
+```python
+ImportError: attempted relative import with no known parent package
+```
+
+</Callout>
+
+이 오류는 스크립트가 패키지의 일부가 아니라 최상위 스크립트로 로드되었을 때 발생한다.
+예를 들어, 프로젝트 구조에서 하위 모듈을 직접 실행 명령어로 실행하면 오류가 발생한다.
+
+```python
+# package/module1.py
+from .utils import helper
+```
+
+```bash
+$ python package/module1.py
+```
+
+## 원인
+
+상대 import는 현재 모듈의 위치를 기준으로 경로를 계산하기 때문에, 상위 패키지의 문맥이 없으면 상대 경로를 해석할 수 없다.
+
+Python은 파일을 두 가지 방식으로 로드한다.
+첫째, `python myfile.py`와 같이 직접 실행하면 최상위 스크립트로 로드된다.
+둘째, 다른 파일에서 `import`하면 모듈로 로드된다.
+
+스크립트가 최상위 스크립트로 실행되면 `__name__`이 `__main__`으로 설정된다.
+이 경우 모듈은 패키지 계층 구조의 일부가 아니므로, 상대 경로(`.` 또는 `..`)를 사용할 수 없다.
+
+```python
+# 직접 실행 시 __name__은 '__main__'이 된다
+print(__name__)  # 출력: __main__
+```
+
+## 해결 방법
+
+프로젝트 루트에서 전체 패키지 구조로 실행하면 상대 import를 유지할 수 있다.
+`-m` 옵션을 사용하여 패키지의 모듈로 실행하면 Python이 패키지의 문맥을 인식한다.
+
+```bash
+# 프로젝트 루트 디렉토리에서 실행
+$ python -m package.module1
+```
+
+이 방법은 `__name__`이 `__main__`이 아닌 `package.module1`로 설정되므로, 상대 import가 정상적으로 동작한다.
+
+## 다른 해결 방법
+
+상대 import를 절대 import로 변경하여 패키지의 전체 경로를 명시하면 오류를 해결할 수 있다.
+상대 경로 대신 패키지 이름부터 시작하는 절대 경로를 사용한다.
+
+```python
+# 수정 전 (상대 import - 오류 발생)
+from .utils import helper
+
+# 수정 후 (절대 import - 정상 동작)
+from package.utils import helper
+```
+
+이렇게 하면 스크립트가 직접 실행되더라도 모듈의 위치를 명확하게 지정할 수 있다.
+
+## 추가 참고사항
+
+상대 import는 모듈이 패키지의 일부로 실행될 때만 유효하다.
+직접 실행 시에는 절대 import를 사용하는 것이 안전하다.
+
+<Callout type="tip" title="예방 팁">
+상대 import와 절대 import를 혼용하지 않도록 한다.
+프로젝트 내에서 일관된 import 방식을 선택하여 유지보수를 용이하게 한다.
+</Callout>
+
+## 출처
+
+- StackOverflow: [How to resolve the Python error 'attempted relative import'](https://stackoverflow.com/questions/14132789/how-to-resolve-the-python-error-attempted-relative-import) — 작성자: user1881400(질문), BrenBarn(답변) (CC BY-SA)
+- Tistory: [[파이썬][Error] 055. ImportError - attempted relative import with no known parent package](https://about-ittt.tistory.com/382) — 작성자: about_IT
+- Velog: [[Python] ImportError: attempted relative import with no known parent package.](https://velog.io/@2021bong/Python-ImportError-attempted-relative-import-with-no-known-parent-package-8v7kz9in)
