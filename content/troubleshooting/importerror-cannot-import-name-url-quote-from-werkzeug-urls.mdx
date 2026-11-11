@@ -1,0 +1,86 @@
+---
+title: "[트러블슈팅] ImportError: cannot import name 'url_quote' from werkzeug.urls"
+publishedAt: "2026-11-11"
+summary: "Flask 2.2.2와 Werkzeug 3.0.0 간의 호환성 문제로 인해 발생하는 url_quote import 오류를 해결하는 방법을 설명합니다."
+tag: "Troubleshooting"
+---
+
+## 현상
+
+Flask 2.2.2 환경에서 테스트 실행 시 `werkzeug.urls` 모듈에서 `url_quote`를 가져오지 못해 에러가 발생합니다.
+에러 메시지는 다음과 같습니다.
+
+<Callout type="warning" title="오류 상황">
+ImportError: cannot import name 'url_quote' from 'werkzeug.urls'
+</Callout>
+
+에러가 발생하는 최소 환경 및 traceback은 다음과 같습니다.
+
+```text
+# 환경
+Python 3.10.11
+Flask==2.2.2
+Werkzeug==3.0.0 (자동 설치됨)
+
+Traceback (most recent call last):
+  File ".../flask/app.py", line 30, in <module>
+    from werkzeug.urls import url_quote
+ImportError: cannot import name 'url_quote' from 'werkzeug.urls'
+```
+
+## 원인
+
+Flask 2.2.2는 `werkzeug.urls.url_quote`를 참조하지만, Werkzeug 3.0.0에서 해당 함수가 제거되었습니다. Flask 2.2.2의 의존성 사양이 `Werkzeug>=2.2.0`으로 상한선을 지정하지 않아, 패키지 관리자가 최신 Werkzeug 3.0.0을 자동으로 설치할 수 있었고, 이로 인해 ImportError가 발생합니다.
+
+## 해결 방법
+
+`requirements.txt` 파일에서 호환되는 `Werkzeug` 버전을 고정합니다.
+
+```
+# requirements.txt
+Flask==2.2.2
+Werkzeug==2.2.2
+```
+
+패키지를 다시 설치하여 버전을 맞춥니다.
+
+<Terminal title="실행 명령">
+pip install -r requirements.txt
+</Terminal>
+
+## 다른 해결 방법
+
+`Flask`를 최신 버전으로 업데이트하여 `Werkzeug 3.0.0`과 호환되도록 조치합니다.
+
+```
+# requirements.txt
+Flask==3.0.0
+```
+
+업데이트 후 패키지를 재설치하여 의존성을 맞춤입니다.
+
+## 추가 참고사항
+
+<Steps>
+<Step title="버전 확인">
+현재 설치된 패키지 버전을 확인합니다.
+</Step>
+<Step title="의존성 수정">
+requirements.txt에서 호환 가능한 버전을 지정합니다.
+</Step>
+<Step title="재설치 및 테스트">
+패키지를 재설치한 뒤 테스트를 다시 실행합니다.
+</Step>
+</Steps>
+
+<Callout type="info" title="예방 팁">
+주요 패키지 업데이트 시 하위 호환성 및 의존성 버전을 사전에 확인해야 합니다.
+</Callout>
+
+비슷한 에러로 버전 불일치 문제가 발생할 수 있으므로 패키지 간 버전 정합성을 주기적으로 점검합니다.
+
+## 출처
+
+- StackOverflow: [Why did Flask start failing with "ImportError: cannot import name 'url_quote' from 'werkzeug.urls'"?](https://stackoverflow.com/questions/77213053/why-did-flask-start-failing-with-importerror-cannot-import-name-url-quote-fr) — 작성자: stevezkw(질문), Scrashdemix(답변) (CC BY-SA)
+- Tistory: [cannot import name 'url_quote' from 'werkzeug.urls'](https://second-brain-storage.tistory.com/5) — 작성자: MY Second Brain
+- Tistory: [【Python】 파이썬 주요 트러블슈팅 [61-80]](https://nate9389.tistory.com/2366) — 작성자: 정빈이의 공부방
