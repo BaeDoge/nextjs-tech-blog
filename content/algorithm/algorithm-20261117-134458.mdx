@@ -1,0 +1,79 @@
+---
+title: "[코딩테스트] 핵심 키워드"
+publishedAt: "2026-11-17"
+summary: "1부터 n까지의 숫자를 각 자리수 합으로 그룹화할 때 가장 큰 크기를 가진 그룹의 개수를 구하는 문제입니다."
+tag: "Algorithm"
+---
+
+## 문제
+
+1부터 n까지의 숫자를 각 자리수 합으로 그룹화해야 합니다. 예를 들어, 14와 5는 같은 그룹(합 5)에 속하지만, 13과 3은 다른 그룹(합 4와 3)에 속합니다. 각 그룹의 크기를 계산하고 가장 큰 크기를 가진 그룹의 개수를 반환합니다. 예시로, n=13일 때 그룹은 `[1,10], [2,11], [3,12], [4,13], [5], [6], [7], [8], [9]`이며, 가장 큰 크기(2)를 가진 그룹이 4개이므로 답은 4입니다.
+
+## 접근 방법
+
+각 숫자의 자리수 합을 계산하여 그룹을 구성합니다. 해시맵(또는 배열)을 사용하여 각 합에 대한 개수를 저장합니다. 모든 개수를 확인하여 최대값을 찾고, 그 최대값을 가진 그룹의 개수를 계산합니다. 자리수 합은 최대 36까지 가능하므로 고정 크기 배열을 사용할 수 있습니다.
+
+```python
+def digit_sum(x: int) -> int:
+    s = 0
+    while x:
+        s += x % 10
+        x //= 10
+    return s
+```
+
+```python
+from collections import Counter
+
+def countLargestGroup(n: int) -> int:
+    cnt = Counter(digit_sum(i) for i in range(1, n + 1))
+    max_size = max(cnt.values())
+    return sum(1 for v in cnt.values() if v == max_size)
+```
+
+## 풀이
+
+함수 `digit_sum`은 각 숫자의 자리수 합을 계산합니다. `Counter`는 각 합에 대한 그룹 크기를 저장합니다. `max(cnt.values())`로 가장 큰 그룹 크기를 구하고, 이를 만족하는 그룹의 개수를 세어 반환합니다. 시간 복잡도는 O(n·log₁₀ n) (각 숫자의 자리수 합 계산)이며, 공간 복잡도는 O(n) (그룹 개수 저장)입니다.
+
+```python
+# 전체 코드 (위 두 코드 블록을 합친 것)
+def digit_sum(x: int) -> int:
+    s = 0
+    while x:
+        s += x % 10
+        x //= 10
+    return s
+
+from collections import Counter
+
+def countLargestGroup(n: int) -> int:
+    cnt = Counter(digit_sum(i) for i in range(1, n + 1))
+    max_size = max(cnt.values())
+    return sum(1 for v in cnt.values() if v == max_size)
+```
+
+## 다른 풀이 방법
+
+자리수 합 범위가 작으므로 고정 크기 배열을 사용할 수 있습니다. 배열 `freq[46]`을 초기화하고 각 숫자의 합에 대해 개수를 증가시킵니다. 그 후 최대값과 최대값을 가진 그룹의 개수를 계산합니다. 구현은 유사하며, 해시 충돌 위험이 없어 약간 더 빠릅니다. 복잡도는 위와 동일합니다.
+
+```python
+def countLargestGroup(n: int) -> int:
+    freq = [0] * 46  # 최대 자리수 합 = 9*4 = 36, 여유 공간 확보
+    for i in range(1, n + 1):
+        s = 0
+        x = i
+        while x:
+            s += x % 10
+            x //= 10
+        freq[s] += 1
+    max_size = max(freq)
+    return freq.count(max_size)
+```
+
+## 추가 참고사항
+
+제약 조건 `1 ≤ n ≤ 10⁴`은 자리수 합이 36 이하임을 보장하므로, 배열 기반 접근이 적합합니다. 해시맵과 배열 모두 동일한 결과를 제공하며, 선택은 구현 선호도에 따라 달라집니다. 이 문제는 해시 테이블, 수학, 카운팅 개념을 연습할 수 있는 쉬운 난이도의 문제입니다.
+
+## 출처
+
+- LeetCode: [LeetCode 1399 - Count Largest Group](https://leetcode.com/problems/count-largest-group/)
