@@ -1,0 +1,58 @@
+---
+title: "[코딩테스트] 균형 문자열 분할"
+publishedAt: "2026-11-17"
+summary: "문자열에서 균형 부분 문자열의 최대 개수를 구하는 그리디 문제이다."
+tag: "Algorithm"
+---
+
+## 문제
+
+문자열에서 'L'과 'R'의 개수가 동일한 균형 문자열이 주어진다. 문자열 s를 균형 부분 문자열로 분할할 때, 각 부분 문자열도 균형을 만족해야 하며 만들 수 있는 균형 부분 문자열의 최대 개수를 반환해야 한다. 문자열의 길이는 2 이상 1000 이하이며, s는 항상 균형 문자열이다. 예를 들어 "RLRRLLRLRL"은 4개, "RLRRRLLRLL"은 2개, "LLLLRRRR"은 1개로 분할할 수 있다.
+
+## 접근 방법
+
+문자열을 앞에서부터 한 문자씩 순회하며, 'L'이면 균형 카운트를 1 증가시키고 'R'이면 1 감소시킨다. 카운트가 0이 되는 지점마다 하나의 균형 부분 문자열이 완성되므로 결과 카운트를 1 증가시킨다. 이 그리디 접근는 가장 먼저 균형을 이루는 가장 짧은 접두사를 분리하므로, 문자열이 균형이 보장된 경우 전체 분할 개수를 최대화한다.
+
+## 풀이
+
+```python
+def balancedStringSplit(s: str) -> int:
+    balance = 0
+    count = 0
+    for ch in s:
+        if ch == 'L':
+            balance += 1
+        else:
+            balance -= 1
+        if balance == 0:
+            count += 1
+    return count
+```
+
+time complexity는 O(n), space complexity는 O(1)이다. 여기서 n은 문자열 s의 길이이다.
+
+## 다른 풀이 방법
+
+재귀(recursive) 방식으로도 문제를 해결할 수 있다. 문자열의 앞에서부터 가장 먼저 균형이 되는 부분을 찾아 분리한 후, 남은 부분 문자열에 대해 동일한 과정을 재귀적으로 수행한다. 이 경우 각 재귀 호출에서 문자열을 순회하므로 시간 복잡도는 O(n)이며, 재귀 깊이와 슬라이싱으로 인한 공간 복잡도는 O(n)이다. 아래는 재귀 버전 구현이다.
+
+```python
+def balancedStringSplit(s: str) -> int:
+    if not s:
+        return 0
+    balance = 0
+    for i, ch in enumerate(s):
+        balance += 1 if ch == 'L' else -1
+        if balance == 0:
+            return 1 + balancedStringSplit(s[i+1:])
+    return 0
+```
+
+재귀 버전도 문제의 균형 조건 하에서 유효하며, 반복문 기반 그리디 풀이에 비해 스택 사용으로 공간 효율은 낮아지지만 코드 간결성 측면에서 대안이 된다.
+
+## 추가 참고사항
+
+문제의 조건에서 s는 항상 균형 문자열이므로 그리디 알고리즘은 항상 유효하게 작동한다. 분할 가능한 최대 개수는 문자열 길이의 절반(n/2)을 초과할 수 없으며, "RLRLRL..."과 같은 패턴에서 달성된다. 이 문제는 본질적으로 간단한 균형 카운팅 문제로, 코드량이 매우 적게 든다.
+
+## 출처
+
+- LeetCode: [LeetCode 1221 - Split a String in Balanced Strings](https://leetcode.com/problems/split-a-string-in-balanced-strings/)
