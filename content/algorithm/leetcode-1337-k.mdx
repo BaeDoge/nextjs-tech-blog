@@ -1,0 +1,90 @@
+---
+title: "[코딩테스트] LeetCode 1337 K 약한 행 찾기"
+publishedAt: "2026-11-17"
+summary: "이진 행렬에서 병사가 적은 순서대로 k개의 행 인덱스를 반환하는 문제"
+tag: "Algorithm"
+---
+
+## 문제
+
+크기 `m x n`의 이진 행렬 `mat`이 주어진다. 각 행에서 `1`(병사)은 왼쪽에, `0`(민간인)은 오른쪽에 연속해서 배치되어 있다. 행 `i`가 행 `j`보다 약하다는 것은 다음 중 하나를 만족할 때다.
+
+- 행 `i`의 병사 수가 행 `j`보다 적다
+- 병사 수가 같고 `i < j`이다
+
+가장 약한 순서부터 강한 순서로 정렬했을 때, 앞에서 `k`개의 행 인덱스를 배열로 반환한다.
+
+제약 조건: `2 <= n, m <= 100`, `1 <= k <= m`, 행렬 원소는 0 또는 1.
+
+## 접근 방법
+
+각 행의 병사 수를 세고 `(병사 수, 행 인덱스)` 쌍으로 정렬하면 된다. 병사 수가 같으면 인덱스 오름차순이 자연스럽게 적용된다. 행마다 `1`이 왼쪽에 몰려 있으므로 이진 탐색으로 첫 `0`의 위치를 찾아 병사 수를 `O(log n)`에 구할 수 있다. 하지만 `n <= 100`이므로 단순 선형 탐색 `O(n)`도 충분하다. 전체 복잡도는 `O(m * n + m log m)` 또는 `O(m log n + m log m)`이 된다.
+
+## 풀이
+
+```python
+from typing import List
+
+class Solution:
+    def kWeakestRows(self, mat: List[List[int]], k: int) -> List[int]:
+        m = len(mat)
+        n = len(mat[0])
+        
+        # 각 행의 병사 수 계산 (이진 탐색 활용)
+        def count_soldiers(row: List[int]) -> int:
+            left, right = 0, n
+            while left < right:
+                mid = (left + right) // 2
+                if row[mid] == 1:
+                    left = mid + 1
+                else:
+                    right = mid
+            return left
+        
+        # (병사 수, 행 인덱스) 리스트 생성 후 정렬
+        rows = [(count_soldiers(mat[i]), i) for i in range(m)]
+        rows.sort()
+        
+        # 상위 k개 인덱스 추출
+        return [idx for _, idx in rows[:k]]
+```
+
+**시간 복잡도:** `O(m log n + m log m)` — 각 행 이진 탐색 `O(log n)` × `m`행 + 정렬 `O(m log m)`  
+**공간 복잡도:** `O(m)` — 정렬용 리스트 저장
+
+## 다른 풀이 방법
+
+```python
+# 선형 탐색 + 정렬 (구현이 더 단순, 제약 조건상 충분히 빠름)
+class Solution:
+    def kWeakestRows(self, mat: List[List[int]], k: int) -> List[int]:
+        rows = [(sum(row), i) for i, row in enumerate(mat)]
+        rows.sort()
+        return [idx for _, idx in rows[:k]]
+```
+
+**시간 복잡도:** `O(m * n + m log m)` — 각 행 합산 `O(n)` × `m`행 + 정렬  
+**공간 복잡도:** `O(m)`
+
+<Compare>
+<ComparePanel title="이진 탐색" tone="good">
+n이 클 때 유리 (O(log n) vs O(n)), 행렬 크기 확장 시 성능 차이 커짐
+</ComparePanel>
+<ComparePanel title="선형 탐색" tone="bad">
+구현 단순, n ≤ 100에서는 실질적 성능 차이 미미
+</ComparePanel>
+</Compare>
+
+## 추가 참고사항
+
+- 병사 수가 같을 때 인덱스 순서가 자동으로 보장되도록 튜플 `(count, index)`로 정렬하는 것이 핵심
+- `heapq.nsmallest(k, rows)`를 쓰면 정렬 없이 `O(m log k)`로 상위 k개 추출 가능 (k가 m보다 훨씬 작을 때 유리)
+- 파이썬의 `list.sort()`는 튜플의 첫 번째 원소, 같으면 두 번째 원소 순으로 정렬하므로 별도 키 함수 불필요
+
+<Callout type="tip" title="파이썬 정렬 팁">
+튜플 `(병사수, 인덱스)`로 저장하면 `sort()` 호출만으로 문제 조건(병사수 오름차순, 동률 시 인덱스 오름차순)을 그대로 만족한다.
+</Callout>
+
+## 출처
+
+- LeetCode: [LeetCode 1337 - The K Weakest Rows in a Matrix](https://leetcode.com/problems/the-k-weakest-rows-in-a-matrix/)
