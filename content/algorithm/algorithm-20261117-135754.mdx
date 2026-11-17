@@ -1,0 +1,38 @@
+---
+title: "[코딩테스트] 가장 많은 사탕"
+publishedAt: "2026-11-17"
+summary: "각 아이에게 추가 사탕을 모두 주었을 때, 그 아이가 가장 많은 사탕을 가질 수 있는지 나타내는 불리언 배열을 구하는 문제이다."
+tag: "Algorithm"
+---
+
+## 문제
+
+n명의 아이들이 사탕을 가지고 있습니다. 정수 배열 candies와 정수 extraCandies가 주어집니다. 각 아이에 대해 모든 추가 사탕을 주었을 때, 그 아이의 사탕 수가 전체 중 가장 많은지 나타내는 불리언 배열 result를반환합니다. 여러 아이가 동시에 최대 사탕 수를 가질 수 있습니다.
+
+## 접근 방법
+
+먼저 candies 배열에서 가장 큰 값 maxCandies를 구합니다. 그 다음 각 아이에 대해 candies[i] + extraCandies가 maxCandies 이상인지 확인하면 결과를 얻을 수 있습니다. 이 과정은 배열을 두 번 순회하지만, 최대값을 찾는 한 번의 순회와 비교하는 다른 한 번의 순회로 O(n) 시간이 걸립니다. 공간은 결과를 저장하기 위해 O(n)이 필요합니다.
+
+## 풀이
+
+다음은 Python으로 해결한 코드입니다.
+
+```python
+def kidsWithCandies(candies, extraCandies):
+    max_candies = max(candies)
+    return [c + extraCandies >= max_candies for c in candies]
+```
+
+이 방법은 candies 배열의 최대값을 구한 뒤, 각 원소에 대해 추가 사탕을 더한 값이 최대값보다 크거나 같은지 확인합니다. 시간 복잡도는 O(n)이고, 공간 복잡도는 결과 배열에 O(n)입니다.
+
+## 다른 풀이 방법
+
+max 함수를 사용하지 않고 직접 최대값을 찾는 루프를 작성할 수도 있습니다. 다음과 같이 반복문으로 maxCandies를 계산한 후, 별도의 반복문에서 결과를 채울 수 있습니다. 이 경우도 여전히 O(n) 시간과 O(n) 공간이 필요합니다만, 코드가 더 길어질 수 있습니다. 다른 대안으로는 candies 배열을 정렬한 후 가장 큰 값과 비교하는 방법이 있지만, 정렬에 O(n log n) 시간이 들어가므로 비효율적입니다.
+
+## 추가 참고사항
+
+입력 크기는 n이 2 이상 100 이하, 사탕 수는 1 이상 100 이하, 추가 사탕은 1 이상 50 이하로 매우 작습니다. 따라서 어떤 알고리즘도 충분히 빠르게 동작하며, 최적화는 필요하지 않습니다. 여러 아이가 동시에 최대 사탕 수를 가질 수 있으므로 비교 시 등호(>=)를 사용해야 합니다. 결과 배열의 길이는 항상 n과 같습니다.
+
+## 출처
+
+- LeetCode: [LeetCode 1431 - Kids With the Greatest Number of Candies](https://leetcode.com/problems/kids-with-the-greatest-number-of-candies/)
