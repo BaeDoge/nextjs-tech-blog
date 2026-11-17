@@ -1,0 +1,118 @@
+---
+title: "[트러블슈팅] SSL CERTIFICATE_VERIFY_FAILED 해결"
+publishedAt: "2026-11-17"
+summary: "Python의 SSL 인증서 검증 실패로 인한 연결 오류를 certifi 업데이트 및 pip 시스템 인증서 패키지로 해결하는 방법을 정리한다."
+tag: "Troubleshooting"
+---
+
+## 현상
+
+Python 스크립트 실행 또는 `pip install` 명령 수행 시 HTTPS 연결 중 SSL 인증서 검증 오류가 발생한다.
+에러 메시지는 주로 다음과 같이 나타난다.
+
+```
+[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1129)
+```
+
+특히 Windows 환경에서 AWS 연결 스크립트 실행이나 패키지 설치 시 빈번하게 관찰된다.
+`requests` 라이브러리를 사용하여 외부 API에 접근할 때도 동일한 오류가 발생한다.
+
+```python
+import requests
+response = requests.get('https://pypi.org')
+```
+
+![현상 스크린샷](/blogs/ssl-certificate-verify-failed-152526-1.png)
+
+## 원인
+
+Python은 HTTPS 연결 시 `certifi` 패키지의 인증서 파일을 사용하여 서버의 SSL 인증서를 검증한다.
+이 오류는 Python의 `certifi` 라이브러리가 최신이 아니거나, 회사 내부 네트워크의 프록시/방화벽이 자체 서명된 인증서를 사용할 때 발생한다.
+이 경우 Python은 신뢰할 수 없는 인증서 체인을 발견하여 연결을 차단한다.
+
+<Callout type="warning" title="오류 상황">
+`pip install selenium` 실행 시 `SSLError: [SSL: CERTIFICATE_VERIFY_FAILED]` 발생
+</Callout>
+
+## 해결 방법
+
+`certifi` 패키지를 최신 버전으로 업데이트하여 신뢰할 수 있는 루트 인증서 목록을 최신화한다.
+
+<Steps>
+<Step title="certifi 패키지 업그레이드">
+
+```
+pip install --upgrade certifi
+```
+
+</Step>
+<Step title="인증서 경로 확인 및 적용">
+
+```python
+import certifi
+import ssl
+
+ssl_context = ssl.create_default_context(cafile=certifi.where())
+print("SSL 인증서 경로:", certifi.where())
+```
+
+</Step>
+</Steps>
+
+위 코드가 정상적으로 실행되면 인증서 파일이 올바르게 적용된 것이다.
+Mac 사용자의 경우 다음 명령어를 실행하여 인증서를 설치한다.
+
+```
+open "/Applications/Python 3.x/Install Certificates.command"
+```
+
+Windows 사용자는 `pip-system-certs` 패키지를 설치하여 시스템 루트 인증서를 Python이 인식하도록 할 수 있다.
+`requests` 모듈 사용 시 `pip-system-certs` 설치가 로컬 인증서 접근 문제를 해결하는 데 도움이 된다.
+
+```
+pip install pip-system-certs
+```
+
+![해결 방법 스크린샷](/blogs/ssl-certificate-verify-failed-152526-2.png)
+
+## 다른 해결 방법
+
+오래된 버전의 `pip`나 Python을 사용하고 있다면 최신 버전으로 업그레이드해야 한다.
+
+```
+python -m pip install --upgrade pip
+```
+
+급한 경우 `pip install` 시 `--trusted-host` 옵션을 추가하여 특정 호스트의 인증서 검사를 우회할 수 있다.
+이 방법은 보안 위험이 있으므로 프로덕션 환경에서는 권장되지 않는다.
+
+```
+pip install selenium --trusted-host pypi.org --trusted-host pypi.python.org --trusted-host files.pythonhosted.org
+```
+
+`requests` 라이브러리를 사용할 때는 `verify=False` 옵션을 사용하여 SSL 검증을 비활성화할 수 있으나, 이는 보안상 위험하므로 권장하지 않는다.
+
+<Compare>
+<ComparePanel title="검증 비활성화" tone="bad">
+`verify=False` 옵션 사용
+보안 위험이 있으며 프로덕션 환경에서 권장되지 않음
+</ComparePanel>
+<ComparePanel title="신뢰 호스트 지정" tone="good">
+`--trusted-host` 옵션 사용
+임시 해결책으로 특정 호스트의 인증서 검증 우회 가능
+</ComparePanel>
+</Compare>
+
+## 추가 참고사항
+
+Python은 기본적으로 `certifi` 라이브러리를 사용하여 인증서를 관리하므로, 정기적인 업데이트가 필요하다.
+회사 또는 공공 네트워크에서 자체 서명된 인증서를 사용 중이라면, 해당 인증서를 시스템에 설치하거나 `pip-system-certs`를 활용하는 것이 근본적인 해결책이다.
+에러가 발생하면 먼저 `pip-system-certs` 설치 여부를 확인하고, `certifi`의 최신화 상태를 점검한다.
+
+## 출처
+
+- StackOverflow: [SSL: CERTIFICATE_VERIFY_FAILED certificate verify failed: unable to get local issuer certificate (_ssl.c:1129)')))](https://stackoverflow.com/questions/77442172/ssl-certificate-verify-failed-certificate-verify-failed-unable-to-get-local-is) — 작성자: Jeff A(질문), Milo Buwalda(답변) (CC BY-SA)
+- Tistory: [[ python ] SSL: CERTIFICATE_VERIFY_FAILED 에러 해결](https://it-ability.tistory.com/170) — 작성자: AMoon - 개발자의 각종 개발 정보 공유
+- Tistory: [[Python] 오류 해결 - SSL certificate verify failed](https://secuhh.tistory.com/3) — 작성자: Security Note
+
+본문 이미지는 위 출처에서 가져왔습니다.
