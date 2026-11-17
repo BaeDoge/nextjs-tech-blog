@@ -1,0 +1,90 @@
+---
+title: "[코딩테스트] 핵심 키워드"
+publishedAt: "2026-11-17"
+summary: "점수 배열을 받아 각 선수의 순위를 금메달, 은메달, 동메달, 또는 숫자 문자열로 나타낸 배열을 반환합니다."
+tag: "Algorithm"
+---
+
+## 문제
+
+score 배열이 주어지며, 모든 점수는 서로 다릅니다. 순위는 점수 내림차순으로 결정되며, 1등은 금메달, 2등은 은메달, 3등은 동메달, 4등 이후는 숫자 문자열로 표시됩니다. 각 원래 인덱스에 해당하는 순위를 담은 배열을 반환해야 합니다.
+
+## 접근 방법
+
+가장 간단한 방법은 점수를 내림차순으로 정렬한 후 순위 문자열을 생성하는 것입니다. 정렬된 점수와 순위를 매핑하고, 원래 점수 배열을 순회하며 매핑된 순위를 answer에 저장합니다. 이 방법은 정렬을 사용하므로 `O(n log n)` 시간 복잡도를 가지며, 추가 공간은 `O(n)`입니다.
+
+```python
+def findRelativeRank(score):
+    # 내림차순 정렬
+    sorted_scores = sorted(score, reverse=True)
+    rank_map = {}
+    for i, s in enumerate(sorted_scores):
+        if i == 0:
+            rank_map[s] = "Gold Medal"
+        elif i == 1:
+            rank_map[s] = "Silver Medal"
+        elif i == 2:
+            rank_map[s] = "Bronze Medal"
+        else:
+            rank_map[s] = str(i + 1)
+    return [rank_map[s] for s in score]
+```
+
+## 풀이
+
+풀이는 정렬 기반 접근법과 동일합니다. `sorted`를 사용해 점수를 정렬하고, 인덱를 기반으로 메달 또는 숫자 순위를 할당합니다. 생성된 매핑을 원래 배열에 적용해 최종 answer를 완성합니다. 전체 시간 복잡도는 정렬 단계에서 `O(n log n)`이며, 공간 복잡도는 순위 테이블 저장을 위해 `O(n)`입니다.
+
+```python
+def findRelativeRank(score):
+    sorted_scores = sorted(score, reverse=True)
+    rank_map = {}
+    for i, s in enumerate(sorted_scores):
+        if i == 0:
+            rank_map[s] = "Gold Medal"
+        elif i == 1:
+            rank_map[s] = "Silver Medal"
+        elif i == 2:
+            rank_map[s] = "Bronze Medal"
+        else:
+            rank_map[s] = str(i + 1)
+    return [rank_map[s] for s in score]
+```
+
+- **시간 복잡도:** `O(n log n)`
+- **공간 복잡도:** `O(n)`
+
+## 다른 풀이 방법
+
+힙을 이용한 대체 방법도 가능합니다. 각 점수와 원래 인덱스를 최대 힙에 저장한 후, 힙에서 순서대로 꺼내며 순위를 할당합니다. 이 방법도 `O(n log n)` 시간 복잡도를 가지지만, 힙 연산이 추가되므로 상수 요소가 약간 더 큽니다.
+
+```python
+import heapq
+
+def findRelativeRank(score):
+    # (점수, 인덱스) 쌍을 최대 힙에 저장 (음수 점수로 최대 힙 구현)
+    heap = [(-s, i) for i, s in enumerate(score)]
+    heapq.heapify(heap)
+
+    answer = [""] * len(score)
+    medals = ["Gold Medal", "Silver Medal", "Bronze Medal"]
+
+    for rank in range(len(score)):
+        neg_s, idx = heapq.heappop(heap)
+        if rank < 3:
+            answer[idx] = medals[rank]
+        else:
+            answer[idx] = str(rank + 1)
+
+    return answer
+```
+
+- **시간 복잡도:** `O(n log n)`
+- **공간 복잡도:** `O(n)`
+
+## 추가 참고사항
+
+score의 길이는 최대 `10^4`이며, 점수는 `0` 이상 `10^6` 이하입니다. 모든 점수가 서로 다르므로 동점 처리는 필요하지 않습니다. n이 작을 경우 정렬이 효율적이며, 매우 큰 n의 경우에도 `O(n log n)` 복잡도는 허용됩니다. 힙 기반 방법은 정렬된 목록이 이미 존재하는 경우에 비해 추가적인 구현 복잡성이 있습니다.
+
+## 출처
+
+- LeetCode: [LeetCode 506 - Relative Ranks](https://leetcode.com/problems/relative-ranks/)
