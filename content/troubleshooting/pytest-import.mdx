@@ -1,0 +1,100 @@
+---
+title: "[트러블슈팅] pytest 모듈 import 실패 해결"
+publishedAt: "2026-11-17"
+summary: "가상환경의 .pth 설정과 테스트 디렉터리의 __init__.py 파일이 충돌하여 발생하는 pytest import 오류를 해결하는 방법을 정리한다."
+tag: "Troubleshooting"
+---
+
+## 현상
+
+가상환경 내에서 `.pth` 파일을 사용하여 모듈 루트 경로를 등록하면, 일반 `python` 명령어로는 모듈을 정상적으로 import할 수 있다.
+
+```python
+>>> from rc import ns
+```
+
+하지만 `pytest`를 실행하면 동일한 모듈 import 시 `ImportError`가 발생하며 테스트 수집 단계에서 실패한다.
+
+```text
+ImportError while importing test module '/home/zz/Desktop/GitFolders/rc/tests/test_ns.py'.
+Traceback:
+tests/test_ns.py:2: in <module>
+    from rc import n
+```
+
+<Callout type="warning" title="오류 상황">
+pytest 실행 시 `ImportError: cannot import name ...` 발생
+</Callout>
+
+![현상 스크린샷](/blogs/pytest-import-1.png)
+
+## 원인
+
+`pytest`는 테스트 디렉터리 내의 `__init__.py` 파일을 발견하면 해당 디렉터리를 Python 패키지로 인식한다.
+
+이때 테스트 디렉터리를 패키지로 처리하는 과정이 가상환경의 `.pth` 경로 설정과 충돌하거나, 모듈 탐색 순서를 변경시켜 import 실패를 유발한다.
+
+일반 `python` 실행은 `.pth` 설정을 우선 적용하지만, `pytest`는 자체적인 모듈 로딩 로직을 가지므로 이 차이가 발생한다.
+
+## 해결 방법
+
+테스트 디렉터리에 있는 `__init__.py` 파일을 삭제한다.
+
+`pytest`는 테스트 파일을 실행할 때 해당 디렉터리를 패키지로 취급할 필요가 없으며, 오히려 이 파일이 존재하면 모듈 import 경로 충돌을 일으킨다.
+
+```bash
+# 테스트 디렉터리 내 __init__.py 제거
+rm tests/__init__.py
+```
+
+파일을 삭제한 후 `pytest`를 다시 실행하면 모듈 import 오류 없이 테스트가 정상적으로 수집되고 실행된다.
+
+<Steps>
+<Step title="테스트 디렉터리 확인">
+테스트 코드가 위치한 폴더에 `__init__.py` 파일이 있는지 확인한다.
+</Step>
+<Step title="__init__.py 파일 삭제">
+발견된 `__init__.py` 파일을 삭제한다.
+</Step>
+<Step title="pytest 재실행">
+`pytest` 명령어를 다시 실행하여 오류가 해결되었는지 확인한다.
+</Step>
+</Steps>
+
+![해결 방법 스크린샷](/blogs/pytest-import-2.png)
+
+## 다른 해결 방법
+
+`.pth` 파일 대신 `setup.py` 또는 `pyproject.toml`을 사용하여 패키지를 개발 모드(`pip install -e .`)로 설치할 수 있다.
+
+이 방법은 가상환경의 경로 설정을 명시적으로 패키지로 등록하므로, `pytest`의 모듈 탐색 로직과 더 잘 호환된다.
+
+```bash
+pip install -e .
+```
+
+또는 `PYTHONPATH` 환경 변수를 명시적으로 설정하여 테스트 실행 시 모듈 경로를 전달할 수 있다.
+
+```bash
+PYTHONPATH=. pytest
+```
+
+## 추가 참고사항
+
+`pytest`는 테스트 디렉터리를 패키지로 간주하지 않는 것이 권장된다.
+
+테스트 코드는 실제 애플리케이션 패키지와 분리되어 실행되어야 하므로, `__init__.py` 파일이 없어도 테스트 수집에 문제가 없다.
+
+만약 테스트 내에서 다른 패키지의 fixture나 유틸리티를 공유해야 한다면, 별도의 `tests/utils` 디렉터리나 `conftest.py`를 활용하는 것이 안전하다.
+
+<Callout type="info" title="참고">
+일반적인 pytest 프로젝트 구조에서는 tests 폴더 하위에 __init__.py 파일을 두지 않는 것이 관례이다.
+</Callout>
+
+## 출처
+
+- StackOverflow: [pytest cannot import module while python can](https://stackoverflow.com/questions/41748464/pytest-cannot-import-module-while-python-can) — 작성자: Zorglub29(질문), Zorglub29(답변) (CC BY-SA)
+- Velog: [Test Error in requests.py v2.31.0](https://velog.io/@bgb10/Test-Error-in-requests.py-v2.31.0)
+- Tistory: [[Python] pytest를 통한 파이썬 테스트 (feat. fixture)](https://scshim.tistory.com/573) — 작성자: 책 읽는 개발자_테드
+
+본문 이미지는 위 출처에서 가져왔습니다.
