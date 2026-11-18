@@ -1,0 +1,77 @@
+---
+title: "[트러블슈팅] Python 3 print 문법 에러"
+publishedAt: "2026-11-18"
+summary: "Python 3 환경에서 괄호 없이 print 문을 사용할 때 발생하는 SyntaxError의 원인과 해결 방법을 다룹니다."
+tag: "Troubleshooting"
+---
+
+## 현상
+
+Python 3 환경에서 문자열을 출력하기 위해 기존 파이썬 2 방식의 코드를 실행하면 문법 에러가 발생합니다.
+
+재현 코드:
+
+```python
+print "hello World"
+```
+
+에러 출력:
+
+```text
+  File "<stdin>", line 1
+    print "hello World"
+                      ^
+SyntaxError: invalid syntax
+```
+
+![현상 스크린샷](/blogs/python-3-print-1.png)
+
+## 원인
+
+파이썬 3부터는 `print`가 문장(statement)에서 내장 함수(function)로 변경되었습니다. 이로 인해 함수 호출 시 요구되는 괄호가 누락되어 파이썬 인터프리터가 문법 오류로 판단합니다.
+
+## 해결 방법
+
+출력하려는 인자를 괄호로 감싸는 함수 호출 형태로 코드를 수정합니다.
+
+<Compare>
+<ComparePanel title="수정 전" tone="bad">
+
+```python
+print "Hello World"
+```
+
+</ComparePanel>
+<ComparePanel title="수정 후" tone="good">
+
+```python
+print("Hello World")
+```
+
+</ComparePanel>
+</Compare>
+
+![해결 방법 스크린샷](/blogs/python-3-print-2.png)
+
+## 다른 해결 방법
+
+`print` 함수 호출 시 `file` 인자를 사용하여 표준 출력 외에 표준 에러나 파일 객체로 출력을 전달하는 방식으로 활용할 수 있습니다.
+
+```python
+import sys
+
+# 표준 에러(stderr) 스트림으로 출력하는 예시
+print("Error Message", file=sys.stderr)
+```
+
+## 추가 참고사항
+
+코드 작성 시 IDE의 문법 검사 기능이나 자동 완성 기능을 활용하면 괄호 누락 같은 기본적인 구문 오류를 예방할 수 있습니다. 파이썬 3의 `print` 함수는 `sep`, `end`, `file`, `flush` 등의 인자를 지원합니다.
+
+## 출처
+
+- StackOverflow: [Syntax error on print with Python 3](https://stackoverflow.com/questions/826948/syntax-error-on-print-with-python-3) — 작성자: Scott(질문), Unknown(답변) (CC BY-SA)
+- Tistory: [[파이썬] 파이썬 에러 SyntaxError: Missing parentheses in call to 'print'](https://korbillgates.tistory.com/93) — 작성자: 생물정보학자의 블로그
+- Tistory: [[Python] SyntaxError: invalid syntax 오류 해결 방법과 원인 분석](https://paperlover.tistory.com/151) — 작성자: PaperLover
+
+본문 이미지는 위 출처에서 가져왔습니다.
