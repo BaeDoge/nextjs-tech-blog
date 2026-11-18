@@ -1,0 +1,128 @@
+---
+title: "[트러블슈팅] JSONDecodeError: Expecting property name enclosed in double quotes"
+publishedAt: "2026-11-18"
+summary: "JSON 파싱 시 작은따옴표 사용으로 발생하는 오류를 해결하는 방법을 정리한다."
+tag: "Troubleshooting"
+---
+
+## 현상
+
+`json.loads()` 함수를 사용하여 문자열을 JSON 객체로 변환할 때 `json.JSONDecodeError`가 발생한다.
+오류 메시지는 `Expecting property name enclosed in double quotes`이며, 위치 정보가 함께 출력된다.
+
+<Callout type="warning" title="오류 상황">
+
+```python
+json.decoder.JSONDecodeError: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)
+```
+
+</Callout>
+
+재현을 위한 최소 코드와 출력은 다음과 같다.
+
+```python
+import json
+
+# 작은따옴표로 된 문자열
+data = "{'key': 'value'}"
+
+# json.loads(data) 호출 시 오류 발생
+json.loads(data)
+```
+
+## 원인
+
+JSON 규격(RFC 7159)에 따르면 키와 문자열 값은 반드시 큰따옴표(`"`)로 감싸야 한다.
+작은따옴표(`'`)는 JSON에서 키나 값의 구분자로 인정되지 않으며, 문자열 내부의 특수 문자로만 허용된다.
+파이썬의 사전(dict)을 문자열로 변환하거나, 잘못된 형식의 데이터를 받을 때 주로 나타난다.
+
+```python
+# 작은따옴표 사용 시 오류
+json.loads("{'key': 'value'}")
+```
+
+## 해결 방법
+
+JSON 문자열의 모든 키와 값의 문자열을 큰따옴표(`"`)로 변경해야 한다.
+
+<Steps>
+<Step title="작은따옴표 확인">
+문자열 내에 작은따옴표(`'`)가 있는지 확인한다.
+</Step>
+<Step title="큰따옴표로 교체">
+문자열의 구분자를 큰따옴표(`"`)로 변경한다.
+</Step>
+<Step title="JSON 파싱">
+수정된 문자열을 `json.loads()`에 전달한다.
+</Step>
+</Steps>
+
+수정 전후 코드는 다음과 같다.
+
+```python
+import json
+
+# 수정 전: 작은따옴표 사용 (오류 발생)
+bad_data = "{'key': 'value'}"
+
+# 수정 후: 큰따옴표 사용 (정상 동작)
+good_data = '{"key": "value"}'
+
+result = json.loads(good_data)
+print(result)  # {'key': 'value'}
+```
+
+![해결 방법 스크린샷](/blogs/jsondecodeerror-expecting-property-name-enclosed-in-double-q-1.png)
+
+## 다른 해결 방법
+
+입력 데이터가 파이썬 리터럴 형식(dict 문자열)인 경우, JSON 대신 `ast.literal_eval`을 사용할 수 있다.
+이 방법은 작은따옴표로 된 파이썬 사전을 안전하게 평가하여 딕셔너리로 변환한다.
+단, 이는 JSON 규격을 따르지 않으므로 외부 데이터 수신 시 보안에 주의해야 한다.
+
+```python
+import ast
+
+# 작은따옴표로 된 파이썬 사전 문자열
+data = "{'key': 'value'}"
+
+# JSON 파싱 대신 literal_eval 사용
+result = ast.literal_eval(data)
+print(result)  # {'key': 'value'}
+```
+
+## 추가 참고사항
+
+JSON 파싱 시 발생할 수 있는 유사 오류와 원인은 다음과 같다.
+
+<Callout type="info" title="유사 오류 참고">
+- `Expecting value: line 1 column 1 (char 0)`: 파일이 비어 있거나 HTML 등 JSON이 아닌 데이터를 받은 경우 발생한다.
+- `Extra data: line 1 column 9 (char 8)`: JSON 객체가 두 개 이상 붙어 있는 경우 발생한다.
+</Callout>
+
+JSON Lines 형식(JSONL) 파일을 처리할 때는 한 줄씩 읽어 개별적으로 파싱해야 한다.
+
+```python
+import json
+
+# JSON Lines 파일 읽기 예시
+with open('data.jsonl', 'r') as f:
+    for line in f:
+        obj = json.loads(line)
+        print(obj)
+```
+
+<Checklist>
+<ul>
+<li>JSON 문자열의 모든 키와 문자열 값이 큰따옴표로 감싸졌는지 확인한다.</li>
+<li>외부에서 받은 데이터가 JSON 형식인지 먼저 검증한다.</li>
+</ul>
+</Checklist>
+
+## 출처
+
+- StackOverflow: [Python/Json:Expecting property name enclosed in double quotes](https://stackoverflow.com/questions/39491420/python-jsonexpecting-property-name-enclosed-in-double-quotes) — 작성자: raeX(질문), ElmoVanKielmo(답변) (CC BY-SA)
+- Tistory: [JSONDecodeError 해결 — Expecting value 등 원인 5가지](https://doitwithai.tistory.com/entry/JSONDecodeError-Expecting-value-line-1-column-1-%ED%8C%8C%EC%9D%B4%EC%8D%AC-%ED%95%B4%EA%B2%B0) — 작성자: AI로 다 하리
+- Tistory: [파이썬 NameError: name ‘…’ is not defined [해결 총정리]](https://20230602.tistory.com/entry/%ED%8C%8C%EC%9D%B4%EC%8D%AC-NameError-name-%E2%80%98%E2%80%A6%E2%80%99-is-not-defined-%ED%95%B4%EA%B2%B0-%EC%B4%9D%EC%A0%95%EB%A6%AC) — 작성자: 현우의블로그
+
+본문 이미지는 위 출처에서 가져왔습니다.
