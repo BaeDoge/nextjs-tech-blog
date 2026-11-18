@@ -1,0 +1,66 @@
+---
+title: "[트러블슈팅] Python 3 urllib2 ModuleNotFoundError"
+publishedAt: "2026-11-18"
+summary: "Python 3 환경에서 urllib2 모듈을 호출하면 발생하는 ModuleNotFoundError를 해결하는 방법을 다룬다."
+tag: "Troubleshooting"
+---
+
+## 현상
+
+Python 3 환경에서 Python 2용 라이브러리인 `urllib2`를 호출하려고 하면 에러가 발생한다.
+`urlopen`을 호출하는 코드에서 `ModuleNotFoundError: No module named 'urllib2'`가 출력된다.
+
+```python
+import urllib2
+
+response = urllib2.urlopen("http://www.google.com")
+html = response.read()
+print(html)
+```
+
+![현상 스크린샷](/blogs/python-3-urllib2-modulenotfounderror-1.png)
+
+## 원인
+
+Python 3는 `urllib2` 모듈을 제거하고 `urllib.request`와 `urllib.error`로 기능을 분리했기 때문이다.
+기존의 `urllib2`를 직접 호출하면 인터프리터가 해당 모듈을 찾을 수 없다.
+또한 `urllib2.request`와 같은 구문은 Python 3의 모듈 구조에 맞지 않아 임포트 자체가 실패한다.
+
+## 해결 방법
+
+`urllib2` 대신 `urllib.request` 모듈의 `urlopen`을 사용해야 한다.
+`from` 키워드를 사용하여 함수를 직접 호출하는 방식으로 코드를 수정한다.
+
+```python
+from urllib.request import urlopen
+html = urlopen("http://www.google.com/").read()
+print(html)
+```
+
+![해결 방법 스크린샷](/blogs/python-3-urllib2-modulenotfounderror-2.png)
+
+## 다른 해결 방법
+
+모듈 전체를 임포트한 후, 모듈 이름으로 함수를 호출하는 방법도 있다.
+이 경우 `urllib.request.urlopen` 형식으로 호출해야 한다.
+
+```python
+import urllib.request
+
+response = urllib.request.urlopen("http://www.google.com/")
+html = response.read()
+print(html)
+```
+
+## 추가 참고사항
+
+`urllib.request`와 `urllib.error`는 Python 3에서 `urllib2`의 기능을 대체한다.
+Python 2 코드를 Python 3로 변환할 때 `2to3` 도구를 사용하면 import 문을 자동으로 수정해 준다.
+
+## 출처
+
+- StackOverflow: [Import error: No module name urllib2](https://stackoverflow.com/questions/2792650/import-error-no-module-name-urllib2) — 작성자: delete(질문), Eli Courtwright(답변) (CC BY-SA)
+- Velog: [VS Code pylint unable to import 문제 해결](https://velog.io/@choi-jiwoo/VS-Code-pylint-unable-to-import-%EB%AC%B8%EC%A0%9C-%ED%95%B4%EA%B2%B0)
+- Tistory: [[Python] import Error : cannot import name module 에러 해결](https://sillutt.tistory.com/entry/Python-import-Error-cannot-import-name-module-%EC%97%90%EB%9F%AC-%ED%95%B4%EA%B2%B0) — 작성자: ⌒＿⌒
+
+본문 이미지는 위 출처에서 가져왔습니다.
