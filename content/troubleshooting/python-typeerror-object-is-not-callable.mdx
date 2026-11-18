@@ -1,0 +1,106 @@
+---
+title: "[트러블슈팅] Python TypeError object is not callable"
+publishedAt: "2026-11-18"
+summary: "호출 가능한 객체가 아닌 대상을 함수처럼 호출했을 때 발생하는 TypeError의 원인과 해결 방법을 정리한다."
+tag: "Troubleshooting"
+---
+
+## 현상
+
+파이썬 코드를 실행하는 중 `TypeError: 'xxx' object is not callable` 오류가 발생한다.
+여기서 `xxx`는 정수, 문자열, 리스트 등 호출할 수 없는 데이터 타입이 들어간다.
+예를 들어, `min`이나 `max` 같은 내장 함수를 변수명으로 잘못 사용했을 때 자주 나타난다.
+
+```python
+min = 10
+print(min([1, 2, 3]))
+```
+
+```text
+TypeError: 'int' object is not callable
+```
+
+<Callout type="warning" title="오류 상황">
+'xxx' object is not callable: 호출 가능한 객체가 아닌 'xxx' 객체를 호출하려고 시도함
+</Callout>
+
+## 원인
+
+'callable'은 `()` 괄호를 붙여 호출할 수 있는 객체를 의미한다.
+함수, 메소드, `__call__` 메소드를 정의한 클래스 인스턴스가 이에 해당한다.
+반면, 정수나 문자열 같은 일반적인 데이터 타입은 함수처럼 호출할 수 없다.
+이 오류는 내장 함수 이름으로 변수가 재할당되어 정수 등 호출 불가능한 객체를 가리키게 되거나, 비호출 객체에 괄호를 붙여 호출할 때 발생한다.
+
+## 해결 방법
+
+오류의 원인이 되는 변수나 객체가 호출 가능한지 확인하고 코드를 수정해야 한다.
+내장 함수를 변수명으로 사용한 경우, 해당 변수를 삭제하거나 다른 이름으로 변경한다.
+
+```python
+# 오류 발생 코드
+min = 10
+print(min([1, 2, 3]))
+
+# 해결: 변수명 변경 또는 할당 제거
+min_val = 10
+print(min([1, 2, 3]))
+```
+
+<Steps>
+<Step title="오류 원인 확인">
+에러 메시지에서 'xxx' 부분을 확인하여 어떤 객체에 괄호가 잘못 붙었는지 파악한다.
+</Step>
+<Step title="변수명 충돌 확인">
+해당 이름의 변수가 내장 함수 이름과 중복되어 재할당되었는지 확인한다.
+</Step>
+<Step title="코드 수정">
+변수명을 변경하거나 불필요한 재할당을 제거하여 원래의 내장 함수를 정상적으로 호출한다.
+</Step>
+</Steps>
+
+![해결 방법 스크린샷](/blogs/python-typeerror-object-is-not-callable-1.png)
+
+## 다른 해결 방법
+
+주피터 노트북 환경에서 이전에 실행한 셀에서 내장 함수 이름으로 변수가 재할당된 경우, `del` 명령어로 해당 변수 참조를 제거해야 원래의 내장 함수를 다시 사용할 수 있다.
+
+```python
+# 주피터 환경에서 재할당된 변수 삭제
+del min
+del max
+```
+
+<Callout type="info" title="환경 주의">
+주피터 노트북 환경에서는 이전에 실행한 코드로 인해 네임스페이스에 변수가 남아있다. 이 경우 `del` 명령어로 변수 참조를 명시적으로 제거해야 내장 함수를 다시 정상적으로 호출할 수 있다.
+</Callout>
+
+## 추가 참고사항
+
+`callable()` 내장 함수를 사용하여 객체가 호출 가능한지 확인할 수 있다.
+`__call__` 메소드를 정의한 클래스 인스턴스는 호출 가능한 객체로 간주된다.
+
+```python
+class Foo:
+    def __call__(self):
+        print('called')
+
+foo_instance = Foo()
+print(callable(foo_instance))  # True
+print(callable(10))            # False
+```
+
+<Checklist>
+<ul>
+<li>함수나 메소드 이름으로 변수를 사용하지 않는다.</li>
+<li>호출 전 객체의 타입과 상태를 확인한다.</li>
+<li>주피터 환경에서는 재할당된 변수를 제거하기 위해 `del` 명령어를 활용한다.</li>
+</ul>
+</Checklist>
+
+## 출처
+
+- StackOverflow: [What is a "callable"?](https://stackoverflow.com/questions/111234/what-is-a-callable) — 작성자: Bite code(질문), Florian Bösch(답변) (CC BY-SA)
+- Tistory: [[파이썬 오류] "TypeError 'xxx' object is not callable" 무슨 뜻?](https://chasingdreams.tistory.com/74) — 작성자: chasingDreams
+- Tistory: [[Python] 'int' object is not callable](https://ubermensch-with.tistory.com/766) — 작성자: 개발누나
+
+본문 이미지는 위 출처에서 가져왔습니다.
