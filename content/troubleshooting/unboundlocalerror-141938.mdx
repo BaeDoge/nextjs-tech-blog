@@ -1,0 +1,104 @@
+---
+title: "[트러블슈팅] UnboundLocalError 중첩 함수 스코프"
+publishedAt: "2026-11-18"
+summary: "중첩 함수에서 외부 변수를 수정할 때 발생하는 UnboundLocalError를 해결합니다."
+tag: "Troubleshooting"
+---
+
+## 현상
+
+중첩된 함수 내에서 외부 함수의 변수 값을 변경하려고 할 때 `UnboundLocalError`가 발생합니다.
+
+<Callout type="warning" title="오류 상황">
+UnboundLocalError: local variable 'ctr' referenced before assignment
+</Callout>
+
+에러를 재현하는 코드는 다음과 같습니다.
+
+```python
+def outer():
+    ctr = 0
+
+    def inner():
+        ctr += 1
+
+    inner()
+
+outer()
+```
+
+![현상 스크린샷](/blogs/unboundlocalerror-141938-1.png)
+
+## 원인
+
+파이썬은 함수 내부에서 변수에 할당(`+=`, `=` 등)이 이루어지는 경우, 해당 변수를 **지역 변수**로 간주합니다.
+
+`inner` 함수에서 `ctr += 1` 구문을 실행할 때, 인터프리터는 `ctr`을 지역 변수로 처리합니다. 하지만 실제 값 할당이 이루어지기 전에 변수의 현재 값을 읽어오려 했으므로, 값이 할당되지 않은 지역 변수를 참조했다는 에러가 발생합니다.
+
+## 해결 방법
+
+Python 3에서는 `nonlocal` 키워드를 사용하여 외부 스코프의 변수를 재할당 가능하게 설정할 수 있습니다.
+
+```python
+def outer():
+    ctr = 0
+
+    def inner():
+        nonlocal ctr
+        ctr += 1
+
+    inner()
+```
+
+`nonlocal ctr`를 추가하면, `inner` 함수는 `ctr`을 지역 변수가 아닌 `outer` 함수의 스코프 변수로 인식하여 값을 수정할 수 있습니다.
+
+![해결 방법 스크린샷](/blogs/unboundlocalerror-141938-2.png)
+
+## 다른 해결 방법
+
+`nonlocal`을 사용하지 않고, 변수 자체를 재할당하지 않고 내부 값을 변경하는 mutable 객체를 사용할 수 있습니다.
+
+```python
+def outer():
+    ctr = [0]
+
+    def inner():
+        ctr[0] += 1
+
+    inner()
+```
+
+이 방식은 `ctr` 변수 자체의 재할당이 아닌, 리스트 객체 내부의 값을 변경하므로 스코프 규칙에 저촉되지 않습니다.
+
+## 추가 참고사항
+
+전역 변수의 값을 수정할 때는 `global` 키워드를 사용합니다.
+
+```python
+ctr = 0
+
+def inner():
+    global ctr
+    ctr += 1
+
+inner()
+```
+
+전역 변수와 지역 변수의 차이로 인해 `global`로 선언하지 않으면 동일한 에러가 발생하므로, 수정 대상이 전역인지 외부 함수인지에 따라 적절한 키워드를 선택해야 합니다.
+
+<Compare>
+<ComparePanel title="전역 변수 수정" tone="neutral">
+`global` 키워드를 사용하여 전역 변수를 수정합니다. 전역 상태 변경에 주의해야 합니다.
+</ComparePanel>
+<ComparePanel title="중첩 함수 수정" tone="good">
+`nonlocal` 키워드를 사용하여 외부 함수의 변수를 수정합니다. 스코프 범위가 제한되어 가독성이 좋습니다.
+</ComparePanel>
+</Compare>
+
+## 출처
+
+- StackOverflow: [UnboundLocalError with nested function scopes](https://stackoverflow.com/questions/2609518/unboundlocalerror-with-nested-function-scopes) — 작성자: Thomas O(질문), Alex Martelli(답변) (CC BY-SA)
+- Tistory: [UnboundLocalError: local variable 'result1' referenced before assignment 해결](https://jack-channel-python.tistory.com/entry/UnboundLocalError-local-variable-result1-referenced-before-assignment-%ED%95%B4%EA%B2%B0) — 작성자: Smith_Solution
+- Tistory: [[python에러] UnboundLocalError: local variable 'xxxxx' referenced before assignment](https://everybodypyeon.tistory.com/m/entry/python%EC%97%90%EB%9F%AC-UnboundLocalError-local-variable-xxxxx-referenced-before-assignment) — 작성자: EveryDay, EveryPyeon
+
+본문 이미지는 위 출처에서 가져왔습니다.
