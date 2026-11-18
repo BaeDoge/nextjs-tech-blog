@@ -1,0 +1,96 @@
+---
+title: "[트러블슈팅] Python 절대경로로 모듈 동적 import"
+publishedAt: "2026-11-18"
+summary: "파일 시스템의 절대 경로를 사용하여 파이썬 모듈을 동적으로 로드하는 방법을 정리한다."
+tag: "Troubleshooting"
+---
+
+## 현상
+
+`sys.path`에 포함되지 않은 파일 시스템의 절대 경로에 있는 모듈을 임포트하려고 할 때 `ModuleNotFoundError`가 발생한다.
+일반적인 `import` 구문은 모듈명이나 `sys.path` 내의 경로로 동작하므로, 임의의 위치에 있는 파일을 직접 로드할 수 없다.
+예를 들어 `/path/to/file.py`에 있는 `MyClass`를 로드하려 할 때 다음처럼 접근하면 에러가 발생한다.
+
+```python
+import importlib.util
+spec = importlib.util.spec_from_file_location("module.name", "/path/to/file.py")
+foo = importlib.util.module_from_spec(spec)
+# foo.MyClass()  <- 호출 시 AttributeError 발생 가능
+```
+
+![현상 스크린샷](/blogs/python-import-115053-1.png)
+
+## 원인
+
+파이썬 인터프리터는 모듈을 찾을 때 `sys.modules` 및 `sys.path`를 조회하여 표준화된 방식으로 모듈을 로드한다.
+절대 경로가 단순히 파일 경로일 뿐, 파이썬은 이를 모듈 이름이나 `sys.path` 경로로 자동 인식하지 못한다.
+따라서 파일 객체 자체를 모듈 로딩 시스템이 인식할 수 있도록 스펙(Spec)을 생성하고 모듈 객체를 `sys.modules`에 명시적으로 등록해야 한다.
+이 과정이 생략되면 인터프리터는 해당 파일을 로드할 수 없는 상태로 둔다.
+
+## 해결 방법
+
+Python 3.5 이상에서는 `importlib.util` 모듈을 사용하여 파일을 모듈로 변환해야 한다.
+이 방법은 표준 라이브러리 내에서 가장 안정적으로 권장되는 방식이다.
+`sys.modules`에 모듈 객체를 등록한 후 `exec_module()`을 호출해야 한다.
+
+```python
+import importlib.util
+import sys
+
+# 1. 파일 경로를 기반으로 모듈 스펙 생성
+spec = importlib.util.spec_from_file_location("module.name", "/path/to/file.py")
+
+# 2. 스펙을 기반으로 모듈 객체 생성
+foo = importlib.util.module_from_spec(spec)
+
+# 3. 모듈 객체를 sys.modules에 등록하여 import 시스템이 식별할 수 있게 함
+sys.modules["module.name"] = foo
+
+# 4. 모듈 스펙의 로더를 통해 모듈 로드 및 실행
+spec.loader.exec_module(foo)
+
+# 5. 로드된 모듈의 클래스 또는 함수 호출
+foo.MyClass()
+```
+
+![해결 방법 스크린샷](/blogs/python-import-115053-2.png)
+
+## 다른 해결 방법
+
+Python 3.3 이상에서는 `importlib.machinery.SourceFileLoader`를 사용할 수 있다.
+이 방법은 코드가 간결하지만 `load_module()` 메서드는 Python 3.4에서 `deprecated`로 선언되었으며 Python 3.12에서 완전히 제거되었다.
+Python 3.12 환경에서 이 코드를 실행하면 `AttributeError`가 발생한다.
+
+```python
+from importlib.machinery import SourceFileLoader
+
+foo = SourceFileLoader("module.name", "/path/to/file.py").load_module()
+foo.MyClass()
+```
+
+Python 2 환경에서는 `imp` 모듈의 `load_source` 함수를 사용한다.
+해당 함수는 Python 3.4에서 `deprecated`되었으며 Python 3.12에서 완전히 제거되었으므로 최신 환경에서는 사용할 수 없다.
+
+```python
+import imp
+
+foo = imp.load_source('module.name', '/path/to/file.py')
+foo.MyClass()
+```
+
+## 추가 참고사항
+
+<Callout type="warning" title="경로와 모듈명 주의">
+`importlib` 함수에 전달하는 첫 번째 인자인 모듈명("module.name")은 실제 파일의 디렉토리 구조와 일치하지 않아도 된다. 다만 `sys.modules`에 등록될 키가 되므로 충돌이 발생하지 않도록 고유한 이름을 선택해야 한다.
+</Callout>
+
+모듈이 같은 이름으로 여러 번 로드되지 않도록 주의해야 한다.
+이미 `sys.modules`에 해당 키가 존재하면 `module_from_spec`으로 새로 만든 객체가 덮어씌워질 수 있으므로, 로딩 전 키 존재 여부를 확인하는 것이 안전하다.
+
+## 출처
+
+- StackOverflow: [How can I import a module dynamically given the full path?](https://stackoverflow.com/questions/67631/how-can-i-import-a-module-dynamically-given-the-full-path) — 작성자: derfred(질문), Sebastian Rittau(답변) (CC BY-SA)
+- Velog: [[python]절대경로&상대경로, 상대경로 import 에러 이유와 해결](https://velog.io/@anjaekk/python%EC%A0%88%EB%8C%80%EA%B2%BD%EB%A1%9C%EC%83%81%EB%8C%80%EA%B2%BD%EB%A1%9C-%EC%83%81%EB%8C%80%EA%B2%BD%EB%A1%9C-import-%EC%97%90%EB%9F%AC%EC%9D%B4%EC%9C%A0%EC%99%80-%ED%95%B4%EA%B2%B0)
+- Velog: [VS Code pylint unable to import 문제 해결](https://velog.io/@choi-jiwoo/VS-Code-pylint-unable-to-import-%EB%AC%B8%EC%A0%9C-%ED%95%B4%EA%B2%B0)
+
+본문 이미지는 위 출처에서 가져왔습니다.
