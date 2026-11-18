@@ -1,0 +1,81 @@
+---
+title: "[트러블슈팅] Python 인덱스 범위 초과 기본값 처리"
+publishedAt: "2026-11-18"
+summary: "리스트 인덱스 범위 초과 시 기본값을 반환하는 try-except 패턴과 조건부 접근 방법을 정리한다."
+tag: "Troubleshooting"
+---
+
+## 현상
+
+리스트의 유효한 인덱스 범위를 벗어난 위치를 접근하려고 하면 `IndexError`가 발생한다.
+
+<Callout type="warning" title="오류 상황">
+IndexError: list index out of range
+</Callout>
+
+다음 코드는 요소가 3개뿐인 리스트에서 인덱스 4를 참조하려 하므로 에러를 발생시킨다.
+
+```python
+a = ['123', '2', 4]
+print(a[4])
+```
+
+![현상 스크린샷](/blogs/python-114143-1.png)
+
+## 원인
+
+파이썬 리스트의 인덱스는 0부터 시작하며, 길이가 N인 리스트의 유효 인덱스는 0부터 N-1까지이다. 요청한 인덱스가 이 범위를 벗어나면 인터프리터는 해당 위치에 데이터가 없음을 감지하고 `IndexError`를 던진다.
+
+참고 자료에 따르면, 이 에러는 로직의 복잡성보다는 경계 계산의 한 칸 어긋남(off-by-one)이나 예상보다 짧은 외부 데이터에서 자주 발생한다.
+
+## 해결 방법
+
+파이썬의 철학인 "허가를 구하기보다 사과하는 것이 낫다(Forgiveness, not permission)"에 따라 `try-except` 블록을 사용하여 에러를 포착하고 기본값을 할당한다.
+
+```python
+a = ['123', '2', 4]
+
+try:
+    b = a[4]
+except IndexError:
+    b = 'sss'
+
+print(b)  # 'sss'
+```
+
+## 다른 해결 방법
+
+`try-except` 대신 인덱스의 유효성을 사전에 확인하는 조건문(`if`)을 사용할 수 있다. 이는 에러가 발생하기 전에 접근을 차단하는 방어적 프로그래밍 방식이다.
+
+```python
+a = ['123', '2', 4]
+index = 4
+
+if index < len(a):
+    b = a[index]
+else:
+    b = 'sss'
+
+print(b)  # 'sss'
+```
+
+## 추가 참고사항
+
+인덱스 접근 전 리스트의 길이를 확인하는 습관이 `IndexError` 예방에 가장 효과적이다.
+
+<Steps>
+<Step title="에러 발생 위치 확인">
+에러가 난 코드 바로 위에서 리스트의 길이(`len()`)와 접근하려는 인덱스를 함께 출력하여 범위를 비교한다.
+</Step>
+<Step title="인덱스 범위 검증">
+인덱스가 0 이상이고 리스트 길이보다 작은지 확인한 후 값을 추출한다.
+</Step>
+</Steps>
+
+## 출처
+
+- StackOverflow: [Getting a default value on index out of range in Python](https://stackoverflow.com/questions/2574636/getting-a-default-value-on-index-out-of-range-in-python) — 작성자: zjm1126(질문), Thomas(답변) (CC BY-SA)
+- Tistory: [파이썬 인덱스 오류 (IndexError: list index out of range) 원인과 해결](https://shanael.tistory.com/482) — 작성자: 샤나엘의 일상
+- Tistory: [[Python] 자주 발생하는 에러 5가지와 해결 방법](https://chunws13.tistory.com/94) — 작성자: We can become
+
+본문 이미지는 위 출처에서 가져왔습니다.
