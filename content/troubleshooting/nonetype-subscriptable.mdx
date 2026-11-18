@@ -1,0 +1,112 @@
+---
+title: "[트러블슈팅] 재귀 함수의 NoneType subscriptable 오류"
+publishedAt: "2026-11-18"
+summary: "재귀 호출 중 None 값을 인덱싱할 때 발생하는 TypeError를 검증 로직으로 해결합니다."
+tag: "Troubleshooting"
+---
+
+## 현상
+
+재귀 함수에서 노드 데이터를 순회하며 중첩된 인덱싱 연산(`tree[otu][0][0]`)을 수행할 때 `TypeError`가 발생합니다.
+해당 경로에 있는 값이 `None`일 경우, `None` 객체를 서브스크립터블(subscriptable)하게 다루려 해 에러가 발생합니다.
+
+<Callout type="warning" title="오류 상황">
+TypeError: 'NoneType' object is not subscriptable
+</Callout>
+
+에러는 함수 재귀 호출 과정에서 발생하며, 구체적인 Traceback은 다음과 같습니다.
+
+```python
+Traceback (most recent call last):
+  File "<pyshell#41>", line 1, in <module>
+    Ancestors('A',a)
+  File "C:\x.py", line 129, in Ancestors
+    return [otu,tree[otu][0][0]] + Ancestors (tree[otu][0][0],tree)
+  File "C:\x.py", line 126, in Ancestors
+    if tree[otu][0][0] == None:
+TypeError: 'NoneType' object is not subscriptable
+```
+
+## 원인
+
+에러가 발생한 위치인 `if tree[otu][0][0] == None:` 구문은 조건식 평가 중에도 인덱싱 연산이 수행됨을 의미합니다.
+`tree[otu]` 자체가 `None`이거나 `tree[otu][0]`이 `None`인 경우, 해당 객체에 인덱싱을 시도하면 `TypeError`가 발생합니다.
+즉, `tree[otu][0][0]`에 접근하기 전에 중간 단계의 값이 `None`인지 검증되지 않았고, 조건문 자체가 오히려 에러를 유발한 것입니다.
+
+```python
+# tree[otu]가 None인 경우
+>>> tree = {'A': None}
+>>> tree['A'][0][0] # TypeError 발생
+```
+
+따라서 재귀 호출 전 데이터의 유효성을 검사하는 로직이 불완전하여 에러가 발생합니다.
+
+## 해결 방법
+
+중첩된 인덱싱 전에 단계별로 `None`인지 여부를 검증하여 접근 자체를 차단해야 합니다.
+다음 코드는 재귀 호출을 진행하기 전에 데이터 구조의 유효성을 점검하는 로직을 추가한 예시입니다.
+
+```python
+def Ancestors(otu, tree):
+    # otu가 tree의 키로 존재하지 않거나 해당 값이 None인 경우 처리
+    if otu not in tree or tree[otu] is None:
+        return []
+    
+    node_data = tree[otu]
+    
+    # 첫 번째 요소(list)가 없거나, 그 안의 부모 노드(None)가 None인 경우 처리
+    if not node_data or node_data[0] is None or node_data[0][0] is None:
+        return []
+        
+    parent = node_data[0][0]
+    return [otu, parent] + Ancestors(parent, tree)
+```
+
+![해결 방법 스크린샷](/blogs/nonetype-subscriptable-1.png)
+
+## 다른 해결 방법
+
+`try-except`를 활용해 데이터 접근 시 발생할 수 있는 `TypeError`를 캐치하는 방법도 있습니다.
+이 방법은 구체적인 오류 지점을 파악하거나, 복잡한 조건문 대신 예외를 통한 흐름 제어가 필요할 때 유용합니다.
+하지만 재귀 함수에서는 예외 처리가 성능에 영향을 줄 수 있으므로, 단순한 `None` 체크는 명시적인 조건문이 더 효율적입니다.
+
+```python
+def Ancestors(otu, tree):
+    try:
+        # 데이터 접근 시 NoneType 접근 에러 확인
+        parent = tree[otu][0][0]
+    except (TypeError, IndexError):
+        # 인덱싱 실패 시 재귀 호출 중단
+        return []
+
+    if parent is None:
+        return []
+        
+    return [otu, parent] + Ancestors(parent, tree)
+```
+
+## 추가 참고사항
+
+`TypeError: 'NoneType' object is not subscriptable`는 데이터 소스의 구조가 기대와 다를 때 빈번하게 발생합니다.
+크롤링이나 파일 파싱 시 특정 값이 누락되어 `None`이 반환된 경우, 조건부 접근 대신 기본값 설정이나 구조 검사를 권장합니다.
+또한, `pdb` 디버거를 활용해 재귀 호출 시마다 `otu`와 `tree`의 상태 변화를 추적하면 원인을 더 빠르게 찾을 수 있습니다.
+
+<Steps title="디버깅 절차">
+<Step title="1. 인덱싱 경로 확인">
+에러가 발생한 라인에서 중첩된 인덱싱(`[]`)의 각 단계가 `None`인지 확인
+</Step>
+<Step title="2. 조건문 개선">
+조건식 내부에서 인덱싱하지 않고, 외부에서 단계별 `None` 체크 수행
+</Step>
+<Step title="3. 재귀 호출 차단">
+중간 값이 `None`일 때 재귀 호출을 진행하지 않도록 반환값(`return []`) 처리
+</Step>
+</Steps>
+
+## 출처
+
+- StackOverflow: [How to correct "TypeError: 'NoneType' object is not subscriptable" in recursive function?](https://stackoverflow.com/questions/9846442/how-to-correct-typeerror-nonetype-object-is-not-subscriptable-in-recursive) — 작성자: TheFoxx(질문), philofinfinitejest(답변) (CC BY-SA)
+- Tistory: [파이썬 openpyxl TypeError: 'NoneType' object is not subscriptable오류 해결하기](https://workauto.tistory.com/entry/%ED%8C%8C%EC%9D%B4%EC%8D%AC-openpyxl-TypeError-NoneType-object-is-not-subscriptable%EC%98%A4%EB%A5%98-%ED%95%B4%EA%B2%B0%ED%95%98%EA%B8%B0) — 작성자: 업무 자동화
+- Tistory: [[Python] TypeError:'nonetype' object is not subscriptable 에러 원인 및 해결방법](https://dev-coderkim.tistory.com/23) — 작성자: Dev_JasonKim
+
+본문 이미지는 위 출처에서 가져왔습니다.
