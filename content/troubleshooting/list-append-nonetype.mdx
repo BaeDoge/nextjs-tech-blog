@@ -1,0 +1,111 @@
+---
+title: "[트러블슈팅] List append 할당 시 NoneType 에러"
+publishedAt: "2026-11-18"
+summary: "list.append() 메서드는 반환값이 None이므로 변수에 할당하면 후속 호출 시 에러가 발생한다."
+tag: "Troubleshooting"
+---
+
+## 현상
+
+for 루프나 반복문 내에서 리스트에 요소를 추가할 때, `list.append()` 메서드의 반환값을 다시 원래 변수에 할당하는 실수를 범한다. 이 경우 첫 번째 반복 이후 변수의 타입이 리스트에서 None으로 변경되며, 두 번째 반복 시 AttributeError가 발생한다.
+
+<Callout type="warning" title="오류 상황">
+
+```python
+a = []
+for i in range(5):    
+    a = a.append(i)
+```
+
+</Callout>
+
+위 코드를 실행하면 다음과 같은 에러가 출력된다.
+
+```
+AttributeError: 'NoneType' object has no attribute 'append'
+```
+
+## 원인
+
+파이썬의 `list.append()` 메서드는 리스트 객체를 직접 수정하는 **변경(mutating) 메서드**이다. 이 메서드는 요소를 리스트에 추가한 후 아무런 값도 반환하지 않으며, 암시적으로 `None`을 반환한다.
+
+따라서 `a = a.append(i)` 코드는 다음과 같은 동작을 일으킨다.
+1. `a`에 `i`를 추가한다.
+2. `append()`의 반환값인 `None`을 `a` 변수에 재할당한다.
+3. 다음 루프에서 `a`는 이제 리스트가 아닌 `None` 객체가 되므로, `None.append()` 호출 시 에러가 발생한다.
+
+## 해결 방법
+
+`append()` 메서드는 반환값을 사용하지 않고 리스트 객체를 직접 수정하므로, 변수 할당 없이 메서드만 호출해야 한다.
+
+<Compare>
+<ComparePanel title="오류 코드" tone="bad">
+
+```python
+a = []
+for i in range(5):    
+    a = a.append(i)  # None이 할당됨
+```
+
+</ComparePanel>
+<ComparePanel title="정상 코드" tone="good">
+
+```python
+a = []
+for i in range(5):
+    a.append(i)  # 메서드만 호출
+print(a)
+# [0, 1, 2, 3, 4]
+```
+
+</ComparePanel>
+</Compare>
+
+![해결 방법 스크린샷](/blogs/list-append-nonetype-1.png)
+
+## 다른 해결 방법
+
+기존 리스트를 변경하지 않고 새로운 리스트를 생성하려면 할당 연산자 `+`를 사용할 수 있다. 이 방식은 `append()`와 달리 새로운 리스트 객체를 반환하므로 변수에 할당하는 것이 적절하다.
+
+```python
+a = ['a', 'b', 'c']
+# 새로운 리스트를 생성하여 a에 재할당
+a = a + ['d']
+
+print(a)
+# ['a', 'b', 'c', 'd']
+
+# 기존 a는 변경되지 않았음을 확인 가능
+```
+
+## 추가 참고사항
+
+`append()` 외에도 리스트 요소를 추가하는 메서드로 `insert()`가 있다. `insert()` 또한 `append()`와 마찬가지로 반환값이 `None`이므로 변수에 할당해서는 안 된다.
+
+```python
+sample_l = ['sql', 'java', 'mysql']
+# 인덱스 1 위치에 'javascript' 추가
+sample_l.insert(1, 'javascript')
+print(sample_l)
+# ['sql', 'javascript', 'java', 'mysql']
+```
+
+<Steps title="디버깅 체크리스트">
+<Step title="변수 초기화 확인">
+리스트 변수가 `[]`로 초기화되었는지 확인한다.
+</Step>
+<Step title="할당 여부 확인">
+`append()`, `insert()`, `sort()` 등 변경형 메서드 호출 시 `=` 연산자를 사용하지 않았는지 확인한다.
+</Step>
+<Step title="타입 확인">
+`type()` 함수를 사용하여 변수의 실제 타입이 리스트인지 확인한다.
+</Step>
+</Steps>
+
+## 출처
+
+- StackOverflow: [List append() in for loop raises exception: 'NoneType' object has no attribute 'append'](https://stackoverflow.com/questions/41452819/list-append-in-for-loop-raises-exception-nonetype-object-has-no-attribute) — 작성자: jim jarnac(질문), Rafael Aguilar(답변) (CC BY-SA)
+- Tistory: [[파이썬][Error] 048. AttributeError - 'int' object has no attribute 'append'](https://about-ittt.tistory.com/375) — 작성자: about_IT
+- Tistory: [[에러노트/파이썬] AttributeError: 'NoneType' object has no attribute 'append'](https://wewegh.tistory.com/36) — 작성자: 데이터 사이언스로 한걸음
+
+본문 이미지는 위 출처에서 가져왔습니다.
