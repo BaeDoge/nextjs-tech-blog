@@ -1,0 +1,74 @@
+---
+title: "[트러블슈팅] Too many values to unpack"
+publishedAt: "2026-11-23"
+summary: "시퀀스 언패킹 시 변수 개수 부족으로 발생하는 ValueError 해결"
+tag: "Troubleshooting"
+---
+
+## 현상
+
+리스트나 튜플에서 첫 두 개의 요소만 추출하려 할 때, 나머지 요소가 존재하면 언패킹이 실패합니다.
+
+<Callout type="warning" title="오류 상황">
+
+```python
+a, b = 1, 3, 4, 5
+# ValueError: too many values to unpack (expected 2)
+```
+
+</Callout>
+
+## 원인
+
+파이썬은 할당문 왼쪽의 변수 개수와 오른쪽 시퀀스의 요소 개수가 정확히 일치해야 합니다.
+여러 요소를 가진 시퀀스를 두 변수에 할당하려고 하면, 남은 요소가 처리되지 않아 에러가 발생합니다.
+
+## 해결 방법
+
+파이썬 3부터는 스타드 표현(`*`)을 사용하여 나머지 요소를 리스트로 묶어 할당할 수 있습니다.
+이 방식을 사용하면 첫 두 요소만 변수에 넣고 나머지는 별도 변수에 저장할 수 있습니다.
+
+```python
+# 첫 두 요소는 a, b에, 나머지는 rest 리스트에 할당
+a, b, *rest = 1, 3, 4, 5
+
+print(a)  # 1
+print(b)  # 3
+print(rest)  # [4, 5]
+```
+
+![해결 방법 스크린샷](/blogs/too-many-values-to-unpack-1.png)
+
+## 다른 해결 방법
+
+슬라이싱을 통해 필요한 부분만 추출한 후 할당하는 방법도 있습니다.
+이 방법은 스타드 표현을 사용하지 않고도 첫 두 요소만 선택할 때 유용합니다.
+
+```python
+values = 1, 3, 4, 5
+
+# 슬라이싱으로 첫 두 요소만 추출하여 할당
+a, b = values[:2]
+
+print(a)  # 1
+print(b)  # 3
+```
+
+## 추가 참고사항
+
+<Steps>
+<Step title="슬라이싱 활용">
+`values[:2]`는 시퀀스의 앞두 번째 요소까지만 잘라냅니다.
+</Step>
+<Step title="IndexError 주의">
+시퀀스의 길이가 2개 미만인 경우 슬라이싱은 빈 시퀀스를 반환하지만, 이를 두 변수에 할당하면 `ValueError`가 발생합니다.
+</Step>
+</Steps>
+
+## 출처
+
+- StackOverflow: [Unpack the first two elements in list/tuple](https://stackoverflow.com/questions/11371204/unpack-the-first-two-elements-in-list-tuple) — 작성자: Hanfei Sun(질문), Gustav Larsson(답변) (CC BY-SA)
+- Velog: [[뿌셔먹는 파이썬]CS(list vs tuple)](https://velog.io/@burnern/%EB%BF%8C%EC%85%94%EB%A8%B9%EB%8A%94-%ED%8C%8C%EC%9D%B4%EC%8D%ACCSlisttuple)
+- Tistory: [[Python 기초] 부분 Unpacking과 Starred Expression](https://trillionver2.tistory.com/entry/Python-Programming-%EA%B8%B0%EC%B4%88-%EB%B6%80%EB%B6%84-unpacking) — 작성자: TrillionStack
+
+본문 이미지는 위 출처에서 가져왔습니다.
