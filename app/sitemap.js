@@ -1,2 +1,47 @@
 import { getAllPosts, getSiteUrl } from '@/lib/posts';
-export default function sitemap(){ const base=getSiteUrl(); const posts=getAllPosts(); return [{url:base,lastModified:new Date(),changeFrequency:'weekly',priority:1},{url:`${base}/category/algorithm`,changeFrequency:'weekly',priority:0.8},{url:`${base}/category/troubleshooting`,changeFrequency:'weekly',priority:0.8},{url:`${base}/category/paper`,changeFrequency:'weekly',priority:0.8},{url:`${base}/category/opensource`,changeFrequency:'weekly',priority:0.8},{url:`${base}/about`,changeFrequency:'monthly',priority:0.4},{url:`${base}/contact`,changeFrequency:'monthly',priority:0.3},{url:`${base}/privacy`,changeFrequency:'yearly',priority:0.2},...posts.map(p=>({url:`${base}/${p.category}/${p.slug}`,lastModified:new Date(p.updatedAt),changeFrequency:'monthly',priority:0.7}))]; }
+
+export default function sitemap() {
+  const base = getSiteUrl();
+  const posts = getAllPosts();
+  const latestDate = (items) => {
+    const value = items
+      .map((post) => post.updatedAt || post.publishedAt)
+      .filter(Boolean)
+      .sort()
+      .at(-1);
+    return value ? new Date(value) : undefined;
+  };
+
+  const categories = ['algorithm', 'troubleshooting', 'paper', 'opensource'];
+  const staticPages = [
+    { path: '/about', changeFrequency: 'monthly', priority: 0.4 },
+    { path: '/contact', changeFrequency: 'monthly', priority: 0.3 },
+    { path: '/privacy', changeFrequency: 'yearly', priority: 0.2 },
+  ];
+
+  return [
+    {
+      url: base,
+      lastModified: latestDate(posts),
+      changeFrequency: 'weekly',
+      priority: 1,
+    },
+    ...categories.map((category) => ({
+      url: `${base}/category/${category}`,
+      lastModified: latestDate(posts.filter((post) => post.category === category)),
+      changeFrequency: 'weekly',
+      priority: 0.8,
+    })),
+    ...staticPages.map((page) => ({
+      url: `${base}${page.path}`,
+      changeFrequency: page.changeFrequency,
+      priority: page.priority,
+    })),
+    ...posts.map((post) => ({
+      url: `${base}/${post.category}/${post.slug}`,
+      lastModified: new Date(post.updatedAt || post.publishedAt),
+      changeFrequency: 'monthly',
+      priority: 0.7,
+    })),
+  ];
+}
