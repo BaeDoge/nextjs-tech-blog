@@ -1,0 +1,114 @@
+---
+title: "[트러블슈팅] tqdm: 'module' object is not callable"
+publishedAt: "2026-11-23"
+summary: "tqdm 모듈을 직접 호출하여 발생하는 TypeError의 원인과 해결 방법을 정리한다."
+tag: "Troubleshooting"
+---
+
+## 현상
+
+`tqdm`를 `import tqdm`로 임포트한 후, 모듈 이름인 `tqdm`를 함수처럼 호출하면 에러가 발생한다.
+
+```python
+import tqdm
+import os
+
+path = '../dialogs'
+dirs = os.listdir(path)
+
+for dir in tqdm(dirs, desc='dirs'):
+    print(dir)
+```
+
+이 코드를 실행하면 다음과 같은 `TypeError`가 출력된다.
+
+```
+Traceback (most recent call last):
+  File "process.py", line 15, in <module>
+    for dir in tqdm(os.listdir(path), desc = 'dirs'):
+TypeError: 'module' object is not callable
+```
+
+<Callout type="warning" title="오류 상황">
+'tqdm'는 모듈(module)이지 함수가 아니므로, 괄호를 붙여 호출(call)할 수 없다.
+</Callout>
+
+## 원인
+
+파이썬에서 `import tqdm`는 `tqdm` 패키지의 모듈 객체를 생성하고, 현재 네임스페이스에 `tqdm`라는 이름으로 바인딩한다.
+
+이때 `tqdm` 변수는 모듈 자체를 참조할 뿐, 모듈 내부의 실제 진행률 표시 함수를 가리키지 않는다.
+
+따라서 `tqdm(...)`와 같이 괄호를 사용하여 호출하려고 하면, 파이썬은 모듈 객체를 호출할 수 없다는 `TypeError: 'module' object is not callable`을 발생시킨다.
+
+## 해결 방법
+
+모듈 이름 뒤에 점(.)을 붙여 모듈 내부의 `tqdm` 함수를 명시적으로 호출한다.
+
+```python
+import tqdm
+import os
+
+path = '../dialogs'
+dirs = os.listdir(path)
+
+# tqdm.tqdm()로 모듈 내부 함수 호출
+for dir in tqdm.tqdm(dirs, desc='dirs'):
+    print(dir)
+```
+
+<Steps>
+<Step title="모듈 참조">
+`tqdm` 모듈을 임포트한다.
+</Step>
+<Step title="내부 함수 호출">
+`tqdm.tqdm()` 형태로 모듈의 하위 객체인 tqdm 함수를 호출한다.
+</Step>
+</Steps>
+
+## 다른 해결 방법
+
+모듈 전체를 임포트하는 대신, 필요한 함수만 직접 임포트하여 사용한다.
+
+```python
+from tqdm import tqdm
+import os
+
+path = '../dialogs'
+dirs = os.listdir(path)
+
+# tqdm 함수를 직접 호출
+for dir in tqdm(dirs, desc='dirs'):
+    print(dir)
+```
+
+이 방법은 `tqdm.tqdm()`처럼 긴 표기를 생략하고, 다른 라이브러리의 `tqdm` 함수와 이름 충돌을 피할 수 있어 가독성이 좋다.
+
+<Compare>
+<ComparePanel title="모듈 임포트 (import tqdm)" tone="neutral">
+`tqdm.tqdm()` 형태로 호출해야 함. 모듈 구조를 명확히 알 수 있음.
+</ComparePanel>
+<ComparePanel title="함수 임포트 (from tqdm import tqdm)" tone="good">
+`tqdm()` 형태로 직접 호출 가능. 코드가 간결하고 가독성이 높음.
+</ComparePanel>
+</Compare>
+
+## 추가 참고사항
+
+`object is not callable` 오류는 호출 가능한 객체(함수, 클래스 등)가 아닌 객체에 괄호를 붙여 호출할 때 발생한다.
+
+<Callout type="info" title="비슷한 에러">
+`TypeError: 'list' object is not callable`
+리스트 변수에 괄호를 사용하여 호출하려고 할 때 발생한다. 인덱싱에는 대괄호 `[]`를 사용해야 한다.
+</Callout>
+
+<Callout type="info" title="비슷한 에러">
+`TypeError: 'function' object is not subscriptable`
+함수 객체에 대괄호 `[]`를 사용하여 인덱싱하려고 할 때 발생한다. 함수 호출에는 소괄호 `()`를 사용해야 한다.
+</Callout>
+
+## 출처
+
+- StackOverflow: [tqdm: 'module' object is not callable](https://stackoverflow.com/questions/39323182/tqdm-module-object-is-not-callable) — 작성자: Zhao(질문), idjaw(답변) (CC BY-SA)
+- Tistory: [TypeError: 'function' object is not subscriptable 해결](https://jimmy-ai.tistory.com/193) — 작성자: 지미뉴트론 개발일기
+- Tistory: [TypeError: 'list' object is not callable 원인과 해결법](https://jimmy-ai.tistory.com/192) — 작성자: 지미뉴트론 개발일기
