@@ -1,0 +1,80 @@
+---
+title: "[트러블슈팅] Python 3 print 구문 SyntaxError"
+publishedAt: "2026-11-23"
+summary: "Python 3 환경에서 print를 함수 호출 형식으로 사용하지 않아 발생하는 SyntaxError 해결"
+tag: "Troubleshooting"
+---
+
+## 현상
+
+Python 3.1 이상 환경에서 `print 2 ** 100`과 같이 괄호 없이 print를 사용하면 `SyntaxError: invalid syntax`가 발생한다.
+에러 메시지는 `2` 숫자 부분을 가리키며, 이는 Python 3에서 print가 문(statement)이 아닌 함수(function)로 변경되었기 때문이다.
+
+```python
+print 2 ** 100
+# SyntaxError: invalid syntax
+```
+
+## 원인
+
+Python 3는 `print`를 내장 함수로 재정의하여 문법적 유연성을 높였다.
+기존 Python 2의 `print` 문은 괄호 없이 인자를 나열하는 방식이었으나, Python 3에서는 반드시 함수 호출 형식인 괄호 `()`를 사용해야 한다.
+괄호를 생략하면 인터프리터가 문법적으로 유효하지 않은 구문으로 인식하여 실행 단계 전에 에러를 발생시킨다.
+
+## 해결 방법
+
+`print` 뒤에 출력할 값을 괄호 `()`로 감싸서 함수 호출 형식으로 변경한다.
+
+```python
+# 수정 전 (Python 2 스타일)
+print 2 ** 100
+
+# 수정 후 (Python 3 스타일)
+print(2 ** 100)
+```
+
+## 다른 해결 방법
+
+Python 3에서 `print` 함수는 여러 가지 키워드 인자를 지원하여 출력 형식을 제어할 수 있다.
+기존 Python 2의 `print` 동작을 Python 3 함수로 정확히 재현하려면 `end`, `file` 등의 인자를 명시한다.
+
+```python
+# Python 2: print x,  (뒤에 공백 추가, 줄바꿈 안 함)
+# Python 3 대응:
+print(x, end=" ")
+
+# Python 2: print >>sys.stderr, "error"
+# Python 3 대응:
+print("error", file=sys.stderr)
+```
+
+## 추가 참고사항
+
+Python 2와 Python 3의 `print` 구문 차이는 초기 학습 단계에서 가장 흔히 마주치는 오류 중 하나이다.
+다음 표는 주요 변경 사항을 비교한다.
+
+<Compare>
+<ComparePanel title="Python 2 (문법)" tone="bad">
+print "The answer is", 2*2
+print x,
+print
+print >>sys.stderr, "fatal error"
+</ComparePanel>
+<ComparePanel title="Python 3 (함수)" tone="good">
+print("The answer is", 2*2)
+print(x, end=" ")
+print()
+print("fatal error", file=sys.stderr)
+</ComparePanel>
+</Compare>
+
+<Callout type="info" title="주의">
+Python 3에서 `print (x, y)`는 튜플 `(x, y)`를 하나의 인자로 받아 출력한다.
+Python 2의 `print x, y`처럼 두 값을 공백으로 구분해 출력하려면 `print(x, y)`로 작성해야 한다.
+</Callout>
+
+## 출처
+
+- StackOverflow: [Invalid syntax when using "print"?](https://stackoverflow.com/questions/937491/invalid-syntax-when-using-print) — 작성자: Lonnie Price(질문), TM.(답변) (CC BY-SA)
+- Tistory: [[혼공학습단 8기][혼공파] while 반복문 + <stdin> line 1 Syntax Error (3주차 보충)](https://hianzhi.tistory.com/90) — 작성자: 독일다락방 | Dachgeschoss
+- Tistory: ['Python' 카테고리의 글 목록](https://yooloo.tistory.com/category/Python) — 작성자: 잡학문구
