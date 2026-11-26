@@ -1,83 +1,100 @@
 ---
-title: "[트러블슈팅] SSL CERTIFICATE_VERIFY_FAILED 해결"
+title: "[트러블슈팅] requests의 SSL 인증서 검증 실패와 사내 CA 설정"
 publishedAt: "2026-11-26"
-summary: "HTTPS 요청 시 인증서 검증 실패 오류의 원인과 코드 수정 방법을 정리합니다."
+summary: "requests에서 CERTIFICATE_VERIFY_FAILED가 발생할 때 CA 인증서 경로와 사내 프록시 인증서를 확인하는 방법을 정리합니다."
 tag: "Troubleshooting"
 ---
 
 ## 현상
 
-파이썬에서 `requests` 라이브러리를 사용해 HTTPS URL에 접속할 때 인증서 검증 실패 오류가 발생합니다.
-Windows 7 환경에서 다음 코드를 실행하면 `requests.exceptions.SSLError`가 발생합니다.
+Python의 `requests`로 HTTPS 주소에 접근할 때 다음과 같은 오류가 발생할 수 있습니다.
 
-```python
-import requests
-requests.get('https://google.com')
+```text
+requests.exceptions.SSLError:
+[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed
 ```
 
-<Callout type="warning" title="오류 상황">
-requests.exceptions.SSLError: HTTPSConnectionPool(host='google.com', port=443):
-Max retries exceeded with url: / (Caused by SSLError(SSLError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed (_ssl.c:833)'),))
-</Callout>
-
-![현상 스크린샷](/blogs/ssl-certificate-verify-failed-161908-1.jpg)
+일반적으로 서버 인증서의 체인을 검증할 신뢰할 수 있는 CA 인증서를 찾지 못했다는 의미입니다. 운영체제, Python, requests, 네트워크 프록시의 구성에 따라 실제 원인은 달라질 수 있습니다.
 
 ## 원인
 
-파이썬이 서버가 보낸 SSL 인증서를 신뢰할 수 있는 루트 인증서 목록에서 찾지 못해 검증에 실패합니다.
-이는 로컬 환경의 인증서 파일 경로가 누락되었거나, 회사 내부의 자체 서명 인증서(SSL)를 사용하는 프록시 환경에서 발생할 수 있습니다.
-에러 메시지 중 `certificate verify failed` 뒤의 문구를 통해 구체적인 원인을 파악할 수 있습니다.
+대표적인 원인은 다음과 같습니다.
 
-## 해결 방법
+1. `requests`가 사용하는 CA 인증서 묶음이 오래되었거나 정상적으로 설치되지 않았습니다.
+2. 회사 프록시가 HTTPS 인증서를 중간에서 교체하지만, 프록시의 사내 CA 인증서가 신뢰 목록에 등록되어 있지 않습니다.
+3. 서버가 중간 인증서를 누락했거나, 서버 인증서가 만료·잘못 구성되어 있습니다.
+4. 오래된 운영체제나 Python 환경에서 최신 TLS 및 루트 인증서 체계를 제대로 지원하지 못합니다.
 
-`requests` 라이브러리의 `verify` 파라미터에 인증서 파일 경로를 직접 지정하여 해결할 수 있습니다.
-이 방법은 시스템의 기본 인증서 목록 대신 특정 CA 인증서 파일을 사용하도록 강제합니다.
+`requests`는 기본적으로 `certifi` 패키지의 CA 인증서 묶음을 사용합니다. 따라서 브라우저에서는 연결되는데 Python에서만 실패한다면, 브라우저와 Python이 서로 다른 인증서 저장소를 사용하는지 확인해야 합니다.
+
+## 해결 방법 1. requests의 CA 번들 확인
+
+먼저 requests와 certifi가 실제로 참조하는 CA 파일 경로를 확인합니다.
+
+```python
+import requests
+import certifi
+
+print("requests CA bundle:", requests.certs.where())
+print("certifi CA bundle:", certifi.where())
+```
+
+설치된 CA 묶음이 오래되었다면 해당 Python 환경에서 업데이트합니다.
+
+```bash
+python -m pip install --upgrade requests certifi
+```
+
+## 해결 방법 2. 사내 CA 인증서를 명시하기
+
+회사 프록시가 자체 CA로 HTTPS 인증서를 발급하는 환경이라면, 사내 보안·인프라 담당자가 제공한 PEM 형식의 CA 인증서를 사용합니다.
 
 ```python
 import requests
 
-# 인증서 파일 경로 지정
-requests.get('https://google.com', verify='/path/to/certfile')
+response = requests.get(
+    "https://internal.example.com",
+    verify=r"C:\certs\company-ca.pem",
+    timeout=15,
+)
+response.raise_for_status()
 ```
 
-![해결 방법 스크린샷](/blogs/ssl-certificate-verify-failed-161908-2.png)
+여러 요청에서 같은 CA 번들을 사용한다면 `REQUESTS_CA_BUNDLE` 환경 변수에 경로를 지정할 수도 있습니다.
 
-## 다른 해결 방법
-
-보안 검증 단계를 완전히 생략하여 오류를 우회할 수 있습니다.
-이 방법은 개발 환경에서의 임시 조치로 권장되며, 실제 서비스에서는 보안 취약점이 발생할 수 있으므로 주의해야 합니다.
-
-```python
-import requests
-
-# SSL 검증 비활성화
-requests.get('https://google.com', verify=False)
+```bash
+# Windows CMD
+set REQUESTS_CA_BUNDLE=C:\certs\company-ca.pem
 ```
 
-## 추가 참고사항
+인증서 파일은 반드시 회사에서 제공한 신뢰할 수 있는 경로로 받아야 합니다. 서버 인증서를 임의로 내려받아 신뢰 목록에 넣는 것과 CA 인증서를 올바르게 설치하는 것은 서로 다른 작업입니다.
 
-<Steps>
-<Step title="환경 진단">
-`ssl.get_default_verify_paths()`를 호출하여 현재 파이썬이 참조하는 기본 인증서 경로를 확인합니다.
-</Step>
-<Step title="서버 상태 확인">
-브라우저에서 동일한 주소에 접속했을 때 경고가 발생하면, 서버 측에서 중간 인증서를 누락했을 가능성이 있습니다.
-</Step>
-<Steps>
-<Step title="pip 설치 시 에러">
-패키지 설치 중 해당 오류가 발생하면 `--trusted-host` 옵션을 추가하거나, `pip` 내부의 `requests` 설정을 수정해야 합니다.
-</Step>
-</Steps>
-</Steps>
+## pip 설치에서 같은 오류가 발생한다면
 
-<Callout type="info" title="참고 사항">
-에러 메시지 끝부분의 `_ssl.c` 뒤 숫자는 파이썬 빌드 버전에 따라 다르므로 무시해도 됩니다.
-</Callout>
+`pip`는 `requests`와 별도의 인증서 설정을 가질 수 있습니다. 사내 CA 번들을 사용해야 한다면 다음처럼 지정합니다.
+
+```bash
+python -m pip install --cert C:\certs\company-ca.pem package-name
+```
+
+또는 Windows CMD에서 환경 변수를 지정합니다.
+
+```bash
+set PIP_CERT=C:\certs\company-ca.pem
+```
+
+## 피해야 할 우회 방법
+
+`requests.get(..., verify=False)` 또는 pip의 `--trusted-host`는 인증서 검증을 비활성화하거나 우회합니다. 연결은 성공할 수 있지만, 상대 서버가 진짜 서버인지 확인하지 않으므로 중간자 공격에 취약해집니다. 로컬에서 잠깐 확인하는 경우를 제외하면 사용하지 말고, 사내 CA나 올바른 서버 인증서 체인을 설정해야 합니다.
+
+## 추가 점검
+
+- `ssl.get_default_verify_paths()`로 Python 표준 SSL 모듈의 기본 인증서 경로를 확인합니다.
+- 브라우저에서도 같은 주소에 인증서 경고가 발생한다면 서버의 인증서 체인과 만료 여부를 먼저 점검합니다.
+- 운영체제가 오래되어 루트 인증서 업데이트를 받을 수 없다면 지원되는 OS와 Python 환경으로 이전하는 방안을 검토합니다.
 
 ## 출처
 
-- StackOverflow: [Why do HTTPS requests produce SSL CERTIFICATE_VERIFY_FAILED error?](https://stackoverflow.com/questions/51768496/why-do-https-requests-produce-ssl-certificate-verify-failed-error) — 작성자: rayashi(질문), Chagai Wild(답변) (CC BY-SA)
-- Tistory: [[정보] SSL: CERTIFICATE_VERIFY_FAILED / ssl.SSLCertVerificationError 원인과 해결법 총정리 (파이썬 인증서 오류)](https://earscoming.tistory.com/entry/%EC%A0%95%EB%B3%B4-SSL-CERTIFICATEVERIFYFAILED-sslSSLCertVerificationError-%EC%9B%90%EC%9D%B8%EA%B3%BC-%ED%95%B4%EA%B2%B0%EB%B2%95-%EC%B4%9D%EC%A0%95%EB%A6%AC-%ED%8C%8C%EC%9D%B4%EC%8D%AC-%EC%9D%B8%EC%A6%9D%EC%84%9C-%EC%98%A4%EB%A5%98) — 작성자: 더 코딩 _ The Coding
-- Tistory: [[Error] "SSL: CERTIFICATE_VERIFY_FAILED" - pip 사용시 인증서 에러 조치](https://didalsgur.tistory.com/entry/pip-%EC%82%AC%EC%9A%A9%EC%8B%9C-%EC%9D%B8%EC%A6%9D%EC%84%9C-%EC%97%90%EB%9F%ACSSL-Error-%EC%A1%B0%EC%B9%98-SSL-CERTIFICATEVERIFYFAILED) — 작성자: 기록은 지식이 되고, 배움의 기회를 만든다.
-
-본문 이미지는 위 출처에서 가져왔습니다.
+- Requests 공식 문서: [CA Certificates](https://requests.readthedocs.io/en/latest/user/advanced/#ca-certificates)
+- pip 공식 문서: [HTTPS Certificates](https://pip.pypa.io/en/stable/topics/https-certificates/)
+- Python 공식 문서: [ssl — TLS/SSL wrapper](https://docs.python.org/3/library/ssl.html)

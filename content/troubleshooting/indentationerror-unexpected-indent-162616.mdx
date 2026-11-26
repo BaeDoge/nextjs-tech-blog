@@ -25,7 +25,8 @@ def greet():
 
 ```python
 def greet():
-print("Hello")  # 들여쓰기 없음 → 오류 발생
+    print("Hello")
+  print("Again")  # 앞선 줄과 블록 깊이가 달라 오류 발생
 ```
 
 ## 원인
@@ -88,9 +89,11 @@ def greet():
 1. **에디터 설정 변경**: 사용하는 에디터(예: Vim, VS Code 등)에서 '탭을 공백으로 변환' 설정을 활성화합니다.
 2. **명령줄 옵션 확인**: 스크립트 실행 시 `-tt` 옵션을 추가하면 탭과 공백이 혼용된 부분을 명시적으로 경고해 줍니다.
 
-<Terminal title="실행 예시">
-python -tt your_script.py
-</Terminal>
+```bash
+python -m py_compile your_script.py
+```
+
+탭과 공백이 혼용되어 들여쓰기 의미가 모호하면 별도의 `TabError`가 발생합니다. Python 3에서는 `-t` 또는 `-tt` 옵션을 해결책으로 안내하지 않는 것이 좋습니다.
 
 <Callout type="info" title="에디터 팁">
 Vim의 경우 `'list'` 옵션을 활성화하면 탭과 공백을 시각적으로 구분할 수 있어 실수를 줄일 수 있습니다.
