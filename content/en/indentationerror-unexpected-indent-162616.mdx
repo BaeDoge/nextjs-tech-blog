@@ -1,0 +1,117 @@
+---
+title: "[Troubleshooting] IndentationError: unexpected indent"
+publishedAt: "2026-11-26"
+summary: "This guide explains how to resolve IndentationError caused by unnecessary indentation or mixing tabs and spaces."
+tag: "Troubleshooting"
+---
+
+## Symptom
+
+An `IndentationError: unexpected indent` error occurs when running Python code or a script. This happens when indentation is used in an unexpected location within the code.
+
+<Callout type="warning" title="Error Situation">
+IndentationError: unexpected indent
+</Callout>
+
+A typical example of where this error occurs is as follows:
+
+```python
+def greet():
+    print("Hello")
+        print("Again")  # Unnecessary indentation -> Error occurs
+```
+
+The same issue also arises when the indentation level is inconsistent after a statement that requires a block, or when tabs and spaces are mixed.
+
+```python
+def greet():
+print("Hello")  # No indentation -> Error occurs
+```
+
+## Cause
+
+Unlike other languages, Python does not use curly braces (`{}`) to distinguish code blocks; instead, it determines the structure of statements through indentation. Therefore, indentation is not just for readability but is part of the syntax itself.
+
+The main causes of this error are:
+
+1. **Unnecessary indentation outside a block**: Code is indented outside of a function or conditional block.
+2. **Inconsistent indentation levels**: The depth of indentation is not uniform within the same code block.
+3. **Mixing tabs and spaces**: Although invisible, mixing tab (`Tab`) characters and space (`Space`) characters prevents the Python interpreter from accurately calculating indentation depth.
+
+```python
+# 원인 1: 블록 외부 들여쓰기
+ print("첫 번째 줄")  # <- 여기 앞에 공백이 하나 숨어있음! (에러 발생)
+
+# 원인 2: 들여쓰기 수준 불일치
+def func():
+    print("A")
+      print("B")  # 들여쓰기 깊이가 A와 다름
+```
+
+## Solution
+
+The most reliable solution is to consistently use **4 spaces** for indentation according to the PEP 8 guidelines.
+
+1. Move the cursor to the beginning of the line where the error occurred.
+2. Delete all spaces and tabs at the beginning of that line.
+3. If the code is inside a block, enter 4 spaces for the appropriate depth.
+
+The code before and after the fix is as follows:
+
+<Compare>
+<ComparePanel title="Before Fix (Error)" tone="bad">
+
+```python
+def greet():
+        print("Hello")  # Unnecessary indentation
+```
+
+</ComparePanel>
+<ComparePanel title="After Fix (Normal)" tone="good">
+
+```python
+def greet():
+    print("Hello")  # Unified with 4 spaces
+```
+
+</ComparePanel>
+</Compare>
+
+It is also effective to use your editor's automatic indentation alignment feature to make the indentation of the entire code consistent.
+
+![Solution screenshot](/blogs/indentationerror-unexpected-indent-162616-1.png)
+
+## Alternative Solutions
+
+If the error is caused by mixing tabs and spaces, you can fundamentally verify and fix this by changing editor settings or using command-line options.
+
+1. **Change Editor Settings**: Enable the 'Convert Tabs to Spaces' setting in your editor (e.g., Vim, VS Code).
+2. **Check Command-Line Options**: Adding the `-tt` option when running the script will explicitly warn you about parts where tabs and spaces are mixed.
+
+<Terminal title="Execution Example">
+python -tt your_script.py
+</Terminal>
+
+<Callout type="info" title="Editor Tip">
+In Vim, enabling the `'list'` option allows you to visually distinguish between tabs and spaces, reducing mistakes.
+</Callout>
+
+## Additional Notes
+
+`IndentationError` is one of the most common errors encountered by Python beginners. A similar error message is `IndentationError: expected an indented block`. This occurs when indentation is missing on the line following a statement ending with a colon (`:`), such as `if`, `for`, or `def`.
+
+```python
+# IndentationError: expected an indented block 예시
+if True:
+print("참입니다")  # 콜론 다음 줄은 무조건 들여쓰기 필요
+```
+
+To prevent these errors, it is important to actively use auto-formatting features when writing code and to develop the habit of not mixing tabs and spaces.
+
+## Sources
+
+- StackOverflow: [IndentationError: unexpected indent error](https://stackoverflow.com/questions/3920628/indentationerror-unexpected-indent-error) — Author: ian(question), johnsyweb(answer) (CC BY-SA)
+- Tistory: [[파이썬][Error] 104. IndentationError - unexpected indent](https://about-ittt.tistory.com/431) — Author: about_IT
+- Tistory: [IndentationError: unexpected indent 해결 방법 (들여쓰기 오류 잡기)](https://jbparkbill.tistory.com/entry/IndentationError-unexpected-indent-%ED%95%B4%EA%B2%B0-%EB%B0%A9%EB%B2%95-%EB%93%A4%EC%97%AC%EC%93%B0%EA%B8%B0-%EC%98%A4%EB%A5%98-%EC%9E%A1%EA%B8%B0) — Author: jbparkbill 님의 블로그
+
+Images are taken from the sources above.
