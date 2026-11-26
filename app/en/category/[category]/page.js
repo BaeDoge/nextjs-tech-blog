@@ -11,10 +11,15 @@ export async function generateMetadata({ params }) {
   const { category } = await params;
   const item = EN_CATEGORIES[category];
   if (!item) return {};
+  const hasEnglishPosts = getAllPosts('en').some((post) => post.category === category);
   return {
     title: item.label,
     description: item.description,
-    alternates: { canonical: `/en/category/${category}`, languages: { ko: `/category/${category}`, en: `/en/category/${category}` } },
+    robots: hasEnglishPosts ? { index: true, follow: true } : { index: false, follow: true },
+    alternates: {
+      canonical: `/en/category/${category}`,
+      ...(hasEnglishPosts ? { languages: { ko: `/category/${category}`, en: `/en/category/${category}` } } : {}),
+    },
     openGraph: { locale: 'en_US', title: item.label, description: item.description },
   };
 }
