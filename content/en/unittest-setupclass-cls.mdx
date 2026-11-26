@@ -1,0 +1,99 @@
+---
+title: "[Troubleshooting] unittest setUpClass cls Missing Argument Error"
+publishedAt: "2026-11-26"
+summary: "This note explains how to resolve the TypeError caused by missing the `@classmethod` decorator when defining `setUpClass` in unittest."
+tag: "Troubleshooting"
+---
+
+## Symptom
+
+When defining the `setUpClass` method in a test class inheriting from `unittest.TestCase`, an error occurs if the method explicitly accepts the `cls` argument but lacks the appropriate decorator. The test cases do not execute, and the following traceback is displayed:
+
+```python
+class TestDownload(unittest.TestCase):
+
+    def setUpClass(cls):
+        config.fs = True
+```
+
+```text
+Ran 0 tests in 0.004s
+
+FAILED (errors=1)
+
+Failure
+Traceback (most recent call last):
+  File "/opt/anaconda3/lib/python3.5/unittest/suite.py", line 163, in _handleClassSetUp
+    setUpClass()
+TypeError: setUpClass() missing 1 required positional argument: 'cls'
+```
+
+## Cause
+
+The `unittest` framework calls the `setUpClass` method on the class object itself when the test class is loaded. If the method is treated as a regular function, arguments are not passed, resulting in an error.
+
+Without the `@classmethod` decorator, the method is considered a regular function not bound to the class, so the first argument `cls` is not automatically passed. This causes a `TypeError` indicating that the `cls` argument is missing.
+
+## Solution
+
+You must add the `@classmethod` decorator before the `setUpClass` method definition to declare it as a class method. This ensures that the class object is automatically passed as the first argument when the method is called.
+
+```python
+import unittest
+
+class TestDownload(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        # Class-level setup logic
+        config.fs = True
+```
+
+<Steps>
+<Step title="Add Decorator">
+Place `@classmethod` above `def setUpClass(cls):`.
+</Step>
+<Step title="Run Tests">
+Run the tests again with the modified code to verify that the error is resolved.
+</Step>
+</Steps>
+
+## Alternative Solutions
+
+Since this error is related to the specific usage of `setUpClass` (class-level initialization), if your goal is standard instance initialization, it is the standard approach to use the `setUp` method.
+
+The `setUp` method is called by creating a new instance before each test method runs, so it uses the `self` argument instead of `cls`.
+
+```python
+class TestDownload(unittest.TestCase):
+
+    def setUp(self):
+        # Instance-level setup logic
+        self.config = config
+        self.config.fs = True
+```
+
+<Compare>
+<ComparePanel title="setUpClass (Class Level)" tone="good">
+Requires `@classmethod`, runs once for the entire test suite, used for initializing shared resources
+</ComparePanel>
+<ComparePanel title="setUp (Instance Level)" tone="good">
+Uses `self`, runs for each test method, ensures independence between tests
+</ComparePanel>
+</Compare>
+
+## Additional Notes
+
+Since `setUpClass` must run only once before the test suite starts, using the decorator is mandatory.
+
+<Callout type="tip" title="Note">
+`setUpClass` and `tearDownClass` are typically used in pairs. `tearDownClass` also requires the `@classmethod` decorator.
+</Callout>
+
+Similar `TypeError: missing required positional argument` errors frequently occur when decorators are missing in class methods or static methods, so it is recommended to check whether decorators are applied when declaring methods.
+
+## Sources
+
+- StackOverflow: [TypeError: setUpClass() missing 1 required positional argument: 'cls'](https://stackoverflow.com/questions/49651815/typeerror-setupclass-missing-1-required-positional-argument-cls) — Author: Dims(question), Jacques Gaudin(answer) (CC BY-SA)
+- Tistory: [python 클래스 TypeError 오류 해결](https://kkamikoon.tistory.com/entry/python-%ED%81%B4%EB%9E%98%EC%8A%A4-TypeError-%EC%98%A4%EB%A5%98-%ED%95%B4%EA%B2%B0) — Author: 컴퓨터를 다루다
+- Tistory: [python 클래스 TypeError 오류 해결](https://kkamikoon.tistory.com/entry/python-클래스-TypeError-오류-해결) — Author: 컴퓨터를 다루다

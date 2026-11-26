@@ -1,0 +1,99 @@
+---
+title: "[트러블슈팅] unittest setUpClass cls 누락 오류"
+publishedAt: "2026-11-26"
+summary: "unittest의 `setUpClass` 메서드 호출 시 `@classmethod` 데코레이터 누락으로 발생하는 TypeError 해결 방법을 다룹니다."
+tag: "Troubleshooting"
+---
+
+## 현상
+
+`unittest.TestCase`를 상속받은 테스트 클래스에서 `setUpClass` 메서드를 정의할 때, 인자 `cls`를 명시적으로 받도록 작성하지만 데코레이터를 붙이지 않으면 에러가 발생합니다. 테스트 실행 시 테스트 케이스가 실행되지 않으며, 다음과 같은 traceback이 출력됩니다.
+
+```python
+class TestDownload(unittest.TestCase):
+
+    def setUpClass(cls):
+        config.fs = True
+```
+
+```text
+Ran 0 tests in 0.004s
+
+FAILED (errors=1)
+
+Failure
+Traceback (most recent call last):
+  File "/opt/anaconda3/lib/python3.5/unittest/suite.py", line 163, in _handleClassSetUp
+    setUpClass()
+TypeError: setUpClass() missing 1 required positional argument: 'cls'
+```
+
+## 원인
+
+`unittest` 프레임워크는 테스트 클래스가 로드될 때 `setUpClass` 메서드를 클래스 객체 자체에 대해 호출합니다. 이때 메서드가 일반 함수로 취급되면 인자가 전달되지 않아 에러가 발생합니다.
+
+`@classmethod` 데코레이터를 사용하지 않으면, 메서드가 클래스에 바인딩되지 않은 일반 함수로 간주되어 첫 번째 인자인 `cls`가 자동으로 전달되지 않습니다. 이로 인해 `cls` 인자가 누락되었다는 `TypeError`가 발생합니다.
+
+## 해결 방법
+
+`setUpClass` 메서드 정의 앞에 `@classmethod` 데코레이터를 추가하여 클래스 메서드로 선언해야 합니다. 이렇게 하면 메서드 호출 시 클래스 객체가 첫 번째 인자로 자동으로 전달됩니다.
+
+```python
+import unittest
+
+class TestDownload(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        # 클래스 레벨 설정 로직
+        config.fs = True
+```
+
+<Steps>
+<Step title="데코레이터 추가">
+`def setUpClass(cls):` 위에 `@classmethod`를 배치합니다.
+</Step>
+<Step title="테스트 실행">
+변경된 코드로 테스트를 다시 실행하여 에러가 해결되었는지 확인합니다.
+</Step>
+</Steps>
+
+## 다른 해결 방법
+
+이 오류는 `setUpClass`의 특수한 사용법(클래스 단위 초기화)과 관련이 있으므로, 일반적인 인스턴스 초기화가 목적이라면 `setUp` 메서드를 사용하는 것이 표준적인 접근 방식입니다.
+
+`setUp` 메서드는 각 테스트 메서드 실행 전에 새로운 인스턴스를 생성하여 호출되므로, `cls` 인자 대신 `self` 인자를 사용합니다.
+
+```python
+class TestDownload(unittest.TestCase):
+
+    def setUp(self):
+        # 인스턴스 레벨 설정 로직
+        self.config = config
+        self.config.fs = True
+```
+
+<Compare>
+<ComparePanel title="setUpClass (클래스 단위)" tone="good">
+`@classmethod` 필요, 테스트 전체에서 한 번만 실행, 공유 자원 초기화용
+</ComparePanel>
+<ComparePanel title="setUp (인스턴스 단위)" tone="good">
+`self` 사용, 각 테스트 메서드마다 실행, 테스트 간 독립성 보장용
+</ComparePanel>
+</Compare>
+
+## 추가 참고사항
+
+`setUpClass`는 테스트 스위트가 시작되기 전에 한 번만 실행되어야 하므로, 데코레이터 사용이 필수적입니다.
+
+<Callout type="tip" title="참고 사항">
+`setUpClass`와 `tearDownClass`는 짝을 이루어 사용하는 것이 일반적입니다. `tearDownClass` 역시 `@classmethod` 데코레이터가 필요합니다.
+</Callout>
+
+유사한 `TypeError: missing required positional argument` 오류는 클래스 메서드나 정적 메서드에서 데코레이터 누락 시 빈번하게 발생하므로, 메서드 선언 시 데코레이터 적용 여부를 확인하는 것이 좋습니다.
+
+## 출처
+
+- StackOverflow: [TypeError: setUpClass() missing 1 required positional argument: 'cls'](https://stackoverflow.com/questions/49651815/typeerror-setupclass-missing-1-required-positional-argument-cls) — 작성자: Dims(질문), Jacques Gaudin(답변) (CC BY-SA)
+- Tistory: [python 클래스 TypeError 오류 해결](https://kkamikoon.tistory.com/entry/python-%ED%81%B4%EB%9E%98%EC%8A%A4-TypeError-%EC%98%A4%EB%A5%98-%ED%95%B4%EA%B2%B0) — 작성자: 컴퓨터를 다루다
+- Tistory: [python 클래스 TypeError 오류 해결](https://kkamikoon.tistory.com/entry/python-클래스-TypeError-오류-해결) — 작성자: 컴퓨터를 다루다
