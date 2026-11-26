@@ -74,7 +74,7 @@ export default async function EnglishArticlePage({ params }) {
         <MDXRemote source={post.content} options={mdxOptions} components={mdxComponents} />
         {hasCodePlayground && <div className="article-end"><span>END OF NOTE</span><p>Try running the examples and experimenting with the code.</p><small>Small experiments can make difficult concepts easier to understand.</small></div>}
       </article>
-      {hasCodePlayground && <aside className="article-sidebar"><PythonPlayground title={post.title} /><div className="sidebar-card"><span className="eyebrow">IN THIS ARTICLE</span><p>Use the article headings to find the section you need.</p><a href="#top">Back to top ↑</a></div><AdSlot className="ad-sidebar" /></aside>}
+      {hasCodePlayground && <aside className="article-sidebar"><PythonPlayground title={post.title} locale="en" /><div className="sidebar-card"><span className="eyebrow">IN THIS ARTICLE</span><p>Use the article headings to find the section you need.</p><a href="#top">Back to top ↑</a></div><AdSlot className="ad-sidebar" /></aside>}
     </div>
     <AdSlot className="ad-article-bottom" />
     <section className="related-section">
