@@ -22,7 +22,7 @@ function getSharedWorker() {
       workerSubscribers.forEach((subscriber) => subscriber(event));
     };
     sharedWorker.onerror = () => {
-      const errorEvent = { data: { type: 'fatal', error: 'Python 실행 환경을 불러오지 못했습니다. 네트워크 연결 또는 브라우저의 CDN 접근을 확인해 주세요.' } };
+      const errorEvent = { data: { type: 'fatal', error: isEnglish ? 'Could not load the Python runtime. Check your network connection and browser access.' : 'Python 실행 환경을 불러오지 못했습니다. 네트워크 연결 또는 브라우저의 CDN 접근을 확인해 주세요.' } };
       workerSubscribers.forEach((subscriber) => subscriber(errorEvent));
       if (sharedExecutionTimeout) clearTimeout(sharedExecutionTimeout);
       sharedExecutionTimeout = null;
@@ -40,7 +40,35 @@ function terminateSharedWorker() {
   sharedWorker = null;
 }
 
-export default function PythonPlayground({ title = 'Python 실험실', initialOpen = false }) {
+export default function PythonPlayground({ title = 'Python 실험실', initialOpen = false, locale = 'ko' }) {
+  const isEnglish = locale === 'en';
+  const labels = isEnglish ? {
+    trigger: 'Run code', triggerHelp: 'Run Python in your browser', dialog: 'Python playground',
+    heading: 'Python Playground', intro: 'Code runs directly in your browser.',
+    editor: 'Python code', editorHelp: 'Tab: indent · Shift+Tab: outdent · Enter: auto-indent · Ctrl+Space: autocomplete',
+    run: '▶ Run', running: 'Running…', reset: 'Reset', copy: 'Copy code',
+    preparing: 'Preparing', done: 'Done', error: 'Error', copied: 'Copied', idle: 'Ready',
+    output: 'Output', clear: 'Clear', noOutput: 'No output yet. Use print() to inspect a result.',
+    empty: 'Your output will appear here.',
+    note: 'The Python runtime is not loaded when the page opens. It is downloaded on the first run and reused while you browse in the same tab. Long-running code is stopped automatically.',
+    runtimeLoading: 'Loading the Python runtime for the first time. This may take a little while.',
+    runtimeError: 'Could not load the Python runtime. Check your network connection and browser access.',
+    timeout: 'Execution took too long and was stopped. Check for an infinite loop.',
+    copyError: 'Could not copy the code. Select and copy it from the editor instead.',
+  } : {
+    trigger: '코드 실험하기', triggerHelp: '브라우저에서 Python 실행', dialog: 'Python 코드 실험실',
+    heading: '코드 실험실', intro: '코드는 브라우저에서 실행됩니다.',
+    editor: 'Python 코드', editorHelp: 'Tab 들여쓰기 · Shift+Tab 내어쓰기 · Enter 자동 들여쓰기 · Ctrl+Space 자동완성',
+    run: '▶ 실행', running: '실행 중…', reset: '초기화', copy: '코드 복사',
+    preparing: '환경 준비 중', done: '완료', error: '오류', copied: '복사됨', idle: '대기 중',
+    output: '실행 결과', clear: '지우기', noOutput: '(출력 결과가 없습니다. print()를 사용해 결과를 확인해 보세요.)',
+    empty: '실행 결과가 여기에 표시됩니다.',
+    note: '페이지를 열 때 Python 런타임을 불러오지 않습니다. 첫 실행 때만 다운로드하며, 같은 탭에서 페이지를 이동해도 실행 환경을 재사용합니다. 오래 실행되는 코드는 자동으로 중단됩니다.',
+    runtimeLoading: 'Python 실행 환경을 처음 불러오는 중입니다. 첫 실행은 조금 더 걸릴 수 있어요.',
+    runtimeError: 'Python 실행 환경을 불러오지 못했습니다. 네트워크 연결 또는 브라우저 접근을 확인해 주세요.',
+    timeout: '실행 시간이 너무 길어 실행을 중단했어요. 무한 반복문이 있는지 확인해 주세요.',
+    copyError: '코드를 복사할 수 없어요. 편집기에서 직접 선택해 복사해 주세요.',
+  };
   const [open, setOpen] = useState(initialOpen);
   const [code, setCode] = useState(DEFAULT_CODE);
   const [output, setOutput] = useState('');
@@ -64,7 +92,7 @@ export default function PythonPlayground({ title = 'Python 실험실', initialOp
       const data = event.data || {};
       if (data.type === 'loading-runtime') {
         setStatus('loading');
-        setOutput('Python 실행 환경을 처음 불러오는 중입니다. 첫 실행은 조금 더 걸릴 수 있어요.');
+        setOutput(labels.runtimeLoading);
       } else if (data.type === 'ready') {
         setStatus('running');
       } else if (data.type === 'started') {
@@ -72,19 +100,19 @@ export default function PythonPlayground({ title = 'Python 실험실', initialOp
         if (sharedExecutionTimeout) clearTimeout(sharedExecutionTimeout);
         sharedExecutionTimeout = setTimeout(() => {
           terminateSharedWorker();
-          const timeoutEvent = { data: { type: 'fatal', error: '실행 시간이 너무 길어 실행을 중단했어요. 무한 반복문이 있는지 확인해 주세요.' } };
+          const timeoutEvent = { data: { type: 'fatal', error: labels.timeout } };
           workerSubscribers.forEach((listener) => listener(timeoutEvent));
         }, 5000);
       } else if (data.type === 'result') {
         if (sharedExecutionTimeout) clearTimeout(sharedExecutionTimeout);
         sharedExecutionTimeout = null;
         const combined = [data.output, data.error].filter(Boolean).join(data.output && data.error ? '\n' : '');
-        setOutput(combined || '(출력 결과가 없습니다. print()를 사용해 결과를 확인해 보세요.)');
+        setOutput(combined || labels.noOutput);
         setStatus(data.error ? 'error' : 'done');
       } else if (data.type === 'fatal') {
         if (sharedExecutionTimeout) clearTimeout(sharedExecutionTimeout);
         sharedExecutionTimeout = null;
-        setOutput(data.error || 'Python 실행 중 오류가 발생했습니다.');
+        setOutput(data.error || (isEnglish ? 'An error occurred while running Python.' : 'Python 실행 중 오류가 발생했습니다.'));
         setStatus('error');
       }
     };
@@ -206,7 +234,7 @@ export default function PythonPlayground({ title = 'Python 실험실', initialOp
   function runCode() {
     if (status === 'loading' || status === 'running') return;
     setHasRun(true);
-    setOutput('실행 준비 중...');
+    setOutput(isEnglish ? 'Preparing execution...' : '실행 준비 중...');
     setStatus('loading');
     getSharedWorker().postMessage({ type: 'run', code });
   }
@@ -226,7 +254,7 @@ export default function PythonPlayground({ title = 'Python 실험실', initialOp
       setStatus('copied');
       setTimeout(() => setStatus((current) => current === 'copied' ? 'idle' : current), 1500);
     } catch {
-      setOutput('코드를 복사할 수 없어요. 편집기에서 직접 선택해 복사해 주세요.');
+      setOutput(labels.copyError);
       setStatus('error');
     }
   }
@@ -235,19 +263,19 @@ export default function PythonPlayground({ title = 'Python 실험실', initialOp
     <>
       <button type="button" className="python-playground-trigger" onClick={() => setOpen(true)}>
         <span aria-hidden="true">⌘</span>
-        <span><strong>코드 실험하기</strong><small>브라우저에서 Python 실행</small></span>
+        <span><strong>{labels.trigger}</strong><small>{labels.triggerHelp}</small></span>
         <span className="python-trigger-arrow" aria-hidden="true">↗</span>
       </button>
       {open && (
         <div className="python-playground-backdrop" role="presentation" onMouseDown={(event) => {
           if (event.target === event.currentTarget) setOpen(false);
         }}>
-          <section className="python-playground-panel" role="dialog" aria-modal="true" aria-label="Python 코드 실험실">
+          <section className="python-playground-panel" role="dialog" aria-modal="true" aria-label={labels.dialog}>
             <header className="python-playground-head">
-              <div><span className="eyebrow">BROWSER PYTHON</span><h2>코드 실험실</h2><p>{title} · 코드는 브라우저에서 실행됩니다.</p></div>
+              <div><span className="eyebrow">BROWSER PYTHON</span><h2>{labels.heading}</h2><p>{title} · {labels.intro}</p></div>
               <button type="button" className="python-icon-button" onClick={() => setOpen(false)} aria-label="실험실 닫기">×</button>
             </header>
-            <label className="python-editor-label" htmlFor="python-playground-editor">Python 코드</label>
+            <label className="python-editor-label" htmlFor="python-playground-editor">{labels.editor}</label>
             <div className="python-editor-shell">
               <textarea
                 ref={editorRef}
@@ -281,20 +309,20 @@ export default function PythonPlayground({ title = 'Python 실험실', initialOp
                 </div>
               )}
             </div>
-            <p id="python-editor-help" className="python-editor-help">Tab 들여쓰기 · Shift+Tab 내어쓰기 · Enter 자동 들여쓰기 · Ctrl+Space 자동완성</p>
+            <p id="python-editor-help" className="python-editor-help">{labels.editorHelp}</p>
             <div className="python-playground-actions">
               <button type="button" className="button-primary" onClick={runCode} disabled={status === 'loading' || status === 'running'}>
-                {status === 'loading' || status === 'running' ? '실행 중…' : '▶ 실행'}
+                {status === 'loading' || status === 'running' ? labels.running : labels.run}
               </button>
-              <button type="button" className="button-secondary" onClick={resetCode} disabled={status === 'loading' || status === 'running'}>초기화</button>
-              <button type="button" className="button-secondary" onClick={copyCode}>코드 복사</button>
-              <span className="python-status" aria-live="polite">{status === 'loading' ? '환경 준비 중' : status === 'running' ? '실행 중' : status === 'done' ? '완료' : status === 'error' ? '오류' : status === 'copied' ? '복사됨' : '대기 중'}</span>
+              <button type="button" className="button-secondary" onClick={resetCode} disabled={status === 'loading' || status === 'running'}>{labels.reset}</button>
+              <button type="button" className="button-secondary" onClick={copyCode}>{labels.copy}</button>
+              <span className="python-status" aria-live="polite">{status === 'loading' ? labels.preparing : status === 'running' ? labels.running : status === 'done' ? labels.done : status === 'error' ? labels.error : status === 'copied' ? labels.copied : labels.idle}</span>
             </div>
             <div className="python-output-wrap">
-              <div className="python-output-title"><strong>실행 결과</strong>{hasRun && <button type="button" onClick={() => { setOutput(''); setHasRun(false); setStatus('idle'); }}>지우기</button>}</div>
-              <pre className={`python-playground-output ${status === 'error' ? 'is-error' : ''}`} aria-live="polite">{output || '실행 결과가 여기에 표시됩니다.'}</pre>
+              <div className="python-output-title"><strong>{labels.output}</strong>{hasRun && <button type="button" onClick={() => { setOutput(''); setHasRun(false); setStatus('idle'); }}>{labels.clear}</button>}</div>
+              <pre className={`python-playground-output ${status === 'error' ? 'is-error' : ''}`} aria-live="polite">{output || labels.empty}</pre>
             </div>
-            <p className="python-playground-note">페이지를 열 때 Python 런타임을 불러오지 않습니다. 첫 실행 때만 다운로드하며, 같은 탭에서 페이지를 이동해도 실행 환경을 재사용합니다. 오래 실행되는 코드는 자동으로 중단됩니다.</p>
+            <p className="python-playground-note">{labels.note}</p>
           </section>
         </div>
       )}
