@@ -7,7 +7,10 @@ export const metadata = {
   title: 'Learn, build, and share',
   description: 'Practical notes on algorithms, troubleshooting, research papers, and open-source engineering.',
   robots: getAllPosts('en').length ? { index: true, follow: true } : { index: false, follow: true },
-  alternates: { canonical: '/en', languages: { ko: '/', en: '/en' } },
+  alternates: {
+    canonical: '/en',
+    ...(getAllPosts('en').length ? { languages: { ko: '/', en: '/en' } } : {}),
+  },
   openGraph: { type: 'website', locale: 'en_US', siteName: 'baejoon', title: 'Learn, build, and share | baejoon', description: 'Practical notes on software development and engineering.' },
 };
 
