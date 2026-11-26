@@ -87,22 +87,37 @@ slice = set(np.unique(energies)) & above
 
 <Callout type="info" title="캐싱 시 주의">
 
-```python
-import functools
-import pygmo
-import numpy as np
+`functools.lru_cache`는 함수가 실행되기 전에 인자들을 해시 키로 사용합니다. 따라서 함수 본문 안에서 배열을 `tolist()`로 바꾸는 것만으로는 부족합니다. 캐시 데코레이터에 전달되기 전에 배열을 중첩 튜플로 변환해야 합니다.
 
-# 인자가 numpy.ndarray인 경우, 캐싱 적용 전 리스트로 변환 필요
-@functools.lru_cache(maxsize=None)
+~~~python
+import functools
+import numpy as np
+import pygmo
+
+def to_hashable(value):
+    if isinstance(value, np.ndarray):
+        value = value.tolist()
+
+    if isinstance(value, (list, tuple)):
+        return tuple(to_hashable(item) for item in value)
+
+    return value
+
+@functools.lru_cache(maxsize=128)
+def _calculate_hypervolume(obj_y, reference):
+    return pygmo.hypervolume(obj_y).compute(reference)
+
 def calculate_hypervolume(obj_y, reference):
-    y_points = obj_y.tolist() if isinstance(obj_y, np.ndarray) else obj_y
-    ref = reference.tolist() if isinstance(reference, np.ndarray) else reference
-    hv = pygmo.hypervolume(y_points)
-    return hv.compute(ref)
-```
+    # 2차원 점 배열과 기준 벡터를 캐시 가능한 튜플 구조로 변환
+    return _calculate_hypervolume(
+        to_hashable(obj_y),
+        to_hashable(reference),
+    )
+~~~
+
+이 예제는 배열의 현재 값을 불변 튜플로 변환해 캐시 키로 사용합니다. 배열 내용이 달라지면 다른 키가 만들어집니다. 배열의 크기가 크면 튜플 변환 및 캐시 보관 비용도 커질 수 있으므로, 캐시가 실제로 성능 개선에 도움이 되는지 확인한 뒤 적용해야 합니다.
 
 </Callout>
-
 ## 출처
 
 - StackOverflow: [TypeError: unhashable type: 'numpy.ndarray'](https://stackoverflow.com/questions/9022656/typeerror-unhashable-type-numpy-ndarray) — 작성자: user1171835(질문), DSM(답변) (CC BY-SA)
