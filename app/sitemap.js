@@ -1,4 +1,4 @@
-import { getAllPosts, getSiteUrl } from '@/lib/posts';
+import { getAllPosts, getSiteUrl, EN_CATEGORIES, hasPostTranslation } from '@/lib/posts';
 
 export default function sitemap() {
   const base = getSiteUrl();
@@ -12,7 +12,10 @@ export default function sitemap() {
     return value ? new Date(value) : undefined;
   };
 
-  const categories = ['algorithm', 'troubleshooting', 'paper', 'opensource'];
+  const categories = Object.keys(EN_CATEGORIES);
+  const englishPosts = getAllPosts('en');
+  const englishStaticPages = ['/en/about', '/en/contact', '/en/privacy', '/en/lab'];
+
   const staticPages = [
     { path: '/about', changeFrequency: 'monthly', priority: 0.4 },
     { path: '/contact', changeFrequency: 'monthly', priority: 0.3 },
@@ -25,23 +28,61 @@ export default function sitemap() {
       lastModified: latestDate(posts),
       changeFrequency: 'weekly',
       priority: 1,
+      ...(englishPosts.length ? { alternates: { languages: { ko: base, en: `${base}/en` } } } : {}),
     },
+    ...(englishPosts.length ? [{
+      url: `${base}/en`,
+      lastModified: latestDate(englishPosts),
+      changeFrequency: 'weekly',
+      priority: 0.9,
+      alternates: { languages: { ko: base, en: `${base}/en` } },
+    }] : []),
     ...categories.map((category) => ({
       url: `${base}/category/${category}`,
       lastModified: latestDate(posts.filter((post) => post.category === category)),
       changeFrequency: 'weekly',
       priority: 0.8,
+      ...(englishPosts.some((post) => post.category === category)
+        ? { alternates: { languages: { ko: `${base}/category/${category}`, en: `${base}/en/category/${category}` } } }
+        : {}),
+    })),
+    ...categories.filter((category) => englishPosts.some((post) => post.category === category)).map((category) => ({
+      url: `${base}/en/category/${category}`,
+      lastModified: latestDate(englishPosts.filter((post) => post.category === category)),
+      changeFrequency: 'weekly',
+      priority: 0.7,
+      alternates: { languages: { ko: `${base}/category/${category}`, en: `${base}/en/category/${category}` } },
     })),
     ...staticPages.map((page) => ({
       url: `${base}${page.path}`,
       changeFrequency: page.changeFrequency,
       priority: page.priority,
+      alternates: { languages: { ko: `${base}${page.path}`, en: `${base}/en${page.path}` } },
     })),
+    ...englishStaticPages.map((url) => {
+      const koreanPath = url.slice(3);
+      return {
+        url: `${base}${url}`,
+        changeFrequency: 'monthly',
+        priority: 0.3,
+        alternates: { languages: { ko: `${base}${koreanPath}`, en: `${base}${url}` } },
+      };
+    }),
     ...posts.map((post) => ({
       url: `${base}/${post.category}/${post.slug}`,
       lastModified: new Date(post.updatedAt || post.publishedAt),
       changeFrequency: 'monthly',
       priority: 0.7,
+      ...(hasPostTranslation(post.category, post.slug)
+        ? { alternates: { languages: { ko: `${base}/${post.category}/${post.slug}`, en: `${base}/en/${post.category}/${post.slug}` } } }
+        : {}),
+    })),
+    ...englishPosts.map((post) => ({
+      url: `${base}/en/${post.category}/${post.slug}`,
+      lastModified: new Date(post.updatedAt || post.publishedAt),
+      changeFrequency: 'monthly',
+      priority: 0.7,
+      alternates: { languages: { ko: `${base}/${post.category}/${post.slug}`, en: `${base}/en/${post.category}/${post.slug}` } },
     })),
   ];
 }

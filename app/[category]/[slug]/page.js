@@ -11,7 +11,7 @@ import {
   Callout, Badge, StatGrid, Stat, Steps, Step, Compare, ComparePanel,
   Terminal, FileTree, Figure, Timeline, TimelineItem, Checklist, Kbd,
 } from '@/components/ArticleBlocks';
-import { getAllPosts, getPost, getRelatedPosts, CATEGORIES, getSiteUrl } from '@/lib/posts';
+import { getAllPosts, getPost, getRelatedPosts, CATEGORIES, getSiteUrl, hasPostTranslation } from '@/lib/posts';
 
 const mdxOptions = { mdxOptions: { remarkPlugins: [remarkGfm], rehypePlugins: [rehypeSlug, [rehypeAutolinkHeadings, { behavior: 'append' }]] } };
 const mdxComponents = {
@@ -33,7 +33,12 @@ export async function generateMetadata({ params }) {
   return {
     title: post.title,
     description: post.summary,
-    alternates: { canonical },
+    alternates: {
+      canonical,
+      ...(hasPostTranslation(category, slug)
+        ? { languages: { ko: canonical, en: `/en${canonical}` } }
+        : {}),
+    },
     openGraph: {
       type: 'article', locale: 'ko_KR', siteName: 'baejoon',
       title: post.title, description: post.summary, url: canonical,
@@ -48,7 +53,7 @@ function ArticleJsonLd({ post }) {
   const url = `${getSiteUrl()}/${post.category}/${post.slug}`;
   const data = {
     '@context': 'https://schema.org', '@type': 'TechArticle',
-    headline: post.title, description: post.summary,
+    headline: post.title, description: post.summary, inLanguage: 'ko',
     datePublished: post.publishedAt, dateModified: post.updatedAt,
     mainEntityOfPage: url,
     author: { '@type': 'Organization', name: 'baejoon' },

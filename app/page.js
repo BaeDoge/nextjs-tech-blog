@@ -8,6 +8,13 @@ import { getAllPosts, CATEGORIES } from '@/lib/posts';
 // Refresh the date-based algorithm pick periodically without making every request dynamic.
 export const revalidate = 300;
 
+export const metadata = {
+  alternates: {
+    canonical: '/',
+    ...(getAllPosts('en').length ? { languages: { ko: '/', en: '/en' } } : {}),
+  },
+};
+
 export default function HomePage() {
   const posts = getAllPosts();
   const featured = posts[0];

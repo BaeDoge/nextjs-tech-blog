@@ -1,0 +1,12 @@
+export const metadata = { title: 'Privacy Policy', description: 'How the baejoon website handles guestbook messages and access information.', alternates: { canonical: '/en/privacy', languages: { ko: '/privacy', en: '/en/privacy' } } };
+export default function EnglishPrivacyPage() {
+  return <section className="legal-page"><span className="eyebrow">PRIVACY</span><h1>Privacy Policy</h1>
+    <p className="legal-lead">This page summarizes the currently implemented features. Hosting, logging, and data-retention settings should be checked against the actual production configuration before this policy is treated as final.</p>
+    <h2>Guestbook</h2><p>Messages posted to the guestbook are visible to other visitors. Message text, creation time, and display attributes are stored to operate the guestbook. Some content, such as abusive language or links, may be blocked.</p>
+    <p>For spam prevention, the site stores a hashed form of the request IP address rather than the raw address. The hash is still treated as operational identifying information. Guestbook messages may remain in the database until deleted by the operator. Do not post sensitive personal information or contact details.</p>
+    <h2>Anonymous reactions</h2><p>Article reactions are stored only in the current browser's localStorage. They are not sent to the server or shared as aggregate visitor counts. Clearing browser storage removes the saved selection.</p>
+    <h2>Access information</h2><p>Hosting and security services may process IP addresses, browser information, and access times for service delivery and error analysis. The actual data and retention period depend on the settings of Vercel and connected services.</p>
+    <h2>Cookies and advertising</h2><p>If third-party advertising services such as Google AdSense are enabled, those providers may use cookies or similar technologies. Before serving ads, review the applicable policies and consent requirements and update this page to reflect the actual implementation.</p>
+    <h2>Contact</h2><p>Privacy inquiries: <a className="inline-link" href="mailto:qold0blop@gmail.com">qold0blop@gmail.com</a>. Confirm that this is the active operational address before publication.</p>
+    <p><strong>Note:</strong> This page is not legal advice. Confirm the actual data collected, retention periods, deletion procedures, and operator contact details before relying on it as a formal policy.</p></section>;
+}
