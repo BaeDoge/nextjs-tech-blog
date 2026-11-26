@@ -22,7 +22,7 @@ function getSharedWorker() {
       workerSubscribers.forEach((subscriber) => subscriber(event));
     };
     sharedWorker.onerror = () => {
-      const errorEvent = { data: { type: 'fatal', error: isEnglish ? 'Could not load the Python runtime. Check your network connection and browser access.' : 'Python 실행 환경을 불러오지 못했습니다. 네트워크 연결 또는 브라우저의 CDN 접근을 확인해 주세요.' } };
+      const errorEvent = { data: { type: 'fatal', error: 'runtime-load-error' } };
       workerSubscribers.forEach((subscriber) => subscriber(errorEvent));
       if (sharedExecutionTimeout) clearTimeout(sharedExecutionTimeout);
       sharedExecutionTimeout = null;
@@ -112,7 +112,7 @@ export default function PythonPlayground({ title = 'Python 실험실', initialOp
       } else if (data.type === 'fatal') {
         if (sharedExecutionTimeout) clearTimeout(sharedExecutionTimeout);
         sharedExecutionTimeout = null;
-        setOutput(data.error || (isEnglish ? 'An error occurred while running Python.' : 'Python 실행 중 오류가 발생했습니다.'));
+        setOutput(isEnglish ? labels.runtimeError : (data.error === 'runtime-load-error' ? labels.runtimeError : (data.error || 'Python 실행 중 오류가 발생했습니다.')));
         setStatus('error');
       }
     };
@@ -273,7 +273,7 @@ export default function PythonPlayground({ title = 'Python 실험실', initialOp
           <section className="python-playground-panel" role="dialog" aria-modal="true" aria-label={labels.dialog}>
             <header className="python-playground-head">
               <div><span className="eyebrow">BROWSER PYTHON</span><h2>{labels.heading}</h2><p>{title} · {labels.intro}</p></div>
-              <button type="button" className="python-icon-button" onClick={() => setOpen(false)} aria-label="실험실 닫기">×</button>
+              <button type="button" className="python-icon-button" onClick={() => setOpen(false)} aria-label={isEnglish ? "Close playground" : "실험실 닫기"}>×</button>
             </header>
             <label className="python-editor-label" htmlFor="python-playground-editor">{labels.editor}</label>
             <div className="python-editor-shell">
@@ -293,11 +293,11 @@ export default function PythonPlayground({ title = 'Python 실험실', initialOp
                 onKeyUp={(event) => {
                   if (['ArrowLeft','ArrowRight','Home','End'].includes(event.key)) updateSuggestions(code, event.currentTarget.selectionStart);
                 }}
-                aria-label="Python 코드 입력"
+                aria-label={labels.editor}
                 aria-describedby="python-editor-help"
               />
               {suggestions.length > 0 && (
-                <div className="python-completion-list" role="listbox" aria-label="Python 자동완성">
+                <div className="python-completion-list" role="listbox" aria-label={isEnglish ? "Python autocomplete" : "Python 자동완성"}>
                   {suggestions.map((item, index) => (
                     <button key={item} type="button" role="option" aria-selected={index === suggestionIndex}
                       className={index === suggestionIndex ? 'is-active' : ''}
