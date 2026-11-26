@@ -30,13 +30,13 @@ export default function sitemap() {
       priority: 1,
       alternates: { languages: { ko: base, en: `${base}/en` } },
     },
-    {
+    ...(englishPosts.length ? [{
       url: `${base}/en`,
       lastModified: latestDate(englishPosts),
       changeFrequency: 'weekly',
       priority: 0.9,
       alternates: { languages: { ko: base, en: `${base}/en` } },
-    },
+    }] : []),
     ...categories.map((category) => ({
       url: `${base}/category/${category}`,
       lastModified: latestDate(posts.filter((post) => post.category === category)),
@@ -44,7 +44,7 @@ export default function sitemap() {
       priority: 0.8,
       alternates: { languages: { ko: `${base}/category/${category}`, en: `${base}/en/category/${category}` } },
     })),
-    ...categories.map((category) => ({
+    ...categories.filter((category) => englishPosts.some((post) => post.category === category)).map((category) => ({
       url: `${base}/en/category/${category}`,
       lastModified: latestDate(englishPosts.filter((post) => post.category === category)),
       changeFrequency: 'weekly',
