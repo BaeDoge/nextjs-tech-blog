@@ -9,7 +9,10 @@ import { getAllPosts, CATEGORIES } from '@/lib/posts';
 export const revalidate = 300;
 
 export const metadata = {
-  alternates: { canonical: '/', languages: { ko: '/', en: '/en' } },
+  alternates: {
+    canonical: '/',
+    ...(getAllPosts('en').length ? { languages: { ko: '/', en: '/en' } } : {}),
+  },
 };
 
 export default function HomePage() {
