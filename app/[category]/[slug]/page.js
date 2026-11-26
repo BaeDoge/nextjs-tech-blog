@@ -53,7 +53,7 @@ function ArticleJsonLd({ post }) {
   const url = `${getSiteUrl()}/${post.category}/${post.slug}`;
   const data = {
     '@context': 'https://schema.org', '@type': 'TechArticle',
-    headline: post.title, description: post.summary,
+    headline: post.title, description: post.summary, inLanguage: 'ko',
     datePublished: post.publishedAt, dateModified: post.updatedAt,
     mainEntityOfPage: url,
     author: { '@type': 'Organization', name: 'baejoon' },
