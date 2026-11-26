@@ -1,0 +1,129 @@
+---
+title: "[트러블슈팅] UnicodeDecodeError 인코딩 오류 해결"
+publishedAt: "2026-11-26"
+summary: "UTF-8이 아닌 파일을 UTF-8로 읽을 때 발생하는 인코딩 오류의 원인과 해결 방법을 정리한다."
+tag: "Troubleshooting"
+---
+
+## 현상
+
+CSV 파일을 읽거나 텍스트 파일을 열 때 인코딩 오류가 발생한다.
+에러 메시지는 'utf-8' 코덱이 특정 위치의 바이트를 해석할 수 없음을 나타낸다.
+
+<Callout type="warning" title="오류 상황">
+UnicodeDecodeError: 'utf-8' codec can't decode byte 0x96 in position 35: invalid start byte
+</Callout>
+
+```python
+import pandas as pd
+
+# UTF-8로 명시했지만 파일이 해당 인코딩이 아닐 경우 발생
+Past = pd.read_csv("C:/Users/Admin/Desktop/Python/Past.csv", encoding='utf-8')
+```
+
+![현상 스크린샷](/blogs/unicodedecodeerror-162432-1.png)
+
+## 원인
+
+파일이 실제 저장된 인코딩과 코드에서 지정한 인코딩이 서로 다르기 때문이다.
+Python 3의 문자열은 유니코드이며, 파일의 원시 바이트를 읽을 때 지정한 코덱으로 변환한다.
+Windows 환경에서는 기본 한글 인코딩으로 CP1252나 CP949를 사용하는 경우가 많다.
+UTF-8이 아닌 바이트를 강제로 UTF-8으로 해석하면 유효하지 않은 시작 바이트 오류가 발생한다.
+
+## 해결 방법
+
+파일 생성 프로그램의 내보내기 설정을 확인하여 실제 인코딩을 찾는다.
+pandas의 `encoding` 파라미터에 파일의 실제 인코딩을 명시적으로 지정한다.
+
+```python
+import pandas as pd
+
+# Windows 기본 한글 인코딩인 cp1252로 변경
+Past = pd.read_csv("C:/Users/Admin/Desktop/Python/Past.csv", encoding='cp1252')
+```
+
+<Steps>
+<Step title="파일 인코딩 확인">
+텍스트 편집기나 파일 생성 프로그램에서 파일의 저장 형식을 확인한다.
+</Step>
+<Step title="인코딩 파라미터 수정">
+`encoding='utf-8'`을 실제 파일 인코딩(예: `cp1252`, `cp949`)으로 변경한다.
+</Step>
+<Step title="실행 및 검증">
+코드를 실행하여 파일이 정상적으로 로드되는지 확인한다.
+</Step>
+</Steps>
+
+## 다른 해결 방법
+
+원본 인코딩을 알 수 없거나 일부 손실을 감수할 수 있을 때 오류 처리 방식을 변경한다.
+`errors` 파라미터를 사용하여 변환 실패 시의 행동을 지정한다.
+
+<Compare>
+<ComparePanel title="기존 (strict)" tone="bad">
+
+```python
+# 기본값으로, 오류 시 즉시 예외 발생
+df = pd.read_csv("data.csv", encoding="utf-8")
+```
+
+</ComparePanel>
+<ComparePanel title="제안 (replace)" tone="good">
+
+```python
+# 오류 발생 바이트를 대체 문자로 변환하여 계속 진행
+df = pd.read_csv("data.csv", encoding="utf-8", errors="replace")
+```
+
+</ComparePanel>
+</Compare>
+
+```python
+import pandas as pd
+
+# 인코딩을 utf-8로 유지하되, 오류 발생 시 대체 문자 사용
+df = pd.read_csv(
+    "data.csv",
+    encoding="utf-8",
+    errors="replace"
+)
+print(df.head())
+```
+
+<Callout type="info" title="주의">
+`errors="ignore"`는 문제가 된 바이트를 완전히 버린다.
+이름, 금액, 식별자가 포함된 데이터에는 적합하지 않으므로 주의해야 한다.
+</Callout>
+
+## 추가 참고사항
+
+일반적인 텍스트 파일 읽기 시에도 동일한 인코딩 규칙이 적용된다.
+`open` 함수나 `pathlib`를 사용할 때도 `encoding` 파라미터를 명시해야 한다.
+
+```python
+from pathlib import Path
+
+path = Path("data.txt")
+# cp949 인코딩으로 파일 읽기
+with path.open("r", encoding="cp949") as f:
+    text = f.read()
+
+print(text[:100])
+```
+
+UTF-8 BOM(Byte Order Mark)이 포함된 파일은 `utf-8-sig` 인코딩을 사용해야 한다.
+`utf-8`으로 읽으면 BOM 문자가 텍스트의 일부로 인식되어 데이터 처리에 방해가 될 수 있다.
+
+```python
+# UTF-8 BOM이 있는 파일 읽기
+with open("data_bom.txt", "r", encoding="utf-8-sig") as f:
+    text = f.read()
+```
+
+## 출처
+
+- StackOverflow: [UnicodeDecodeError: 'utf-8' codec can't decode byte 0x96 in position 35: invalid start byte](https://stackoverflow.com/questions/45529507/unicodedecodeerror-utf-8-codec-cant-decode-byte-0x96-in-position-35-invalid) — 작성자: user3734568(질문), Liam Giannini(답변) (CC BY-SA)
+- Tistory: [파이썬 UTF-8 디코딩 오류 해결｜UnicodeDecodeError 원인과 인코딩 설정](https://neos35.tistory.com/entry/%ED%8C%8C%EC%9D%B4%EC%8D%AC-UTF-8-%EB%94%94%EC%BD%94%EB%94%A9-%EC%98%A4%EB%A5%98-%ED%95%B4%EA%B2%B0%EF%BD%9CUnicodeDecodeError-%EC%9B%90%EC%9D%B8%EA%B3%BC-%EC%9D%B8%EC%BD%94%EB%94%A9-%EC%84%A4%EC%A0%95) — 작성자: 컴공대생 mr.ko
+- Tistory: [[python] UnicodeDecodeError: 'utf-8' codec can't decode byte 해결 방법](https://thxxyj.tistory.com/28) — 작성자: 기록하는습관을기르자
+
+본문 이미지는 위 출처에서 가져왔습니다.
