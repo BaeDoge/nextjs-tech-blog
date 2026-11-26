@@ -1,87 +1,73 @@
 ---
-title: "[트러블슈팅] Pandas DataFrame 열 연산 시 SettingWithCopyWarning"
+title: "[트러블슈팅] Pandas 슬라이싱과 SettingWithCopyWarning 이해하기"
 publishedAt: "2026-11-26"
-summary: "DataFrame의 부분 복사본에 대한 할당 시 발생하는 경고의 원인과 해결 방법을 정리한다."
+summary: "DataFrame 슬라이싱 결과를 수정할 때의 버전별 동작과 독립 복사본 및 원본 수정 방법을 구분합니다."
 tag: "Troubleshooting"
 ---
 
 ## 현상
 
-Pandas DataFrame의 열을 슬라이싱한 객체에 스칼라 값을 곱하거나 할당할 때 `SettingWithCopyWarning`이 발생한다.
-다음과 같이 슬라이싱된 DataFrame의 열에 직접 연산을 시도하면 경고가 출력된다.
+Pandas에서 조건에 맞는 행을 추린 뒤 새로운 DataFrame으로 사용하면서 값을 수정할 때 SettingWithCopyWarning이 나타나는 경우가 있습니다.
 
-```python
-df_slice = df[['quantity']]
-df_slice['quantity'] *= -1
-```
+~~~python
+import pandas as pd
 
-출력되는 경고 메시지는 다음과 같다.
+df = pd.DataFrame({"quantity": [1, 2, 3]})
 
-```
-SettingWithCopyWarning: 
-A value is trying to be set on a copy of a slice from a DataFrame.
-Try using .loc[row_indexer,col_indexer] = value instead
-```
+df_slice = df.loc[df["quantity"] > 1]
+df_slice["quantity"] = -df_slice["quantity"]
+~~~
 
-이 경고는 연산이 원본 데이터에 영향을 주지 않거나, 의도치 않은 복사본에서 동작하고 있음을 나타낸다.
-
-![현상 스크린샷](/blogs/pandas-dataframe-settingwithcopywarning-091857-1.jpg)
+이 코드는 df에서 일부 행을 선택해 df_slice를 만든 다음, 선택한 객체의 값을 변경합니다. pandas 2.x의 기본 동작에서는 선택 결과가 원본과 어떤 관계인지 코드만으로 명확하지 않은 상황에서 경고가 발생할 수 있습니다. 다만 모든 슬라이싱 코드가 항상 경고를 발생시키는 것은 아닙니다.
 
 ## 원인
 
-이 경고는 DataFrame의 슬라이싱 결과인 '뷰(view)'와 '복사본(copy)'의 구분이 모호할 때 발생한다.
-Pandas는 메모리 효율을 위해 슬라이싱 시 원본을 참조하는 뷰를 반환하는 경우가 많다.
-하지만 특정 조건(예: 다중 인덱싱, 필터링 등)에서는 내부적으로 복사본을 생성하기도 한다.
-사용자가 슬라이싱된 객체에 할당 연산을 수행할 때, Pandas는 이것이 원본의 열을 수정하는 것인지, 아니면 복사본의 열을 수정하는 것인지 명확하지 않은 경우가 있다.
-이러한 불명확한 상태에서의 할당 연산은 예기치 않은 결과를 초래할 수 있으므로 Pandas가 경고를 출력한다.
+과거 Pandas에서는 인덱싱 결과가 원본 데이터를 공유하는 뷰인지, 별도 메모리를 사용하는 복사본인지 연산에 따라 달라질 수 있었습니다. 이 때문에 파생 객체를 수정했을 때 원본에도 변경이 반영되는지 예측하기 어려웠고, 일부 상황에서 SettingWithCopyWarning이 발생했습니다.
+
+pandas 3.0부터는 Copy-on-Write(CoW)가 기본이자 유일한 동작 방식입니다. 인덱싱이나 메서드 호출로 얻은 객체는 사용자 관점에서 원본과 독립된 객체처럼 동작합니다. 따라서 df_slice를 수정해도 df는 바뀌지 않습니다. 이 일관된 동작으로 인해 pandas 3.0에서는 SettingWithCopyWarning이 제거되었습니다.
 
 ## 해결 방법
 
-경고를 방지하고 원본 DataFrame의 열을 명확하게 수정하려면 슬라이싱 시 `.copy()` 메서드를 사용하여 명시적으로 복사본을 생성해야 한다.
-이렇게 하면 현재 작업 중인 객체가 원본과 독립적인 복사본임이 명확해져 경고가 발생하지 않는다.
+수정하려는 대상이 원본인지, 별도의 작업용 DataFrame인지 먼저 결정해야 합니다.
 
-```python
-df_slice = df[['quantity']].copy()
-df_slice['quantity'] *= -1
-```
+### 1. 선택한 행을 별도 DataFrame으로 사용하기
 
-또는 `.loc` 인덱서를 사용하여 원본 DataFrame의 열을 직접 수정하는 방법도 있다.
-`.loc`은 명시적으로 원본 데이터의 위치를 지정하므로, Pandas가 복사본이 아닌 원본을 수정한다고 판단한다.
+원본을 변경하지 않고 선택 결과만 수정하려는 경우에는 copy()를 붙여 의도를 분명하게 표현할 수 있습니다.
 
-```python
-df.loc[:, 'quantity'] *= -1
-```
+~~~python
+df_slice = df.loc[df["quantity"] > 1].copy()
+df_slice["quantity"] = -df_slice["quantity"]
+~~~
 
-이 방법은 `SettingWithCopyWarning`을 발생시키지 않으며, 의도한 대로 원본 데이터가 수정된다.
+copy()는 pandas 2.x의 모호한 슬라이스 할당을 피하는 데 도움이 되며, 코드를 읽는 사람에게도 독립된 작업용 객체를 만든다는 점을 알려줍니다. pandas 3.0에서는 CoW 규칙에 따라 파생 객체의 변경이 원본으로 전파되지 않으므로, 경고를 없애기 위해 무조건 copy()를 호출할 필요는 없습니다.
 
-## 다른 해결 방법
+### 2. 원본 DataFrame을 직접 수정하기
 
-만약 현재 작업 중인 DataFrame이 이미 복사본임을 인지하고 있고, 경고가 원본 데이터 변경에 영향을 미치지 않음을 확신한다면, 경고를 무시할 수 있다.
-하지만 이는 권장되지 않으며, 코드의 의도를 명확히 하는 것이 좋다.
-또한, DataFrame을 생성하거나 슬라이싱할 때 `.copy()` 메서드를 명시적으로 사용하여 복사본임을 명확히 할 수도 있다.
+조건에 맞는 원본 행을 변경하려는 경우에는 원본 객체에 loc[행 조건, 열] 형태로 한 번에 할당합니다.
 
-```python
-df_copy = df[['quantity']].copy()
-df_copy['quantity'] *= -1
-```
+~~~python
+mask = df["quantity"] > 1
+df.loc[mask, "quantity"] = -df.loc[mask, "quantity"]
+~~~
 
-이 경우 `df_copy`는 독립적인 복사본이므로 원본에 영향을 주지 않으며, 경고도 발생하지 않는다.
+이 코드는 df 자체를 수정하므로 별도의 슬라이스 객체를 만든 뒤 그 객체에 값을 할당하는 방식과 목적이 다릅니다.
 
-## 추가 참고사항
+## 실행 결과 확인
 
-<Callout type="info" title="참고 사항">
-Pandas 2.0부터는 `Copy-on-Write` 기능이 도입되어 이 경고의 발생 여부와 처리 방식이 달라질 수 있다.
-</Callout>
+~~~
+print(df)
+print(df_slice)
+~~~
 
-- `.loc`을 사용하는 것이 가장 표준적이고 안전한 해결 방법이다.
-- `iterrows()`를 사용하여 루프를 돌며 개별 셀을 수정하는 것은 성능상 비효율적이며, 이 문제의 근본 해결책이 아니다.
-- DataFrame 슬라이싱 시 `.copy()`를 명시적으로 호출하면 복사본임을 명확히 하여 경고 발생을 피할 수 있다.
-- 이 경고는 에러가 아니므로 프로그램 실행을 중단시키지 않지만, 데이터 무결성을 위해 주의가 필요하다.
+별도 복사본을 수정한 경우 df에는 기존 값이 남고, df_slice에만 변경된 값이 표시됩니다. 원본을 수정하려면 위의 loc 예제처럼 원본 DataFrame에 직접 할당해야 합니다.
+
+## 버전별 참고사항
+
+- pandas 2.x에서는 Copy-on-Write가 기본 활성화가 아니었던 버전이 있으며, 설정에 따라 슬라이스 수정의 경고와 동작이 달라질 수 있습니다.
+- pandas 3.0에서는 Copy-on-Write가 기본이자 유일한 모드이며, chained assignment는 원본을 수정하지 않습니다.
+- pandas 3.0의 SettingWithCopyWarning은 제거되었습니다. 따라서 3.0 환경에서 이 경고가 보이지 않는다고 해서 파생 객체의 수정이 원본에 반영된다는 뜻은 아닙니다.
 
 ## 출처
 
-- StackOverflow: [Python: Pandas Dataframe how to multiply entire column with a scalar](https://stackoverflow.com/questions/33768122/python-pandas-dataframe-how-to-multiply-entire-column-with-a-scalar) — 작성자: labheshr(질문), labheshr(답변) (CC BY-SA)
-- Tistory: [[Python] pandas DataFrame: ValueError: If using all scalar values, you must pass an index 에러 해결 방법](https://rfriend.tistory.com/482) — 작성자: R, Python 분석과 프로그래밍의 친구 (by R Friend)
-- Tistory: [[python 파이썬, pandas 판다스] series와 dataframe](https://sunning-10.tistory.com/entry/%ED%8C%8C%EC%9D%B4%EC%8D%AC-python-%ED%8C%90%EB%8B%A4%EC%8A%A4%EC%99%80-%EA%B8%B0%EB%B3%B8-%EB%8D%B0%EC%9D%B4%ED%84%B0-%EC%B2%98%EB%A6%AC) — 작성자: TODAY IS SUNNING
-
-본문 이미지는 위 출처에서 가져왔습니다.
+- pandas 공식 문서: [Copy-on-Write (CoW)](https://pandas.pydata.org/docs/user_guide/copy_on_write.html)
+- pandas 공식 문서: [What's new in pandas 3.0.0](https://pandas.pydata.org/docs/whatsnew/v3.0.0.html)
