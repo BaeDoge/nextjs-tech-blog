@@ -1,0 +1,103 @@
+---
+title: "[트러블슈팅] pytest pandas 컬럼 비교 ValueError 해결"
+publishedAt: "2026-11-26"
+summary: "pytest에서 pandas 컬럼 리스트 비교 시 발생하는 ValueError를 해결하는 방법을 다룬다."
+tag: "Troubleshooting"
+---
+
+## 현상
+
+`pytest`를 사용하여 데이터프레임의 컬럼 리스트와 기대하는 리스트의 동등성을 검증하던 중 `ValueError`가 발생한다.
+
+<Callout type="warning" title="오류 상황">
+ValueError: The truth value of an array with more than one element is ambiguous. Use a.any() or a.all()
+</Callout>
+
+에러가 발생하는 최소 재현 코드는 다음과 같다.
+
+```python
+actual = b_manager.get_b(complete_set)
+assert actual is not None
+assert actual.columns == ['bl', 'direction', 'day']
+```
+
+두 번째 `assert` 문에서 리스트 비교 시 위와 같은 오류가 출력된다.
+
+![현상 스크린샷](/blogs/pytest-pandas-valueerror-1.png)
+
+## 원인
+
+`actual.columns`는 일반적인 파이썬 `list`가 아니라 `pandas.Index` 객체일 가능성이 높다.
+
+파이썬의 내장 `list`는 `==` 연산자를 통해 원소별 비교를 수행하지만, `pandas`의 배열 객체는 `==` 연산 시 원소별 비교 결과를 담은 불리언 배열(Boolean array)을 반환한다.
+
+`assert` 문은 반환된 불리언 배열을 단일 참/거짓 값으로 해석하려 시도한다.
+
+원소가 하나 이상인 배열의 진리값은 모호하므로, `pandas`는 이를 허용하지 않고 `ValueError`를 발생시킨다.
+
+## 해결 방법
+
+`pandas` 배열 객체를 일반적인 파이썬 `list`로 변환한 후 비교하면 `==` 연산이 원소별 비교를 수행하고 단일 불리언 값을 반환한다.
+
+`tolist()` 메서드를 사용하여 컬럼 객체를 리스트로 변환하고, 이를 `assert` 문에서 비교한다.
+
+```python
+actual = b_manager.get_b(complete_set)
+assert actual is not None
+
+# 컬럼을 리스트로 변환하여 비교
+assert actual.columns.tolist() == ['bl', 'direction', 'day']
+```
+
+이 방법은 `pytest`가 실패 시 실제 값과 기대 값을 명확하게 비교하여 출력하므로 디버깅에 유리하다.
+
+![해결 방법 스크린샷](/blogs/pytest-pandas-valueerror-2.webp)
+
+## 다른 해결 방법
+
+`pandas` 객체가 제공하는 `.equals()` 메서드를 사용하여 비교할 수 있다.
+
+```python
+actual = b_manager.get_b(complete_set)
+expected = pd.Index(['bl', 'direction', 'day'])
+
+assert actual.columns.equals(expected)
+```
+
+또는 `pandas` 데이터프레임 전체를 비교할 경우 `pd.testing.assert_frame_equal`을 사용할 수 있다.
+
+```python
+import pandas as pd
+
+pd.testing.assert_frame_equal(actual_df, expected_df)
+```
+
+이 방법은 컬럼뿐만 아니라 인덱스, 데이터 타입, 값까지 모두 검증하므로 더 포괄적인 테스트가 가능하다.
+
+## 추가 참고사항
+
+`pandas`의 배열 객체와 내장 `list`는 `==` 연산 동작이 다르므로 주의해야 한다.
+
+<Steps>
+<Step title="1. 객체 타입 확인">
+`type(actual.columns)`를 통해 `pandas.Index`인지 내장 `list`인지 확인한다.
+</Step>
+<Step title="2. 적절한 비교 방법 선택">
+`pandas` 객체라면 `.equals()` 또는 `pd.testing` 모듈을 사용한다.
+</Step>
+<Step title="3. 내장 list 비교">
+내장 `list`라면 `==` 연산자를 직접 사용해도 무방하다.
+</Step>
+</Steps>
+
+<Callout type="tip" title="참고">
+`pandas` 버전이 올라가면서 일부 배열 비교 동작이 변경될 수 있으므로, 공식 문서의 현재 버전을 참조하는 것이 좋다.
+</Callout>
+
+## 출처
+
+- StackOverflow: [How can I assert lists equality with pytest](https://stackoverflow.com/questions/46914222/how-can-i-assert-lists-equality-with-pytest) — 작성자: bAN(질문), ritchie46(답변) (CC BY-SA)
+- Tistory: [파이썬 엑셀 파일 읽기 오류 해결 7가지｜pandas·openpyxl 설치부터 경로 오류까지](https://misanin.tistory.com/entry/%ED%8C%8C%EC%9D%B4%EC%8D%AC-%EC%97%91%EC%85%80-%ED%8C%8C%EC%9D%BC-%EC%9D%BD%EA%B8%B0-%EC%98%A4%EB%A5%98-%ED%95%B4%EA%B2%B0-7%EA%B0%80%EC%A7%80%EF%BD%9Cpandas%C2%B7openpyxl-%EC%84%A4%EC%B9%98%EB%B6%80%ED%84%B0-%EA%B2%BD%EB%A1%9C-%EC%98%A4%EB%A5%98%EA%B9%8C%EC%A7%80) — 작성자: 실무 IT 해결 연구소
+- Tistory: [Pytest 완벽 가이드: 쉽게 배우는 파이썬 Unit Test](https://jjeongil.tistory.com/2900) — 작성자: 쵸코쿠키의 연습장
+
+본문 이미지는 위 출처에서 가져왔습니다.
