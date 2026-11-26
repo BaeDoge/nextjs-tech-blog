@@ -1,0 +1,90 @@
+---
+title: "[트러블슈팅] 사용자 정의 클래스 해시 불가능 오류"
+publishedAt: "2026-11-26"
+summary: "리스트 서브클래스에 __hash__를 직접 구현하여 해시 가능하게 만드는 방법을 정리한다."
+tag: "Troubleshooting"
+---
+
+## 현상
+
+`list` 클래스를 상속받은 사용자 정의 클래스를 `set`에 추가하거나 `dict`의 키로 사용하려고 하면 `TypeError: unhashable type`이 발생한다.
+문서에 따르면 `__hash__`와 `__eq__` 메서드를 정의하면 해시 가능해지지만, 단순히 `tuple.__hash__`를 할당하는 방식은 작동하지 않는다.
+
+```python
+class X(list):
+    __hash__ = tuple.__hash__
+
+x1 = X()
+s = {x1}  # TypeError: unhashable type: 'X'
+```
+
+## 원인
+
+`list` 클래스는 가변(mutability) 자료형이므로 기본적으로 `__hash__`가 `None`으로 설정되어 해시가 불가능하다.
+단순히 `__hash__` 속성에 `tuple.__hash__`를 복사해 넣는 것은 해시 알고리즘의 논리를 변경하는 것이 아니다.
+`tuple`이 해시 가능한 이유는 불변성(immutability)을 보장하기 때문이며, 상속받은 클래스가 가변성을 유지한다면 해시 값의 안정성을 해칠 수 있다.
+따라서 클래스가 실제로 어떻게 해시 값을 생성할지 명시적인 `__hash__` 메서드를 정의해야 한다.
+
+<Callout type="warning" title="오류 상황">
+TypeError: unhashable type: 'X'
+</Callout>
+
+## 해결 방법
+
+`__hash__` 메서드를 직접 정의하여 인스턴스의 내용을 기반으로 해시 값을 반환하도록 구현한다.
+가변 객체(리스트 등)의 경우, 불변 객체(튜플)로 변환한 후 해시 값을 계산하는 것이 표준적인 접근 방식이다.
+
+```python
+class X2(list):
+    def __hash__(self):
+        return hash(tuple(self))
+
+x2 = X2([1, 2, 3])
+s = {x2}  # 성공: {<__main__.X2 object at ...>}
+```
+
+## 다른 해결 방법
+
+리스트의 내용 대신 다른 기준(예: 길이, 특정 문자열 등)으로 해시 값을 생성할 수도 있다.
+다만, 이 경우 `__eq__` 메서드도 함께 재정의하여 해시 충돌 시 비교 로직을 명확히 해야 한다.
+아래 예시는 리스트의 길이를 기반으로 해시 값을 생성하는 방식이다.
+
+```python
+class X3(list):
+    def __hash__(self):
+        return hash("foobar" * len(self))
+    
+    def __eq__(self, other):
+        if not isinstance(other, X3):
+            return NotImplemented
+        return list(self) == list(other)
+```
+
+<Compare>
+<ComparePanel title="잘못된 접근" tone="bad">
+__hash__ = tuple.__hash__
+(단순 할당은 해시 논리를 변경하지 않음)
+</ComparePanel>
+<ComparePanel title="올바른 접근" tone="good">
+def __hash__(self): return hash(tuple(self))
+(명시적인 메서드 정의로 해시 로직 구현)
+</ComparePanel>
+</Compare>
+
+## 추가 참고사항
+
+가변 객체는 해시 값이 변경될 수 있으므로, 해시 가능한 객체는 생성 후 수정되지 않아야 한다.
+`list`나 `dict`와 같은 가변 자료형은 `set`이나 `dict` 키로 사용할 수 없으며, 이를 위해서는 `tuple`로 변환하거나 사용자 정의 해시 로직을 구현해야 한다.
+`pandas` 등에서 `drop_duplicates`를 사용할 때 `unhashable type` 오류가 발생하면, 대상 컬럼의 데이터가 리스트 형태인지 확인하고 `tuple`로 변환하는 것이 해결책이 될 수 있다.
+
+```python
+# pandas 예시: 리스트 컬럼을 튜플로 변환하여 중복 제거 가능
+df['Like_Tuple'] = df['Like'].apply(tuple)
+df.drop_duplicates(['Like_Tuple'])
+```
+
+## 출처
+
+- StackOverflow: [What makes a user-defined class unhashable?](https://stackoverflow.com/questions/10254594/what-makes-a-user-defined-class-unhashable) — 작성자: max(질문), jdi(답변) (CC BY-SA)
+- Tistory: [TypeError: 'tuple' object does not support item assignment / TypeError: unhashable type: 'list' 원인, 해결법](https://jimmy-ai.tistory.com/227) — 작성자: 지미뉴트론 개발일기
+- Tistory: [[Pandas] 데이터프레임 중복 확인 및 제거 :: duplicated, drop_duplicates (unhashable type error 해결) (drop duplicates)](https://sy-log.tistory.com/entry/Pandas-%EB%8D%B0%EC%9D%B4%ED%84%B0%ED%94%84%EB%A0%88%EC%9E%84-%EC%A4%91%EB%B3%B5-%ED%99%95%EC%9D%B8-%EB%B0%8F-%EC%A0%9C%EA%B1%B0-duplicated-dropduplicates-unhashable-type-error-%ED%95%B4%EA%B2%B0) — 작성자: 서윤로그
