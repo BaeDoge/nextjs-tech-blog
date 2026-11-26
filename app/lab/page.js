@@ -3,6 +3,7 @@ import PythonPlayground from '@/components/PythonPlayground';
 export const metadata = {
   title: 'Python 실험실',
   description: '브라우저에서 Python 코드를 작성하고 즉시 실행해 보세요.',
+  alternates: { canonical: '/lab', languages: { ko: '/lab', en: '/en/lab' } },
 };
 
 export default function LabPage() {
