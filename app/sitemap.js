@@ -28,7 +28,7 @@ export default function sitemap() {
       lastModified: latestDate(posts),
       changeFrequency: 'weekly',
       priority: 1,
-      alternates: { languages: { ko: base, en: `${base}/en` } },
+      ...(englishPosts.length ? { alternates: { languages: { ko: base, en: `${base}/en` } } } : {}),
     },
     ...(englishPosts.length ? [{
       url: `${base}/en`,
