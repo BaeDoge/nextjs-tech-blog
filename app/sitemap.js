@@ -60,7 +60,7 @@ export default function sitemap() {
       alternates: { languages: { ko: `${base}${page.path}`, en: `${base}/en${page.path}` } },
     })),
     ...englishStaticPages.map((url) => {
-      const koreanPath = url.replace(/^\\/en/, '');
+      const koreanPath = url.slice(3);
       return {
         url: `${base}${url}`,
         changeFrequency: 'monthly',
