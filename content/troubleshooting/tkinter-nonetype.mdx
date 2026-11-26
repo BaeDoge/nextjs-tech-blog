@@ -1,0 +1,134 @@
+---
+title: "[트러블슈팅] Tkinter 위젯 배치 시 NoneType 에러"
+publishedAt: "2026-11-26"
+summary: "Tkinter 위젯의 배치 메서드(`grid`, `pack`, `place`)가 `None`을 반환하여 위젯 객체를 할당받지 못하는 문제를 해결합니다."
+tag: "Troubleshooting"
+---
+
+## 현상
+
+Tkinter GUI에서 위젯을 생성하고 즉시 배치 메서드를 호출하는 코드를 실행하면, 해당 위젯의 메서드를 호출하는 시점에 `AttributeError: 'NoneType' object has no attribute` 오류가 발생합니다.
+
+<Callout type="warning" title="오류 상황">
+
+```python
+AttributeError: 'NoneType' object has no attribute 'get'
+```
+
+</Callout>
+
+다음과 같이 `Entry` 위젯을 생성하고 `grid` 메서드를 한 줄로 연결하여 변수에 할당했을 때, 위젯의 `get()` 메서드를 호출하면 에러가 발생합니다.
+
+```python
+from tkinter import *
+
+root = Tk()
+
+def grabText(event):
+    # entryBox가 None이므로 get() 호출 시 에러 발생
+    print(entryBox.get())    
+
+entryBox = Entry(root, width=60).grid(row=2, column=1, sticky=W)
+
+grabBtn = Button(root, text="Grab")
+grabBtn.grid(row=8, column=1)
+grabBtn.bind('<Button-1>', grabText)
+
+root.mainloop()
+```
+
+![현상 스크린샷](/blogs/tkinter-nonetype-1.png)
+
+## 원인
+
+Tkinter의 `grid`, `pack`, `place`와 같은 배치(레이아웃) 메서드들은 위젯의 위치를 설정한 후 **반환값으로 `None`**을 리턴합니다.
+
+Python에서 `a().b()`와 같이 메서드를 체이닝하여 호출하면, 식의 최종 결과는 `b()` 메서드가 반환하는 값이 됩니다. 따라서 `Entry(...).grid(...)` 구문은 `Entry` 객체를 생성한 후 `grid` 메서드를 호출하고, 그 결과인 `None`을 변수 `entryBox`에 할당하게 됩니다. 이후 `entryBox`를 위젯 객체로 오해하고 속성이나 메서드에 접근하면 `NoneType` 에러가 발생합니다.
+
+## 해결 방법
+
+위젯 객체 생성과 배치(레이아웃 설정)를 별도의 문장으로 분리해야 합니다. 먼저 위젯 객체를 변수에 저장한 후, 해당 변수에 대해 배치 메서드를 호출합니다.
+
+<Steps>
+<Step title="위젯 객체 생성 및 변수 할당">
+`Entry` 객체를 생성하여 변수에 저장합니다.
+</Step>
+<Step title="배치 메서드 호출">
+저장된 변수에 대해 `grid`, `pack`, `place` 메서드를 호출하여 레이아웃을 설정합니다.
+</Step>
+</Steps>
+
+```python
+from tkinter import *
+
+root = Tk()
+
+def grabText(event):
+    # 정상적으로 Entry 객체의 get() 메서드를 호출합니다.
+    print(entryBox.get())    
+
+# 1. 위젯 객체를 변수에 할당합니다.
+entryBox = Entry(root, width=60)
+# 2. 할당된 변수에 배치 메서드를 호출합니다.
+entryBox.grid(row=2, column=1, sticky=W)
+
+grabBtn = Button(root, text="Grab")
+grabBtn.grid(row=8, column=1)
+grabBtn.bind('<Button-1>', grabText)
+
+root.mainloop()
+```
+
+![해결 방법 스크린샷](/blogs/tkinter-nonetype-2.png)
+
+## 다른 해결 방법
+
+위젯 생성과 배치를 분리하는 것은 Tkinter 위젯 관리의 표준적인 패턴입니다. 이를 통해 레이아웃 코드를 한 곳에 모아서 가독성을 높이고 유지보수를 용이하게 할 수 있습니다.
+
+<Compare>
+<ComparePanel title="기존 (오류)" tone="bad">
+
+```python
+# 위젯 객체가 할당되지 않음
+entryBox = Entry(root, width=60).grid(row=2, column=1, sticky=W)
+```
+
+</ComparePanel>
+<ComparePanel title="제안 (정답)" tone="good">
+
+```python
+# 객체 할당과 레이아웃 설정 분리
+entryBox = Entry(root, width=60)
+entryBox.grid(row=2, column=1, sticky=W)
+```
+
+</ComparePanel>
+</Compare>
+
+## 추가 참고사항
+
+이 오류는 `grid` 외에도 `pack`, `place` 메서드를 사용할 때 동일하게 발생합니다.
+
+<Callout type="info" title="주의 사항">
+모든 Tkinter 위젯의 배치 메서드(`grid`, `pack`, `place`)는 `None`을 반환합니다.
+</Callout>
+
+또한, Tkinter 위젯이 아닌 일반적인 Python 함수나 메서드에서도 `None`을 반환하는 함수의 결과를 변수에 저장하고 이를 객체처럼 사용한 경우 유사한 에러가 발생할 수 있습니다.
+
+```python
+# 예시: list의 sort() 메서드는 None을 반환합니다.
+data = [3, 1, 2]
+result = data.sort()  # result는 None이 됩니다.
+print(result)         # None 출력
+result.append(4)      # AttributeError 발생
+```
+
+위젯 생성 시에는 항상 객체 참조를 먼저 확보한 후 레이아웃을 적용하는 습관을 들이는 것이 좋습니다.
+
+## 출처
+
+- StackOverflow: [Why do I get "AttributeError: NoneType object has no attribute" using Tkinter? Where did the None value come from?](https://stackoverflow.com/questions/1101750/why-do-i-get-attributeerror-nonetype-object-has-no-attribute-using-tkinter-w) — 작성자: Arnkrishn(질문), Cassie Meharry(답변) (CC BY-SA)
+- Tistory: [[Python] AttributeError 발생 원인과 해결 방법 (예: 'NoneType' object has no attribute)](https://paperlover.tistory.com/150) — 작성자: PaperLover
+- Tistory: [[Tkinter] AttributeError: 'NoneType' object has no attribute '*' 에러 해결](https://angelplayer.tistory.com/352) — 작성자: AngelPlayer
+
+본문 이미지는 위 출처에서 가져왔습니다.
