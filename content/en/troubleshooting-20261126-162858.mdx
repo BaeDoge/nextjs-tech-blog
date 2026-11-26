@@ -1,0 +1,98 @@
+---
+title: "[Troubleshooting] Resolving Argument Count Error When Passing Two Arguments"
+publishedAt: "2026-11-26"
+summary: "Resolves the argument count mismatch error caused by omitting `self` when calling an instance method."
+tag: "Troubleshooting"
+---
+
+## Symptom
+
+When instantiating a class and calling a method, an error occurs indicating that too many arguments were provided.
+
+<Callout type="warning" title="Error Situation">
+
+```python
+TypeError: takes exactly 1 argument (2 given)
+```
+
+</Callout>
+
+The minimal code to reproduce the error is as follows.
+
+```python
+class Extractor:
+    def extractAll(tag):
+        print(tag)
+
+e = Extractor()
+e.extractAll("th")
+```
+
+## Cause
+
+Python instance methods pass the instance object itself as the first argument when called.
+
+Therefore, the call `e.extractAll("th")` is internally processed identically to `Extractor.extractAll(e, "th")`.
+
+If the `self` parameter is not explicitly defined in the method definition, Python attempts to assign the passed instance `e` to the `tag` parameter.
+
+Consequently, the actual number of arguments passed (2) exceeds the number of arguments the defined method expects (1), causing an error.
+
+## Solution
+
+Modify the instance method definition to explicitly accept the instance reference by adding `self` as the first parameter.
+
+<Steps>
+<Step title="Add self parameter">
+Add `self` to the beginning of the class method's parameter list.
+</Step>
+<Step title="Modify code">
+The modified code is as follows.
+</Step>
+</Steps>
+
+```python
+class Extractor:
+    def extractAll(self, tag):
+        print(tag)
+
+e = Extractor()
+e.extractAll("th")
+```
+
+## Alternative Solutions
+
+If there is no need to access instance state, you can use the `@staticmethod` decorator.
+
+In this case, the method does not receive the instance object, so the `self` parameter is not required.
+
+```python
+class Extractor:
+    @staticmethod
+    def extractAll(tag):
+        print(tag)
+
+e = Extractor()
+e.extractAll("th")
+```
+
+<Compare>
+<ComparePanel title="Instance Method" tone="good">
+Allows access to instance attributes using `self`.
+</ComparePanel>
+<ComparePanel title="Static Method" tone="good">
+Used as a utility function that operates independently without creating an instance.
+</ComparePanel>
+</Compare>
+
+## Additional Notes
+
+When defined as a static method, you cannot access instance attributes, so you must clearly distinguish whether the intent is a class method or a static method.
+
+Conversely, omitting `self` in an instance method that requires it can result in a `TypeError: missing 1 required positional argument: 'self'` error.
+
+Such errors can be prevented by understanding Python's behavior where the first argument is implicitly passed when calling an instance method.
+
+## Sources
+
+- StackOverflow: [Why do I get 'takes exactly 1 argument (2 given)' when trying to call a method?](https://stackoverflow.com/questions/4909585/why-do-i-get-takes-exactly-1-argument-2-given-when-trying-to-call-a-method) — Author: funk-shun(question), Sven Marnach(answer) (CC BY-SA)
