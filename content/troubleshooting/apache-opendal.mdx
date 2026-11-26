@@ -39,7 +39,7 @@ OpenDAL을 이해하는 데 중심이 되는 개념은 `Operator`, `Service`, `L
 
 `core/examples/getting-started/src/main.rs`는 OpenDAL API 설계 철학을 보여주는 대표적인 예제다. 이 예제에서 `services::Memory::default()`는 별도의 설정 없이도 동작하는 인메모리 서비스를 제공한다. 이는 문서화와 CI 실행 용이성을 고려한 설계 선택이다. `#[tokio::main]` 매크로 아래 비동기 함수로 구성되며, `op.write`, `op.read`, `op.stat`, `op.delete`의 네 가지 기본 연산이 일관된 API 형태를 제공한다는 점을 보여준다. `op.write("hello.txt", "Hello, World!").await?;`와 같이 `?`를 통해 오류를 처리하며, `op.read`는 바이트 배열을 반환하고 `op.stat`은 메타데이터를 반환한다. 이러한 통일된 API는 각 스토리지 백엔드에서 구현이 다르더라도 사용자 입장에서는 동일한 인터페이스를 사용하게 함으로써 학습 비용을 낮춘다.
 
-`core/examples/multipart-upload/src/main.rs`는 대용량 객체 업로드를 위한 설계 선택을 보여준다. `op.writer("test.txt")`를 통해 Writer를 획득한 뒤, `vec![0; 10 * 1024 * 1024]`와 같은 10MB 청크를 두 번 써서 `w.close()`로 마무리한다. 이 설계는 왜 필요한가? 객체 저장소(S3, GCS 등)는 단일 파트 크기 제한(일반적으로 5MB 미만)이 있으며, 임계치를 초과하면 멀티파트 업로드 API를 사용해야 한다. OpenDAL은 개발자가 이러한 프로토콜 세부 사항을 직접 처리하도록 강제하기보다, `writer`抽象을 제공해 `write`와 `close`만으로 대량 전송을 완료하도록 설계했다. `close`를 호출하기 전까지만 데이터가 버퍼링되며, `close` 이후에 `read`로 데이터를 검증할 수 있다. 이 예제에서 `assert_eq!(bs.to_vec(), ...)`는 업로드된 데이터가 쓰기 순서대로 연결됐음을 검증한다.
+`core/examples/multipart-upload/src/main.rs`는 대용량 객체 업로드 예제를 보여준다. `op.writer("test.txt")`로 Writer를 얻고 여러 청크를 기록한 뒤 `w.close()`로 업로드를 완료한다. 멀티파트 업로드는 객체를 여러 파트로 나누어 전송하는 방식이며, 전송 실패 시 실패한 파트만 재시도할 수 있고 병렬 전송도 가능하다. AWS S3는 멀티파트 업로드의 일반 파트 크기를 5 MiB 이상으로 제한하지만(마지막 파트 제외), 이것이 모든 객체가 5 MiB를 넘으면 반드시 멀티파트 업로드를 해야 한다는 뜻은 아니다. S3는 단일 PUT으로도 최대 5 GB 객체를 업로드할 수 있고, AWS는 일반적으로 100 MB 이상 객체에서 멀티파트를 고려하도록 안내한다. OpenDAL Writer는 지원하는 서비스의 업로드 절차를 추상화하여, 사용자가 `write`와 `close` 중심의 API로 데이터를 기록하도록 돕는다. `close` 호출 후에는 별도 `read`로 저장된 데이터를 검증할 수 있다. 이 예제의 `assert_eq!(bs.to_vec(), ...)`는 읽어 온 데이터가 예상한 순서와 내용으로 구성되었는지 확인한다.
 
 또 다른 설계 선택은 에러 처리 전략이다. 모든 예제에서 `?` 연산자를 사용해 `Result`를 전파하며, `main` 함수 전체를 `Result<()>`로 감싸는 방식이다. 이는 Rust 생태계의 관습과 맞물려, 호출 지점에서 에러를 명시적으로 처리하거나 전파하도록 유도한다. `core/examples/basic/src/main.rs`의 `example` 함수는 `Result<()>`를 반환하고, `main`에서는 `example(op).await`로 결과를 처리한다. 이러한 패턴은 라이브러리 사용자가 예상치 못한 panic 없이 에러를 검사할 수 있게 한다.
 
@@ -87,6 +87,9 @@ OpenDAL을 다른 스토리지 접근 방식과 비교할 때, 성능 수치를 
 종합적으로 Apache OpenDAL은 "One Layer, All Storage" 비전 아래 스토리지 접근의 복잡성을 낮추고, Rust의 장점을 살려 확장 가능하고 관측 가능한 데이터 액세스 레이어를 제공한다. 도입 전에는 자신의 스토리지 환경, 사용 언어, 필요한 기능의 깊이가 프로젝트 목표와 맞는지 확인하는 것이 중요하며, 실제 동작은 `core/examples/` 내의 실습 코드를 통해 검증해 볼 수 있다.
 
 ## 출처
+
+- AWS 공식 문서: [Amazon S3 multipart upload limits](https://docs.aws.amazon.com/AmazonS3/latest/userguide/qfacts.html)
+- AWS 공식 문서: [Uploading objects](https://docs.aws.amazon.com/AmazonS3/latest/userguide/upload-objects.html)
 
 - GitHub: [apache/opendal](https://github.com/apache/opendal) — 작성자: apache
 - GitHub: [apache/opendal / LICENSE](https://github.com/apache/opendal/blob/main/LICENSE) — 작성자: apache
