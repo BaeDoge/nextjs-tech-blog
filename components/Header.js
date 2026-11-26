@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import SearchBox from './SearchBox';
 import LanguageSwitcher from './LanguageSwitcher';
-import { getCategoryPath } from '@/lib/posts';
 
 export default function Header({ posts, englishPosts }) {
   const pathname = usePathname() || '/';
@@ -22,10 +21,10 @@ export default function Header({ posts, englishPosts }) {
           <span>baejoon<small>{labels.tagline}</small></span>
         </Link>
         <nav aria-label={isEnglish ? 'Main navigation' : '주 메뉴'}>
-          <Link href={getCategoryPath('algorithm', locale)}>{labels.algorithm}</Link>
-          <Link href={getCategoryPath('troubleshooting', locale)}>{labels.troubleshooting}</Link>
-          <Link href={getCategoryPath('paper', locale)}>{labels.paper}</Link>
-          <Link href={getCategoryPath('opensource', locale)}>{labels.opensource}</Link>
+          <Link href={(isEnglish ? '/en/category/algorithm' : '/category/algorithm')}>{labels.algorithm}</Link>
+          <Link href={(isEnglish ? '/en/category/troubleshooting' : '/category/troubleshooting')}>{labels.troubleshooting}</Link>
+          <Link href={(isEnglish ? '/en/category/paper' : '/category/paper')}>{labels.paper}</Link>
+          <Link href={(isEnglish ? '/en/category/opensource' : '/category/opensource')}>{labels.opensource}</Link>
           <Link href={isEnglish ? '/en/lab' : '/lab'}>{labels.lab}</Link>
           <Link href={isEnglish ? '/en/about' : '/about'}>{labels.about}</Link>
         </nav>
