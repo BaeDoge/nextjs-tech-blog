@@ -26,7 +26,7 @@ export default function SearchBox({ posts = [], englishPosts, compact = false })
   const labels = isEnglish
     ? { label: 'Search articles', placeholder: 'Search errors, algorithms, Python...', empty: 'No matching articles. Try another keyword.' }
     : { label: '글 검색', placeholder: '오류 메시지, 알고리즘, Python 검색', empty: '검색 결과가 없습니다. 다른 키워드로 검색해 보세요.' };
-  const base = isEnglish ? '/en' : '';
+  const prefix = isEnglish ? '/en' : '';
 
   return (
     <div className={`search-wrap ${compact ? 'search-compact' : ''}`}>
