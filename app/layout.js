@@ -20,8 +20,9 @@ export const metadata = {
 };
 
 export default function RootLayout({ children }) {
-  const posts = getAllPosts('ko');
-  const englishPosts = getAllPosts('en');
+  const toSearchEntry = ({ content, ...post }) => post;
+  const posts = getAllPosts('ko').map(toSearchEntry);
+  const englishPosts = getAllPosts('en').map(toSearchEntry);
   return (
     <html lang="ko" data-scroll-behavior="smooth" suppressHydrationWarning>
       <body>
