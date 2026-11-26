@@ -57,9 +57,7 @@ foo.MyClass()
 
 ## 다른 해결 방법
 
-Python 3.3 이상에서는 `importlib.machinery.SourceFileLoader`를 사용할 수 있다.
-이 방법은 코드가 간결하지만 `load_module()` 메서드는 Python 3.4에서 `deprecated`로 선언되었으며 Python 3.12에서 완전히 제거되었다.
-Python 3.12 환경에서 이 코드를 실행하면 `AttributeError`가 발생한다.
+Python 3.3 이상에서 사용할 수 있었던 `SourceFileLoader.load_module()`은 Python 3.4부터 deprecated 되었고, Python 3.15에서 제거되었습니다. 따라서 최신 Python에서는 이 API를 사용하지 말고 앞의 `importlib.util.spec_from_file_location()`과 `exec_module()` 조합을 사용해야 합니다.
 
 ```python
 from importlib.machinery import SourceFileLoader
@@ -68,8 +66,7 @@ foo = SourceFileLoader("module.name", "/path/to/file.py").load_module()
 foo.MyClass()
 ```
 
-Python 2 환경에서는 `imp` 모듈의 `load_source` 함수를 사용한다.
-해당 함수는 Python 3.4에서 `deprecated`되었으며 Python 3.12에서 완전히 제거되었으므로 최신 환경에서는 사용할 수 없다.
+Python 2 시절에는 `imp.load_source()`를 사용하기도 했지만, `imp` 모듈은 Python 3.4부터 deprecated 되었고 Python 3.12에서 제거되었습니다. Python 3 코드에서는 `importlib` 기반 API를 사용하세요.
 
 ```python
 import imp
