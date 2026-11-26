@@ -1,0 +1,132 @@
+---
+title: "[Troubleshooting] Resolving Closure Variable Assignment Errors"
+publishedAt: "2026-11-26"
+summary: "Explains how to use the `nonlocal` keyword in Python 3 to reassign variables within a closure."
+tag: "Troubleshooting"
+---
+
+## Symptom
+
+In Python 3, attempting to increment or decrement a variable from an outer function inside a closure using the increment/decrement operator (`+=`) results in an `UnboundLocalError`.
+
+<Callout type="warning" title="Error Situation">
+
+```python
+UnboundLocalError: local variable 'counter' referenced before assignment
+```
+
+</Callout>
+
+The minimal code to reproduce the error is as follows:
+
+```python
+def foo():
+    counter = 1
+    def bar():
+        counter += 1  # Attempt to reassign
+        print("bar", counter)
+    return bar
+
+bar = foo()
+bar()
+```
+
+## Cause
+
+Python treats a variable as a local variable if there is an assignment statement for that variable within the function.
+
+Inside the closure, `counter += 1` behaves identically to `counter = counter + 1`.
+
+At the point where the right-hand side `counter` is referenced, the local variable has not yet been initialized, causing the error.
+
+## Solution
+
+In Python 3, you can use the `nonlocal` keyword to make a variable from an outer scope reassignable.
+
+<Steps>
+<Step title="Add nonlocal keyword">
+Explicitly specify the `nonlocal` keyword before the variable you intend to modify inside the closure function.
+</Step>
+<Step title="Allow variable reassignment">
+You can now change the value of the outer variable within the closure.
+</Step>
+</Steps>
+
+The modified code is as follows:
+
+```python
+def foo():
+    counter = 1
+
+    def bar():
+        nonlocal counter  # Allow reference and reassignment of outer variable
+        counter += 1
+        print("bar", counter)
+
+    return bar
+
+bar = foo()
+bar()
+```
+
+## Alternative Solutions
+
+Python 2 does not support the `nonlocal` keyword, so a different approach is required.
+
+<Compare>
+<ComparePanel title="Python 2 Compatibility (Using Mutable Objects)" tone="good">
+Use mutable objects (lists, dictionaries, etc.) to maintain the reference while changing only the internal value.
+</ComparePanel>
+<ComparePanel title="Class-based Approach" tone="good">
+Manage state using instance methods of a class instead of closures.
+</ComparePanel>
+</Compare>
+
+Here is a Python 2-compatible solution using a list:
+
+```python
+def foo():
+    counter = [1]  # Wrap in a list to use a mutable object
+
+    def bar():
+        counter[0] += 1  # Reference remains the same, only the value changes
+        print("bar", counter[0])
+
+    return bar
+
+bar = foo()
+bar()
+```
+
+Here is a class-based solution example:
+
+```python
+class Foo:
+    def __init__(self, counter=1):
+        self.counter = counter
+
+    def __call__(self):
+        self.counter += 1
+        print("bar", self.counter)
+
+bar = Foo()
+bar()
+```
+
+## Additional Notes
+
+When using mutable objects, be careful not to reassign the variable name itself (e.g., `counter = [...]`), as this can break the closure.
+
+If such state maintenance is required, consider using class instances or generators.
+
+<Checklist>
+<ul>
+<li>In Python 3 environments, prioritize using the `nonlocal` keyword.</li>
+<li>In Python 2 environments, utilize mutable objects such as lists or dictionaries.</li>
+<li>Always handle variable reassignment within closures via `nonlocal` or mutable objects.</li>
+</ul>
+</Checklist>
+
+## Sources
+
+- StackOverflow: [Why can't Python increment variable in closure?](https://stackoverflow.com/questions/21959985/why-cant-python-increment-variable-in-closure) — Author: Neil(question), kindall(answer) (CC BY-SA)
