@@ -1,4 +1,4 @@
-export const metadata = { title: '개인정보 처리방침', description: 'baejoon의 접속 정보 및 익명 방명록 처리 안내' };
+export const metadata = { title: '개인정보 처리방침', description: 'baejoon의 접속 정보 및 익명 방명록 처리 안내', alternates: { canonical: '/privacy', languages: { ko: '/privacy', en: '/en/privacy' } } };
 
 export default function PrivacyPage() {
   return <section className="legal-page"><span className="eyebrow">PRIVACY</span><h1>개인정보 처리방침</h1><p className="legal-lead">이 페이지는 현재 구현된 기능을 기준으로 작성한 안내입니다. 실제 배포 환경의 호스팅, 로그 및 데이터 보관 설정을 확인한 뒤 운영 정책에 맞게 최종 검토해 주세요.</p>
