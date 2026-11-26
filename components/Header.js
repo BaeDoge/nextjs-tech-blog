@@ -8,7 +8,6 @@ import LanguageSwitcher from './LanguageSwitcher';
 export default function Header({ posts, englishPosts }) {
   const pathname = usePathname() || '/';
   const isEnglish = pathname === '/en' || pathname.startsWith('/en/');
-  const locale = isEnglish ? 'en' : 'ko';
   const labels = isEnglish
     ? { tagline: 'Notes on learning and building', algorithm: 'Algorithms', troubleshooting: 'Troubleshooting', paper: 'Papers', opensource: 'Open source', lab: 'Playground', about: 'About' }
     : { tagline: '주니어 개발자 성장일기', algorithm: '알고리즘', troubleshooting: '트러블슈팅', paper: '논문', opensource: '오픈소스 분석', lab: '실습실', about: '소개' };
