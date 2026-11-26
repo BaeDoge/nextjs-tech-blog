@@ -30,18 +30,41 @@ tag: "OpenSource"
 
 ## 구체적인 예제로 보는 설계 선택
 
-`scripts/rtl_ltr_linter.py`는 이 프로젝트가 다국어 환경을 얼마나 세심하게 고려하는지 보여주는 사례입니다. 이 스크립트는 마크다운 파일 내에서 RTL(Right-To-Left, 아랍어 등 오른쪽에서 왼쪽으로 읽는 언어)과 LTR(Left-To-Right, 영어 등 왼쪽에서 오른쪽으로 읽는 언어)이 혼용될 때 발생할 수 있는 가독성 문제를 탐지합니다.
+`scripts/rtl_ltr_linter.py`는 이 프로젝트가 다국어 환경을 얼마나 세심하게 고려하는지 보여주는 사례입니다. 이 스크립트는 Markdown 목록 항목을 분석해 RTL(Right-To-Left)과 LTR(Left-To-Right) 문자가 혼용될 때 발생할 수 있는 표시 순서 문제를 검사합니다. 설정 파일의 키워드·기호 규칙과 python-bidi를 이용한 표시 순서 검사를 함께 사용하며, 코드 블록과 인라인 코드 등은 검사 대상에서 제외합니다.
 
-```python
+~~~python
+import re
+
+SPAN_DIR_RE = re.compile(
+    r'<span[^>]*dir=["\'](rtl|ltr)["\'][^>]*>',
+    re.IGNORECASE,
+)
+
 def split_by_span(text, base_ctx):
-    """
-    Splits text into segments based on nested <span> tags with dir attributes.
-    """
-    # 실제 구현은 텍스트 내의 특정 태그를 기준으로 문맥을 분리하는 로직을 포함함
-    return segments
-```
+    tokens = re.split(
+        r'(<span[^>]*dir=["\'](?:rtl|ltr)["\'][^>]*>|</span>)',
+        text,
+    )
+    stack = [base_ctx]
+    segments = []
 
-이 설계는 단순히 링크를 나열하는 것을 넘어, 다양한 언어권의 사용자가 문서를 읽을 때 겪을 수 있는 기술적 불편함을 자동화된 스크립트로 해결하려는 의도를 보여줍니다. `split_by_span` 함수는 텍스트 내의 방향성 속성을 파악하여, 언어 혼용 시 발생할 수 있는 시각적 오류를 방지하려는 목적으로 설계되었습니다.
+    for token in tokens:
+        if not token:
+            continue
+
+        match = SPAN_DIR_RE.match(token)
+        if match:
+            stack.append(match.group(1).lower())
+        elif token.lower() == "</span>":
+            if len(stack) > 1:
+                stack.pop()
+        else:
+            segments.append((token, stack[-1]))
+
+    return segments
+~~~
+
+이 함수는 중첩된 `<span dir="rtl">` 및 `<span dir="ltr">` 태그를 스택으로 추적해 텍스트를 방향성 문맥별 구간으로 나눕니다. 이 구간들은 이후 검사 로직이 현재 문맥을 고려해 텍스트를 분석할 수 있도록 전달됩니다. 함수 자체가 화면을 렌더링하거나 모든 양방향 텍스트 문제를 자동 수정하는 것은 아닙니다.
 
 ## 대안과 비교했을 때의 장단점
 
