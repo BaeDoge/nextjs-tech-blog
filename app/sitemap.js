@@ -12,7 +12,7 @@ export default function sitemap() {
     return value ? new Date(value) : undefined;
   };
 
-  const categories = ['algorithm', 'troubleshooting', 'paper', 'opensource'];
+  const categories = Object.keys(EN_CATEGORIES);
   const englishPosts = getAllPosts('en');
   const englishStaticPages = ['/en/about', '/en/contact', '/en/privacy', '/en/lab'];
 
