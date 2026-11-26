@@ -7,7 +7,7 @@ export default function LanguageSwitcher() {
   const pathname = usePathname() || '/';
   const isEnglish = pathname === '/en' || pathname.startsWith('/en/');
   const target = isEnglish
-    ? (pathname.replace(/^\\/en(?=\\/|$)/, '') || '/')
+    ? ((pathname === '/en' ? '' : pathname.slice(3)) || '/')
     : (pathname === '/' ? '/en' : `/en${pathname}`);
 
   return (
