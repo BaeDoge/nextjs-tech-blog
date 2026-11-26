@@ -7,69 +7,75 @@ tag: "Troubleshooting"
 
 ## 현상
 
-Python 애플리케이션에서 명령줄 인자 등으로 받은 모듈 이름(문자열)을 기반으로 동적으로 모듈을 로드하고자 할 때, 내장 함수인 `__import__`를 직접 호출하는 방식은 복잡하고 오류의 여지가 많습니다.
-예를 들어, `python myapp.py command1`과 같은 구조에서 `command1`이라는 문자열을 모듈 경로로 매핑하여 실행해야 하는 경우입니다.
-<Callout type="warning" title="오류 상황">
-`__import__`를 사용할 때 `fromlist` 인수를 적절히 설정하지 않으면, 패키지의 루트만 로드되고 실제 요청한 서브모듈의 객체를 얻지 못합니다.
-</Callout>
+설정 파일이나 명령줄 인자로 모듈 이름을 문자열로 전달받아 실행 시점에 불러와야 하는 경우가 있습니다. 이때 문자열을 일반 `import` 문에 직접 넣을 수는 없습니다.
 
-```python
-import sys
-
-command = sys.argv[1]
-try:
-    # fromlist에 모듈 이름 리스트를 전달해야 서브모듈을 올바르게 가져옴
-    command_module = __import__("myapp.commands.%s" % command, fromlist=["myapp.commands"])
-except ImportError:
-    # Display error message
-    pass
-```
+예를 들어 `myapp.commands.command1`이라는 이름을 설정에서 읽었다고 가정하겠습니다.
 
 ## 원인
 
-`__import__` 함수는 모듈 이름을 문자열로 받아 로드하는 내장 함수이지만, 패키지 컨텍스트에서의 동작이 복잡합니다.
-특히 `fromlist` 인수를 사용하지 않거나 잘못 사용하면, 패키지의 루트만 로드되고 실제 요청한 서브모듈의 객체를 얻지 못하는 문제가 발생할 수 있습니다.
-Python 2.7 및 3.1 이후에는 표준 라이브러리에 이를 보완하는 명확한 API가 제공되어 내장 함수를 직접 사용하는 것이 권장되지 않습니다.
-<Steps>
-<Step title="동적 로드 필요성 확인">
-사용자 입력이나 설정값에서 모듈 이름(예: 'myapp.commands.command1')을 문자열로 받습니다.
-</Step>
-<Step title="모듈 로드 시도">
-받은 문자열을 바탕으로 해당 모듈을 찾아 객체로 반환해야 합니다.
-</Step>
-</Steps>
+일반적인 `import` 문은 소스 코드에 모듈 경로가 작성되어 있다는 전제로 동작합니다. 모듈 이름이 문자열 변수에 들어 있다면 문자열을 모듈 객체로 바꾸는 동적 import API가 필요합니다.
+
+과거에는 내장 함수 `__import__()`를 사용하기도 했지만, 패키지의 루트 모듈과 실제 하위 모듈을 구분하는 `fromlist` 동작 등으로 코드가 복잡해질 수 있습니다.
 
 ## 해결 방법
 
-Python 2.7 이상 및 Python 3에서는 `importlib` 모듈의 `import_module` 함수를 사용하는 것이 표준 권장 사항입니다.
-이 함수는 모듈 이름을 문자열로 받아 명확하게 모듈 객체를 반환하며, 예외 처리도 직관적입니다.
+모듈 이름이 문자열로 주어졌다면 표준 라이브러리의 `importlib.import_module()`을 사용하는 것이 가장 간단합니다.
 
-```python
+~~~python
 import importlib
 
 module_name = "myapp.commands.command1"
-try:
-    command_module = importlib.import_module(module_name)
-    command_module.run()
-except ImportError:
-    print(f"모듈 {module_name}을(를) 찾을 수 없습니다.")
-```
+command_module = importlib.import_module(module_name)
 
-## 다른 해결 방법
+command_module.run()
+~~~
 
-`__import__` 함수를 직접 사용해야 한다면, `fromlist` 인수를 반드시 리스트(또는 튜플) 형태로 전달해야 합니다.
-여러 모듈을 한 번에 로드해야 할 경우 `map` 함수와 결합하여 사용할 수 있으나, 이는 서브모듈이 아닌 루트 모듈 로드 상황에 적합합니다.
+하위 모듈을 가져오려는 경우에도 전체 점(.) 구분 경로를 전달하면 해당 모듈 객체를 반환합니다.
 
-```python
-# 여러 모듈 동시 로드 예시
-module_names = ['sys', 'os', 're', 'unittest']
-modules = map(__import__, module_names)
-```
+## 상대 모듈 이름 가져오기
 
-## 추가 참고사항
+현재 패키지 안에서 상대 모듈을 불러와야 한다면 `package` 인자를 함께 전달합니다.
 
-`importlib.import_module`는 Python 3.1부터 도입되었으며, 현재 모든 주요 Python 버전에서 권장되는 방식입니다.
-동적 로딩 시 보안상 위험이 있을 수 있으므로, 입력값에 대한 검증(예: 허용된 모듈 목록 체크)이 필요합니다.
+~~~python
+import importlib
+
+# 현재 패키지가 myapp.commands인 모듈에서
+plugin = importlib.import_module(".command1", package="myapp.commands")
+~~~
+
+상대 경로를 사용할 때는 기준이 되는 패키지 이름을 정확히 전달해야 합니다.
+
+## __import__를 사용해야 하는 경우
+
+기존 코드와의 호환 때문에 `__import__()`를 사용해야 한다면 `fromlist`에는 실제 하위 모듈에서 가져올 속성 또는 이름을 전달해야 합니다. 다만 새 코드를 작성할 때는 `importlib.import_module()`을 우선하는 편이 읽기 쉽습니다.
+
+~~~python
+module = __import__(
+    "myapp.commands.command1",
+    fromlist=["run"],
+)
+module.run()
+~~~
+
+## 보안 및 예외 처리
+
+사용자 입력을 검증하지 않고 모듈 이름으로 곧바로 사용하면 의도하지 않은 모듈을 불러올 수 있습니다. 동적으로 불러올 모듈을 미리 허용 목록으로 제한하고, `ModuleNotFoundError` 등 import 실패를 명시적으로 처리하세요.
+
+~~~python
+import importlib
+
+ALLOWED_COMMANDS = {
+    "list": "myapp.commands.list_command",
+    "build": "myapp.commands.build_command",
+}
+
+def load_command(name: str):
+    module_name = ALLOWED_COMMANDS.get(name)
+    if module_name is None:
+        raise ValueError(f"지원하지 않는 명령: {name}")
+
+    return importlib.import_module(module_name)
+~~~
 
 ## 출처
 
