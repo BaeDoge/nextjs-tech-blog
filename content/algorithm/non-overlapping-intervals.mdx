@@ -31,6 +31,8 @@ tag: "Algorithm"
 구간의 끝값을 기준으로 정렬한 후, 이전 선택 구간의 끝값과 비교하여 겹치는지 확인합니다. 겹치는 경우 현재 구간의 끝값이 이미 이전 구간보다 작거나 같으므로(오름차순 정렬), 이전 구간을 유지하는 것이 유리합니다. 따라서 `prev_end`는 갱신하지 않고 제거 카운트만 증가시킵니다.
 
 ```python
+from typing import List
+
 class Solution:
     def eraseOverlapIntervals(self, intervals: List[List[int]]) -> int:
         if not intervals:
