@@ -47,7 +47,7 @@ class Solution:
             min_index = nums.index(min(nums))
             nums[min_index] *= -1
             
-        return sum(nums)
+        return sum(heap)
 ```
 
 시간복잡도: 초기 정렬에 $O(N \log N)$이 소요된다. 부호 반전 루프는 $O(N)$이고, 남은 `k`에 따른 최솟값 탐색은 $O(N)$이므로 전체 시간복잡도는 $O(N \log N)$이다.
@@ -58,8 +58,7 @@ class Solution:
 최소 힙(우선순위 큐)을 사용하여 접근할 수 있다.
 배열을 최소 힙으로 구성한 후, `k`번 동안 가장 작은 값을 추출하여 부호를 반전한 후 다시 힙에 삽입한다.
 모든 연산이 끝나면 힙의 모든 요소를 합산한다.
-이 방법은 매 단계 최솟값을 추출해야 하므로 시간복잡도가 $O(K \log N)$이다.
-$N$과 $K$의 크기가 비슷하거나 $K$가 클 경우 $O(N \log N)$ 정렬 기반 방법이 더 효율적일 수 있다.
+이 방법은 매 연산마다 최솟값을 꺼내고 다시 넣으므로 시간 복잡도는 O(N + K log N)입니다. `heapify`에 O(N)이 필요하고 K번의 pop/push가 각각 O(log N)입니다. K가 매우 크면 정렬 기반 O(N log N) 풀이보다 불리할 수 있습니다.
 
 ```python
 import heapq
@@ -67,12 +66,13 @@ import heapq
 class Solution:
     def largestSumAfterKNegations(self, nums: list[int], k: int) -> int:
         # 배열을 최소 힙으로 구성
-        heapq.heapify(nums)
+        heap = nums.copy()
+        heapq.heapify(heap)
         
         # k번 동안 가장 작은 값을 추출하여 부호 반전 후 삽입
         for _ in range(k):
-            smallest = heapq.heappop(nums)
-            heapq.heappush(nums, smallest * -1)
+            smallest = heapq.heappop(heap)
+            heapq.heappush(heap, smallest * -1)
             
         return sum(nums)
 ```
