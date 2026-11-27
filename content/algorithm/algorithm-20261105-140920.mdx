@@ -35,7 +35,34 @@ def isLongPressedName(name: str, typed: str) -> bool:
 
 ## 다른 풀이 방법
 
-그룹 단위로 문자를 압축하여 비교하는 방법이 있습니다. `name`과 `typed`를 각각 연속된 문자 그룹(문자, 개수)의 리스트로 변환한 후, 그룹의 개수가 같고 각 그룹의 문자가 일치하며 `typed`의 개수가 `name`의 개수보다 크거나 같은지 확인합니다. 이 방법 역시 O(n + m) 시간과 O(1) 추가 공간(그룹 저장을 제외)을 사용하지만, 구현이 다소 길어질 수 있습니다. 해시 맵을 사용해 각 문자의 총 출현 횟수를 세는 방법은 순서 정보를 잃어버려 이 문제에 부적합합니다.
+문자열을 연속된 문자 그룹으로 압축해 비교할 수도 있습니다. 각 그룹은 `(문자, 연속 횟수)`로 표현합니다. 두 문자열의 그룹 수가 같고, 각 위치의 문자가 일치하며, `typed`의 반복 횟수가 `name`보다 크거나 같으면 긴 누름을 포함해 일치하는 입력입니다.
+
+```python
+def _to_groups(text: str) -> list[tuple[str, int]]:
+    groups = []
+    i = 0
+    while i < len(text):
+        j = i + 1
+        while j < len(text) and text[j] == text[i]:
+            j += 1
+        groups.append((text[i], j - i))
+        i = j
+    return groups
+
+def isLongPressedName_groups(name: str, typed: str) -> bool:
+    name_groups = _to_groups(name)
+    typed_groups = _to_groups(typed)
+    if len(name_groups) != len(typed_groups):
+        return False
+
+    return all(
+        name_char == typed_char and name_count <= typed_count
+        for (name_char, name_count), (typed_char, typed_count)
+        in zip(name_groups, typed_groups)
+    )
+```
+
+시간 복잡도는 O(n + m), 공간 복잡도는 그룹 목록을 저장하는 O(n + m)입니다. 기본 두 포인터 풀이가 O(1) 추가 공간을 사용하므로, 이 방법은 그룹별 반복 횟수를 명시적으로 비교하고 싶을 때의 대안입니다.
 
 ## 추가 참고사항
 
