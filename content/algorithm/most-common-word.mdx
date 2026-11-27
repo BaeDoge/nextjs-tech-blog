@@ -68,7 +68,31 @@ class Solution:
 3. 알파벳이 아닌 경우, 현재까지 모은 단어가 비어있지 않다면 카운터에 추가하고 단어를 초기화합니다.
 4. 루프 종료 후 마지막 단어도 처리합니다.
 
-이 방법은 라이브러리 의존성을 줄일 수 있지만, 코드가 길어지고 구두점 처리 로직을 직접 구현해야 하므로 가독성과 유지보수성에서 정규식 기반 접근보다 떨어질 수 있습니다. 시간 복잡도는 동일하게 $O(N)$입니다.
+```python
+from collections import Counter
+
+def most_common_word_manual(paragraph: str, banned: list[str]) -> str:
+    banned_set = {word.lower() for word in banned}
+    counts = Counter()
+    current = []
+
+    for char in paragraph.lower() + " ":  # 마지막 단어까지 처리하기 위한 구분자
+        if "a" <= char <= "z":
+            current.append(char)
+        elif current:
+            word = "".join(current)
+            counts[word] += 1
+            current.clear()
+
+    return max(
+        (word for word in counts if word not in banned_set),
+        key=counts.get,
+    )
+```
+
+
+
+이 방법은 라이브러리 의존성을 줄일 수 있지만, 코드가 길어지고 구두점 처리 로직을 직접 구현해야 하므로 가독성과 유지보수성에서 정규식 기반 접근보다 떨어질 수 있습니다. 시간 복잡도는 토큰화와 빈도 계산, 최대값 탐색을 합쳐 $O(N + M + U)$입니다.
 
 <Compare>
 <ComparePanel title="정규식 기반" tone="good">
