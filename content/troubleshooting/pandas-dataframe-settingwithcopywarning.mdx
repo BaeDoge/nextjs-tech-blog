@@ -1,71 +1,64 @@
 ---
-title: "[트러블슈팅] Pandas DataFrame 열 수정 시 SettingWithCopyWarning"
+title: "[트러블슈팅] 필터링한 Pandas DataFrame 안전하게 수정하기"
 publishedAt: "2026-11-03"
-summary: "조건부 필터링 후 열 값을 수정할 때 발생하는 Pandas의 SettingWithCopyWarning 해결법"
+summary: "조건에 맞는 행을 추출해 별도로 가공할 때 copy와 loc을 목적에 맞게 사용하는 방법을 정리한다."
 tag: "Troubleshooting"
 ---
 
 ## 현상
 
-DataFrame에서 조건에 따라 행을 필터링한 후, 특정 열의 데이터 타입을 변환하거나 값을 할당하려고 하면 경고가 발생합니다.
+조건에 맞는 행만 추출한 뒤 열 값을 변환하거나 새 값을 할당하려면, 먼저 수정 결과를 원본에 반영할지 아니면 독립된 결과로 사용할지 결정해야 합니다.
 
-```python
-df = df[df['my_col'].notnull()]
-df['my_col'] = df['my_col'].astype(int).astype(str)
-```
+~~~~python
+import pandas as pd
 
-이 코드 실행 시 다음과 같은 경고가 출력됩니다.
+df = pd.DataFrame({
+    "my_col": [1, None, 3, 4],
+    "name": ["A", "B", "C", "D"],
+})
 
-```
-SettingWithCopyWarning: A value is trying to be set on a copy of a slice from a DataFrame.
-Try using .loc[row_indexer,col_indexer] = value instead
-```
+filtered = df[df["my_col"].notna()]
+~~~~
 
-![현상 스크린샷](/blogs/pandas-dataframe-settingwithcopywarning-1.png)
+필터 결과를 이후 작업에서 독립된 DataFrame으로 취급하려는 경우, 복사 여부를 암묵적인 인덱싱 동작에 맡기지 않는 편이 안전합니다.
 
 ## 원인
 
-이 경고는 DataFrame의 일부 행이나 열을 슬라이싱하여 분리된 객체를 만든 후, 이를 다시 수정하려고 할 때 발생합니다.
+Pandas의 인덱싱은 버전과 선택 방식에 따라 원본 데이터와 메모리를 공유할 수 있습니다. 특히 필터링과 열 선택을 연속해서 수행하는 chained assignment는 원본을 수정하려는 것인지, 중간 결과만 수정하려는 것인지 모호해집니다.
 
-Pandas는 체이닝(연속적인 연산) 결과로 생성된 DataFrame이 원본 데이터의 복사본인지, 아니면 원본 데이터의 뷰(view)인지 알 수 없습니다. 슬라이싱한 결과물이 복사본일 경우, 원본에 할당이 반영되지 않을 수 있다는 우려로 인해 이를 경고로 안내합니다.
+반대로 필터링 결과를 별도 변수에 저장한 뒤 그 변수만 수정하는 작업은 원본 수정과 목적이 다릅니다. 두 상황을 구분하지 않고 copy()나 loc을 기계적으로 적용하면 코드의 의도가 오히려 불분명해질 수 있습니다.
 
-## 해결 방법
+## 해결 방법 1. 필터 결과를 독립적으로 가공하기
 
-슬라이싱된 DataFrame을 `copy()` 메서드를 통해 명시적으로 복사본으로 변환한 후 값을 수정하면 경고가 발생하지 않습니다.
+필터링한 데이터만 별도로 보관하거나 가공하려면 copy()를 명시합니다.
 
-수정 전 코드:
+~~~~python
+mask = df["my_col"].notna()
+filtered = df.loc[mask].copy()
 
-```python
-df = df[df['my_col'].notnull()]
-df['my_col'] = df['my_col'].astype(int).astype(str)
-```
+filtered["my_col"] = pd.to_numeric(filtered["my_col"])
+filtered["name"] = filtered["name"].str.lower()
+~~~~
 
-수정 후 코드:
+이제 filtered는 원본과 독립된 작업용 DataFrame입니다. filtered의 값을 수정해도 원본 df는 변경되지 않습니다.
 
-```python
-df = df[df['my_col'].notnull()].copy()
-df['my_col'] = df['my_col'].astype(int).astype(str)
-```
+## 해결 방법 2. 원본 DataFrame의 특정 행을 수정하기
 
-## 다른 해결 방법
+필터 조건에 해당하는 원본 행을 직접 수정하려면 조건과 열을 하나의 loc 할당으로 지정합니다.
 
-`loc` 인덱서를 사용하여 원본 DataFrame의 조건에 부합하는 행과 열을 명시적으로 지정하여 값을 할당하는 방법도 있습니다. 복사본을 만들지 않고 원본 데이터의 특정 위치만 직접 수정하므로, 슬라이싱된 객체를 유지할 필요가 없는 경우에 유용합니다.
+~~~~python
+mask = df["my_col"].notna()
+df.loc[mask, "my_col"] = pd.to_numeric(df.loc[mask, "my_col"])
+~~~~
 
-```python
-# loc을 사용하여 원본의 특정 행/열 명시적 할당
-condition = df['my_col'].notnull()
-df.loc[condition, 'my_col'] = df.loc[condition, 'my_col'].astype(int).astype(str)
-```
+이 코드는 원본 df의 my_col 열을 직접 변경합니다. 별도의 필터 DataFrame을 만든 다음 그 객체를 수정하는 방식과 목적이 다릅니다.
 
-## 추가 참고사항
+## pandas 3.0에서 주의할 점
 
-- `copy()`를 사용하면 데이터의 깊은 복사(deep copy)가 수행되므로, 대용량 데이터 처리 시 메모리 사용량이 증가할 수 있습니다.
-- 이 경고는 실행을 중단시키는 에러가 아니지만, 데이터 수정이 원본에 제대로 반영되었는지 확인할 수 있는 중요한 신호이므로 반드시 처리해야 합니다.
+pandas 3.0부터 Copy-on-Write가 기본이자 유일한 동작 방식입니다. 인덱싱 결과를 수정해도 부모 DataFrame이 함께 변경되지 않습니다. 원본을 수정하려면 chained assignment가 아니라 loc[row_indexer, column_indexer] = value 형태로 할당해야 합니다.
+
+pandas 2.x 환경에서도 버전에 따른 차이를 줄이려면 원본 수정은 loc, 독립된 결과 생성은 copy()로 의도를 명확히 구분하는 것이 좋습니다.
 
 ## 출처
 
-- StackOverflow: [Pandas DataFrame: SettingWithCopyWarning: A value is trying to be set on a copy of a slice from a DataFrame](https://stackoverflow.com/questions/49728421/pandas-dataframe-settingwithcopywarning-a-value-is-trying-to-be-set-on-a-copy) — 작성자: Matthias(질문), jezrael(답변) (CC BY-SA)
-- Tistory: [Pandas 데이터 먼징 실습 1 - Null/Outlier 처리 및 데이터타입 변환](https://haloaround.tistory.com/274) — 작성자: PM 의 생활
-- Tistory: [pandas dataframe IndexError 오류 해결하기](https://workauto.tistory.com/entry/pandas-dataframe-IndexError-%EC%98%A4%EB%A5%98-%ED%95%B4%EA%B2%B0%ED%95%98%EA%B8%B0) — 작성자: 업무 자동화
-
-본문 이미지는 위 출처에서 가져왔습니다.
+- pandas 공식 문서: [Copy-on-Write (CoW)](https://pandas.pydata.org/docs/user_guide/copy_on_write.html)

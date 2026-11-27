@@ -57,22 +57,19 @@ def greet():
 
 ## 다른 해결 방법
 
-에디터의 자동 정렬 기능을 사용하지 않고, 스크립트 실행 시 경고 모드를 활용하거나 정적 분석 도구를 사용하여 문제를 찾는 방법이 있습니다.
-
-첫째, Python 인터프리터에서 `-t` 옵션을 사용하면 탭과 공백의 혼용으로 인한 잠재적 문제를 경고할 수 있습니다. (참고: 이 옵션은 Python 3.10 이후 Deprecated되었으며 3.12에서 제거되었습니다.)
+에디터의 자동 정렬 기능을 사용하지 않는 경우에도 Python의 컴파일 단계에서 문법 오류를 확인할 수 있습니다.
 
 ```bash
-python -t script.py
+python -m py_compile script.py
 ```
 
-둘째, `py_compile` 모듈을 사용하여 문법 오류를 사전에 검증할 수 있습니다.
+탭과 공백이 일관되지 않게 섞여 의미가 모호해지면 Python은 `TabError`를 발생시킵니다. Python 3에서는 예전 Python 2 시절의 `-t` 옵션을 들여쓰기 검사 방법으로 사용할 수 없으므로, 파일을 직접 정리하고 컴파일 검사 도구를 사용하는 편이 적절합니다.
 
-```python
-import py_compile
-py_compile.compile('script.py', doraise=True)
+```bash
+autopep8 --in-place script.py
 ```
 
-셋째, `autopep8`과 같은 자동 포맷터를 사용하여 파일 내 모든 들여쓰기 스타일을 PEP 8 기준에 맞게 통일할 수 있습니다.
+자동 포맷터는 문법과 스타일을 정리하는 보조 도구이므로, 변경된 코드가 의도한 동작을 하는지도 별도로 확인해야 합니다.
 
 ```bash
 autopep8 --in-place --aggressive script.py

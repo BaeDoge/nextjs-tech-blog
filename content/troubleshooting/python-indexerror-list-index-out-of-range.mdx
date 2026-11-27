@@ -1,91 +1,79 @@
 ---
-title: "[트러블슈팅] Python IndexError: list index out of range 해결"
+title: "[트러블슈팅] 기존 리스트를 새 리스트로 복사할 때 발생하는 IndexError"
 publishedAt: "2026-10-20"
-summary: "빈 리스트에 인덱스를 지정하여 할당할 때 발생하는 IndexError의 원인과 해결 방법을 정리합니다."
+summary: "반복문으로 기존 리스트를 새 리스트에 옮길 때 인덱스를 직접 관리해 발생하는 오류와 더 안전한 복사 방법을 정리합니다."
 tag: "Troubleshooting"
 ---
 
 ## 현상
 
-빈 리스트에 인덱스를 지정하여 값을 할당하려고 하면 `IndexError: list assignment index out of range` 오류가 발생합니다. 이는 리스트의 현재 길이를 초과하는 인덱스에 접근하려고 할 때 발생합니다.
+기존 리스트의 요소를 새 리스트로 옮기려고 빈 리스트를 만든 뒤, 반복문에서 인덱스로 값을 할당하면 `IndexError: list assignment index out of range`가 발생할 수 있습니다.
 
 ```python
-i = [1, 2, 3, 5, 8, 13]
-j = []
-k = 0
+source = [1, 2, 3, 5, 8, 13]
+copied = []
+index = 0
 
-for l in i:
-    j[k] = l
-    k += 1
+for value in source:
+    copied[index] = value
+    index += 1
 ```
 
-위 코드를 실행하면 두 번째 줄 `j[k] = l` 부분에서 다음과 같은 오류가 발생합니다.
-
-```
-IndexError: list assignment index out of range
-```
-
-![현상 스크린샷](/blogs/python-indexerror-list-index-out-of-range-1.png)
+`copied`는 길이가 0인 빈 리스트이므로 첫 반복에서 `copied[0]`에 값을 대입할 수 없습니다.
 
 ## 원인
 
-파이썬의 리스트는 동적 배열이지만, 할당 연산(`=`)을 사용할 때는 해당 인덱스에 이미 요소가 존재해야 합니다. 초기화되지 않은 빈 리스트 `[]`는 길이가 0이므로, 인덱스 0에 접근하여 값을 할당하려고 하면 존재하지 않는 위치를 참조하게 되어 오류가 발생합니다. 즉, 리스트는 존재하지 않는 인덱스에 값을 직접 할당하는 것을 허용하지 않습니다.
+리스트는 요소를 추가할 때 크기가 동적으로 늘어나지만, 인덱스 대입은 이미 존재하는 위치의 값을 바꾸는 연산입니다. 빈 리스트에 인덱스 0이 존재하지 않으므로 `copied[0] = value`는 실패합니다.
 
-## 해결 방법
+이 문제는 반복문의 인덱스를 잘못 계산해서 생긴 오류와 구분해야 합니다. 현재 예제에서는 인덱스 값이 0이든 다른 값이든, 대상 리스트가 비어 있기 때문에 첫 대입부터 실패합니다.
 
-빈 리스트에 요소를 추가하려면 인덱스 할당이 아닌 `append()` 메서드를 사용해야 합니다. `append()`는 리스트의 끝에 새로운 요소를 추가하여 리스트의 길이를 자동으로 확장합니다.
+## 해결 방법 1. 기존 리스트를 그대로 복사하기
 
-```python
-i = [1, 2, 3, 5, 8, 13]
-j = []
-
-for l in i:
-    j.append(l)
-```
-
-또한, 단순히 기존 리스트를 복사하려는 목적이라면 `list()` 생성자나 슬라이싱을 사용할 수 있습니다.
+목적이 단순한 리스트 복사라면 직접 반복문을 작성할 필요가 없습니다.
 
 ```python
-i = [1, 2, 3, 5, 8, 13]
-j = list(i)
+source = [1, 2, 3, 5, 8, 13]
+copied = list(source)
+
+print(copied)
+# [1, 2, 3, 5, 8, 13]
 ```
 
-## 다른 해결 방법
-
-기존의 인덱스 할당 로직을 유지하려면, 먼저 할당할 인덱스 범위만큼의 요소가 있는 리스트를 미리 생성해야 합니다. `None` 값을 사용하여 리스트를 초기화한 후 인덱스를 통해 값을 덮어쓰는 방식입니다.
+슬라이싱으로도 얕은 복사본을 만들 수 있습니다.
 
 ```python
-i = [1, 2, 3, 5, 8, 13]
-j = [None] * len(i)
-k = 0
-
-for l in i:
-    j[k] = l
-    k += 1
+copied = source[:]
 ```
 
-이 방법은 다른 언어의 배열처럼 특정 인덱스에 값을 할당하는 패턴을 따를 때 유용합니다.
+## 해결 방법 2. 변환하면서 새 리스트 만들기
+
+각 요소에 연산을 적용하거나 조건에 맞는 요소만 옮기려면 리스트 컴프리헨션을 사용할 수 있습니다.
+
+```python
+squared = [value ** 2 for value in source]
+even_values = [value for value in source if value % 2 == 0]
+```
+
+## 다른 해결 방법. 인덱스 대입이 필요한 경우
+
+대상 리스트의 위치를 미리 정해두고 각 위치에 값을 넣어야 한다면, 먼저 원본과 같은 길이로 공간을 만듭니다.
+
+```python
+copied = [None] * len(source)
+
+for index, value in enumerate(source):
+    copied[index] = value
+```
+
+단순 복사에는 `list(source)`가 더 간단합니다. 위 방식은 각 위치를 별도로 계산하거나 다른 값으로 초기화해야 할 때 선택할 수 있습니다.
 
 ## 추가 참고사항
 
-`IndexError`는 리스트, 튜플, 문자열 등 시퀀스 자료형에서 유효하지 않은 인덱스에 접근할 때 발생합니다. 이를 방지하기 위해 인덱스 접근 전 `len()` 함수를 사용하여 리스트의 길이를 확인하거나, `try-except` 블록으로 예외를 처리하는 것이 좋습니다.
-
-```python
-my_list = [10, 20, 30]
-index = 5
-
-if 0 <= index < len(my_list):
-    print(my_list[index])
-else:
-    print(f"Error: 유효하지 않은 인덱스 {index}")
-```
-
-반복문에서 인덱스를 사용할 경우, `range(len(my_list))`를 사용하여 범위를 벗어나지 않도록 주의해야 합니다.
+- `append()`는 리스트 끝에 요소를 추가합니다.
+- 인덱스 대입은 이미 존재하는 요소를 교체합니다.
+- 중첩 리스트를 복사하면 `list(source)`와 슬라이싱은 얕은 복사이므로 내부 리스트 객체는 원본과 공유합니다. 중첩 객체까지 분리하려면 복사 깊이를 별도로 고려해야 합니다.
 
 ## 출처
 
-- StackOverflow: [Why can't I build a list by assigning each element in turn? How can I add (append) the elements without getting an IndexError?](https://stackoverflow.com/questions/5653533/why-cant-i-build-a-list-by-assigning-each-element-in-turn-how-can-i-add-appen) — 작성자: Vladan(질문), Steve Mayne(답변) (CC BY-SA)
-- Tistory: [[파이썬 에러] IndexError: list index out of range 해결하기](https://3-14159.tistory.com/entry/%ED%8C%8C%EC%9D%B4%EC%8D%AC-%EC%97%90%EB%9F%ACIndexErrorlistindexoutofrange%ED%95%B4%EA%B2%B0%ED%95%98%EA%B8%B0) — 작성자: 원근값의 블로그
-- Tistory: [[python] IndexError](https://jojonari.tistory.com/entry/python-IndexError) — 작성자: 하늘과 바람과 별과 코드
-
-본문 이미지는 위 출처에서 가져왔습니다.
+- Python 공식 문서: [Mutable Sequence Types — list](https://docs.python.org/3/library/stdtypes.html#mutable-sequence-types)
+- Python 공식 문서: [Built-in Functions — list](https://docs.python.org/3/library/functions.html#func-list)

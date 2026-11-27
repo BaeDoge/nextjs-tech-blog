@@ -9,9 +9,9 @@ tag: "Paper Review"
 
 RAG(검색 증강 생성) 시스템을 구축할 때 개발자들이 자주 마주하는 고민이 있습니다. 검색 결과가 얼마나 정확한지가 생성 품질에 직접적인 영향을 미치기 때문입니다. 하지만 검색 방식마다 비용과 성능의 균형이 달라서 무조건 좋은 방식만 선택하기는 어렵습니다.
 
-전통적인 하이브리드 검색은 빠르고 비용이 적게 들지만, 복잡한 추론이 필요한 질문에는 한계가 있을 수 있습니다. 반면, ReSP(Retrieve, Summarize, Plan)와 같은 추론 기반 검색은 검색 품질을 높일 수 있지만, 계산 비용이 훨씬 많이 듭니다.
+전통적인 하이브리드 검색은 빠르고 비용이 적게 들지만, 복합적인 질문을 처리하는 데 한계가 있을 수 있습니다. 반면, ReSP(Retrieve, Summarize, Plan)와 같은 추론 기반 검색은 복합적인 질문을 처리할 수 있지만, 계산 비용이 더 많이 들 수 있습니다.
 
-이 연구는 이 두 가지 방식을 상황에 따라 나누어 사용하는 방법을 제안합니다. 모든 질문을 비싸고 무거운 추론 검색으로 처리하는 대신, 간단한 질문은 가벼운 검색으로 먼저 처리하고 복잡한 질문만 추론 검색으로 넘기는 '경량 비용 인식 라우팅' 방식을 도입합니다.
+이 연구는 이 두 가지 방식을 상황에 따라 나누어 사용하는 방법을 제안합니다. 모든 질문을 비용이 높은 추론 검색으로 처리하는 대신, 간단한 질문은 가벼운 검색으로 먼저 처리하고 복잡한 질문만 추론 검색으로 넘기는 '경량 비용 인식 라우팅' 방식을 도입합니다.
 
 ## CARE: 경량 비용 인식 적응형 검색 구조
 
@@ -26,11 +26,11 @@ RAG(검색 증강 생성) 시스템을 구축할 때 개발자들이 자주 마�
 → 가벼운 검색 또는 추론 검색으로 라우팅
 ```
 
-분류기는 쿼리本身的 특징과, 미리 수행한 가벼운 검색 결과의 특징을 사용합니다. 이 방식은 추가적인 대형 모델 학습 없이, 기존의 모델들을 조합하여 효율적인 라우팅을 가능하게 합니다.
+분류기는 쿼리 자체의 특징과, 미리 수행한 가벼운 검색 결과의 특징을 사용합니다. 이 방식은 경량 분류기를 사용해 어떤 질의에 추가 추론 검색이 필요한지 판단합니다.
 
 ## 실험 설정 및 데이터셋
 
-CARE의 성능은 HotpotQA와 Natural Questions(NQ)라는 두 가지 질문 답변(BA) 데이터셋을 사용하여 평가했습니다. 전체적으로 7,914,797개의 문서와 10,857개의 벤치마크 쿼리가 사용되었으며, 그중 4,097개의 쿼리가 완전히 분리된 테스트 세트로 활용되었습니다.
+CARE의 성능은 HotpotQA와 Natural Questions(NQ)라는 두 가지 질의응답(QA) 데이터셋을 사용하여 평가했습니다. 전체적으로 7,914,797개의 문서와 10,857개의 벤치마크 쿼리가 사용되었으며, 그중 4,097개의 쿼리가 완전히 분리된 테스트 세트로 활용되었습니다.
 
 데이터셋별로 최적의 임계값을 독립적으로 선정하여 라우팅의 기준을 삼았습니다. HotpotQA의 경우 임계값이 0.30, NQ의 경우 0.60으로 설정되었습니다.
 
@@ -38,17 +38,17 @@ CARE의 성능은 HotpotQA와 Natural Questions(NQ)라는 두 가지 질문 답�
 
 실험 결과는 데이터셋에 따라 다른 양상을 보입니다.
 
-HotpotQA의 경우, CARE는 추론 검색 방식인 ReSP와 비슷한 수준의 검색 효과를 달성했습니다. Recall@100 점수는 0.8770으로 ReSP의 0.8795보다 약간 낮았지만,utility(효용) 점수에서는 0.0007의 미세한 이점을 보였습니다. 이 이점은 검색 성능이 더 우수해서라기보다는, 비용 항(routing-cost term)을 고려한 결과입니다. 특히 비싼 검색 분기가 활성화되는 비율이 100%에서 88.79%로 줄어든 점이 특징입니다.
+HotpotQA의 경우, CARE는 추론 검색 방식인 ReSP와 비슷한 수준의 검색 효과를 보였습니다. Recall@100은 0.8770으로 ReSP의 0.8795보다 약간 낮았습니다. 반면 비용 항목을 포함한 utility(효용) 점수는 ReSP보다 0.0007 높았습니다. 이 이점은 검색 성능이 더 우수해서라기보다는, 비용 항(routing-cost term)을 고려한 결과입니다. 특히 비용이 높은 추론 검색 분기의 실행 비율이 100%에서 88.79%로 낮아졌습니다.
 
-Natural Questions의 경우, 더 뚜렷한 비용 절감 효과를 보여주었습니다. CARE는 비싼 검색 분기의 활성화 비율을 9.82%로 크게 낮추면서도 utility 점수 0.7596을 달성했습니다.
+Natural Questions에서는 비용이 높은 검색 분기의 실행 비율이 더 크게 낮아졌습니다. CARE는 비용이 높은 추론 검색 분기의 실행 비율을 9.82%로 크게 낮추면서도 utility 점수 0.7596을 달성했습니다.
 
 <StatGrid>
 <Stat value="0.7993" label="데이터셋 평균 유틸리티" detail="HotpotQA, NQ 결합" />
-<Stat value="49.31%" label="평균 비싼 분기 활성화률" detail="데이터셋 평균" />
-<Stat value="9.82%" label="NQ 비싼 분기 활성화률" detail="명확한 비용 절감 효과" />
+<Stat value="49.31%" label="평균 추론 검색 실행 비율" detail="두 데이터셋의 macro-average" />
+<Stat value="9.82%" label="NQ 추론 검색 실행 비율" detail="NQ 데이터셋" />
 </StatGrid>
 
-이 결과를 통해 CARE가 특정 상황에서는 추론 검색에 맞먹는 성능을 유지하면서도, 다른 상황에서는 비용을 획기적으로 줄일 수 있음을 알 수 있습니다.
+이 결과를 통해 CARE가 특정 상황에서는 추론 검색에 맞먹는 성능을 유지하면서도, 다른 상황에서는 비용을 낮출 수 있음을 알 수 있습니다.
 
 ## 개발자의 적용 관점
 
@@ -58,4 +58,5 @@ Natural Questions의 경우, 더 뚜렷한 비용 절감 효과를 보여주었�
 
 ## 출처
 
-- OpenAlex / 논문 원문: [When is LLM-based reasoning retrieval worth the cost? Lightweight cost-aware query routing for retrieval-augmented generation](https://doi.org/10.1016/j.ipm.2026.105287) — 작성자: Sergio Arjona-Giner, Faraón Llorens Largo, Alberto Real-Fernández, Rafael Molina-Carmona
+- 학술지 원문 및 DOI: [When is LLM-based reasoning retrieval worth the cost? Lightweight cost-aware query routing for retrieval-augmented generation](https://www.sciencedirect.com/science/article/pii/S0306457326006771) — *Information Processing & Management*, 64권 2호 Part C, 2027년 2월호 예정
+- 저자 발표: [Faraón Llorens, 2026년 11월 19일](https://blogs.ua.es/faraonllorens/2026/11/19/)
