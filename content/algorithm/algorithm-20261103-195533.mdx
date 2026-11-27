@@ -20,6 +20,8 @@ tag: "Algorithm"
 ```python
 from typing import List, Optional
 
+# TreeNode is provided by the LeetCode judge; keep the annotation as a forward reference.
+
 # Definition for a binary tree node.
 # class TreeNode:
 #     def __init__(self, val=0, left=None, right=None):
@@ -27,10 +29,10 @@ from typing import List, Optional
 #         self.left = left
 #         self.right = right
 class Solution:
-    def inorderTraversal(self, root: Optional[TreeNode]) -> List[int]:
+    def inorderTraversal(self, root: Optional['TreeNode']) -> List[int]:
         result = []
         
-        def inorder(node: Optional[TreeNode]):
+        def inorder(node: Optional['TreeNode']):
             if not node:
                 return
             # 1. 왼쪽 서브트리 방문
@@ -57,8 +59,12 @@ class Solution:
 이 방법은 재귀의 오버헤드를 피하고 제어 흐름을 명시적으로 관리할 수 있다는 장점이 있다.
 
 ```python
+from typing import List, Optional
+
+# TreeNode is provided by the LeetCode judge; keep the annotation as a forward reference.
+
 class Solution:
-    def inorderTraversal(self, root: Optional[TreeNode]) -> List[int]:
+    def inorderTraversal(self, root: Optional['TreeNode']) -> List[int]:
         result = []
         stack = []
         current = root
