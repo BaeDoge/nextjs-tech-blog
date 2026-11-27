@@ -75,7 +75,7 @@ def Ancestors(otu, tree):
     try:
         # 데이터 접근 시 NoneType 접근 에러 확인
         parent = tree[otu][0][0]
-    except (TypeError, IndexError):
+    except (KeyError, TypeError, IndexError):
         # 인덱싱 실패 시 재귀 호출 중단
         return []
 
