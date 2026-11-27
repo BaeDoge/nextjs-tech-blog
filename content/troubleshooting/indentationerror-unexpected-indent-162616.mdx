@@ -21,11 +21,11 @@ def greet():
         print("Again")  # 불필요한 들여쓰기 → 오류 발생
 ```
 
-또는 블록을 요구하는 문장 다음에 들여쓰기 수준이 일관되지 않거나, 탭과 공백을 혼용했을 때도 동일한 문제가 발생합니다.
+반면 블록을 여는 문장 다음에 들여쓰기가 전혀 없으면 `IndentationError: expected an indented block`이 발생합니다. 이름이 비슷하지만 `unexpected indent`와는 다른 오류이므로 구분해야 합니다.
 
 ```python
 def greet():
-print("Hello")  # 들여쓰기 없음 → 오류 발생
+print("Hello")  # 들여쓰기 누락 → expected an indented block
 ```
 
 ## 원인
