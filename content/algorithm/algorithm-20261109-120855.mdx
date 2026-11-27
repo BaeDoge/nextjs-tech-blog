@@ -31,6 +31,8 @@ tag: "Algorithm"
 재귀 함수 `dfs`를 사용하여 남은 `needs` 배열을 기준으로 최저 가격을 구합니다. `memo` 딕셔너리를 사용하여 상태(튜플로 변환된 `needs`)별 최저 가격을 저장합니다.
 
 ```python
+from typing import List
+
 class Solution:
     def shoppingOffers(self, price: List[int], special: List[List[int]], needs: List[int]) -> int:
         # memoization을 위한 딕셔너리
