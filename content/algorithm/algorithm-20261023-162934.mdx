@@ -18,6 +18,8 @@ tag: "Algorithm"
 DFS 함수는 현재 노드를 기준으로 서브트리의 높이를 반환합니다. 함수 실행 중 `diameter` 변수를 갱신하여 최대 지름을 추적합니다.
 
 ```python
+from typing import Optional
+
 # Definition for a binary tree node.
 # class TreeNode:
 #     def __init__(self, val=0, left=None, right=None):
@@ -49,32 +51,41 @@ class Solution:
 ```
 
 시간복잡도: $O(N)$. 모든 노드를 정확히 한 번 방문합니다.
-공간복잡도: $O(H)$. 재귀 호출 스택의 깊이는 트리의 높이 $H$에 비례합니다. 최악의 경우 $O(N)$, 균형 잡힌 트리의 경우 $O(\log N)$입니다.
+공간 복잡도: 재귀 풀이의 호출 스택은 트리 높이 H에 비례해 O(H)입니다. 노드 수가 최대 10,000이므로 편향 트리에서는 Python 기본 재귀 제한을 넘을 수 있습니다. 반복형 후위 순회는 O(N) 공간을 사용하지만 재귀 제한에 영향을 받지 않습니다.
 
 ## 다른 풀이 방법
 
-이 문제는 DP on Trees 관점에서도 해석할 수 있습니다. 각 노드에 대해 `(높이, 지름)` 쌍을 반환하는 재귀 함수를 구현할 수 있습니다. 이 경우 전역 변수나 클래스 멤버 변수를 사용하지 않고 순수하게 함수의 반환값만으로 상태를 관리할 수 있습니다.
+반복형 후위 순회를 사용하면 Python 재귀 제한을 피할 수 있습니다. `(node, visited)` 형태로 스택에 상태를 저장하고, 자식 노드를 처리한 뒤 현재 노드의 높이와 지름을 계산합니다.
 
 ```python
-class Solution:
-    def diameterOfBinaryTree(self, root: Optional[TreeNode]) -> int:
-        def dfs(node: Optional[TreeNode]) -> tuple:
-            if not node:
-                return 0, 0
-            
-            left_height, left_diameter = dfs(node.left)
-            right_height, right_diameter = dfs(node.right)
-            
-            current_height = 1 + max(left_height, right_height)
-            current_diameter = max(left_diameter, right_diameter, left_height + right_height)
-            
-            return current_height, current_diameter
-        
-        _, max_diameter = dfs(root)
-        return max_diameter
+from typing import Optional
+
+def diameter_iterative(root: Optional[TreeNode]) -> int:
+    if root is None:
+        return 0
+
+    heights = {}
+    stack = [(root, False)]
+    diameter = 0
+
+    while stack:
+        node, visited = stack.pop()
+        if not visited:
+            stack.append((node, True))
+            if node.right:
+                stack.append((node.right, False))
+            if node.left:
+                stack.append((node.left, False))
+        else:
+            left = heights.get(node.left, 0)
+            right = heights.get(node.right, 0)
+            diameter = max(diameter, left + right)
+            heights[node] = 1 + max(left, right)
+
+    return diameter
 ```
 
-이 방법도 시간복잡도 $O(N)$, 공간복잡도 $O(H)$를 가집니다. 전역 변수 사용 여부만 다를 뿐 알고리즘의 핵심 로직과 효율성은 동일합니다.
+각 노드를 한 번씩 처리하므로 시간 복잡도는 O(N), 높이를 저장하는 딕셔너리와 스택의 공간 복잡도는 O(N)입니다. 노드 개수가 최대 10,000인 매우 깊은 트리에서도 재귀 깊이 제한에 걸리지 않습니다.
 
 ## 추가 참고사항
 

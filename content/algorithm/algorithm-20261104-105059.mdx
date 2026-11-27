@@ -43,12 +43,30 @@ class Solution:
 
 ## 다른 풀이 방법
 
-너비 우선 탐색(BFS)을 사용할 수 있다. 큐를 사용하여 레벨 순서로 노드를 탐색하고, 각 레벨을 처리할 때마다 깊이를 1씩 증가시킨다. 최종적으로 처리된 레벨의 수가 최대 깊이가 된다.
-BFS의 시간복잡도는 $O(N)$, 공간복잡도는 $O(N)$ (큐에 레벨의 최대 노드 수만큼 공간을 차지함)이다.
+너비 우선 탐색(BFS)을 사용하면 재귀 호출 없이 레벨 단위로 노드를 처리할 수 있습니다. 큐에 현재 노드를 넣고, 각 레벨의 노드 수만큼 자식을 큐에 추가하면 레벨 수가 최대 깊이가 됩니다.
+
+```python
+from collections import deque
+
+def maxDepth_bfs(root: 'Node') -> int:
+    if root is None:
+        return 0
+
+    queue = deque([root])
+    depth = 0
+    while queue:
+        for _ in range(len(queue)):
+            node = queue.popleft()
+            queue.extend(node.children)
+        depth += 1
+    return depth
+```
+
+시간 복잡도는 O(N), 공간 복잡도는 큐에 저장되는 최대 레벨 너비 W에 비례하는 O(W)입니다. 재귀 DFS는 O(H)의 호출 스택을 사용합니다. 문제의 높이 상한 1,000은 Python 기본 재귀 제한에 가까울 수 있으므로, 깊은 트리에서는 BFS 또는 명시적 스택 DFS가 더 안전합니다.
 
 ## 추가 참고사항
 
-DFS 방식은 재귀 호출 스택을 사용하므로 트리의 깊이가 매우 깊을 경우 스택 오버플로우 가능성이 있다. 트리의 깊이가 제한(1000)되어 있으므로 이 문제에서는 DFS가 안정적으로 동작한다.
+DFS 방식은 재귀 호출 스택을 사용하므로 트리의 깊이가 매우 깊을 경우 스택 오버플로우 가능성이 있다. 문제의 최대 깊이 1,000은 Python의 기본 재귀 제한에 근접하므로, 환경에 따라 재귀 DFS가 `RecursionError`를 일으킬 수 있습니다. 깊은 입력을 고려하면 BFS나 반복형 DFS가 더 안전합니다.
 
 ## 출처
 

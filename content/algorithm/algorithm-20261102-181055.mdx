@@ -68,8 +68,31 @@ def repeatedSubstringPattern(s: str) -> bool:
     return s in ss
 ```
 
-시간복잡도: O(N). CPython의 `in` 연산자는 Boyer-Moore-Horspool 알고리즘을 사용하여 문자열 탐색을 수행합니다.
-공간복잡도: O(N). 새로운 문자열 `ss`를 생성하므로 O(N) 공간이 소요됩니다.
+문자열 연결 방식은 `(s+s)[1:-1]`이라는 새 문자열을 만들고 그 안에서 부분 문자열을 검색합니다. 공간 복잡도는 O(N)입니다. Python 언어 명세는 `in` 연산자의 구체적인 검색 알고리즘이나 최악 시간 복잡도를 보장하지 않으므로, 이 코드를 이식 가능한 O(N) 알고리즘이라고 단정하지 않는 것이 좋습니다.
+
+## KMP를 이용한 선형 시간 풀이
+
+반복 부분 문자열의 최소 주기를 찾기 위해 KMP의 접두사 함수(LPS)를 사용할 수도 있습니다. `lps[-1]`은 문자열 전체에서 마지막 접미사와 일치하는 가장 긴 proper prefix의 길이입니다. `period = n - lps[-1]`이 전체 길이를 나누어 떨어뜨리면 해당 주기가 문자열 전체를 반복해 구성합니다.
+
+```python
+def repeatedSubstringPattern_kmp(s: str) -> bool:
+    n = len(s)
+    lps = [0] * n
+    matched = 0
+
+    for i in range(1, n):
+        while matched > 0 and s[i] != s[matched]:
+            matched = lps[matched - 1]
+        if s[i] == s[matched]:
+            matched += 1
+        lps[i] = matched
+
+    longest_prefix_suffix = lps[-1]
+    period = n - longest_prefix_suffix
+    return longest_prefix_suffix > 0 and n % period == 0
+```
+
+KMP 접두사 함수 계산은 O(N) 시간, O(N) 공간을 사용합니다.
 
 ## 추가 참고사항
 

@@ -39,7 +39,24 @@ def countSubstrings(s: str) -> int:
 
 ## 다른 풀이 방법
 
-동적 programming(DP)을 활용한 접근법도 가능합니다. dp[i][j] = s[i..j]가 회문인지 여부를 저장합니다. 이 방법은 O(n²) 시간과 O(n²) 공간을 필요로 하지만, 코드가 더 복잡할 수 있습니다. 두 방법의 복잡도는 모두 동일하지만 DP는 공간을 더 많이 사용합니다.
+```python
+def countSubstrings_dp(s: str) -> int:
+    n = len(s)
+    dp = [[False] * n for _ in range(n)]
+    count = 0
+
+    for right in range(n):
+        for left in range(right, -1, -1):
+            if s[left] == s[right] and (right - left < 2 or dp[left + 1][right - 1]):
+                dp[left][right] = True
+                count += 1
+
+    return count
+```
+
+시간 복잡도는 O(n²), 공간 복잡도도 DP 테이블 때문에 O(n²)입니다. 중심 확장 방식과 시간 복잡도는 같지만, DP는 모든 구간의 회문 여부를 저장한다는 차이가 있습니다.
+
+동적 계획법(DP)을 사용해 `dp[left][right]`에 `s[left:right+1]`이 회문인지 저장할 수도 있습니다. 양 끝 문자가 같고, 길이가 2 이하이거나 내부 구간이 이미 회문이면 현재 구간도 회문입니다.
 
 ## 추가 참고사항
 

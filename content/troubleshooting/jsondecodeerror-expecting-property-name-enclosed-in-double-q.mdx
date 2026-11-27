@@ -32,7 +32,7 @@ json.loads(data)
 
 ## 원인
 
-JSON 규격(RFC 7159)에 따르면 키와 문자열 값은 반드시 큰따옴표(`"`)로 감싸야 한다.
+JSON 규격(RFC 8259)에 따르면 키와 문자열 값은 반드시 큰따옴표(`"`)로 감싸야 한다.
 작은따옴표(`'`)는 JSON에서 키나 값의 구분자로 인정되지 않으며, 문자열 내부의 특수 문자로만 허용된다.
 파이썬의 사전(dict)을 문자열로 변환하거나, 잘못된 형식의 데이터를 받을 때 주로 나타난다.
 
@@ -78,7 +78,7 @@ print(result)  # {'key': 'value'}
 
 입력 데이터가 파이썬 리터럴 형식(dict 문자열)인 경우, JSON 대신 `ast.literal_eval`을 사용할 수 있다.
 이 방법은 작은따옴표로 된 파이썬 사전을 안전하게 평가하여 딕셔너리로 변환한다.
-단, 이는 JSON 규격을 따르지 않으므로 외부 데이터 수신 시 보안에 주의해야 한다.
+`ast.literal_eval()`은 JSON 파서가 아니라 Python 리터럴 파서입니다. 신뢰할 수 있는 내부 데이터에만 사용하고, 외부 입력에는 JSON 형식으로 변환해 `json.loads()`를 사용하는 편이 좋습니다. `literal_eval()`도 매우 큰 입력으로 메모리·스택·CPU 자원을 소모시킬 수 있으므로 무제한 크기의 비신뢰 입력에 사용해서는 안 됩니다.
 
 ```python
 import ast
@@ -123,6 +123,7 @@ with open('data.jsonl', 'r') as f:
 
 - StackOverflow: [Python/Json:Expecting property name enclosed in double quotes](https://stackoverflow.com/questions/39491420/python-jsonexpecting-property-name-enclosed-in-double-quotes) — 작성자: raeX(질문), ElmoVanKielmo(답변) (CC BY-SA)
 - Tistory: [JSONDecodeError 해결 — Expecting value 등 원인 5가지](https://doitwithai.tistory.com/entry/JSONDecodeError-Expecting-value-line-1-column-1-%ED%8C%8C%EC%9D%B4%EC%8D%AC-%ED%95%B4%EA%B2%B0) — 작성자: AI로 다 하리
-- Tistory: [파이썬 NameError: name ‘…’ is not defined [해결 총정리]](https://20230602.tistory.com/entry/%ED%8C%8C%EC%9D%B4%EC%8D%AC-NameError-name-%E2%80%98%E2%80%A6%E2%80%99-is-not-defined-%ED%95%B4%EA%B2%B0-%EC%B4%9D%EC%A0%95%EB%A6%AC) — 작성자: 현우의블로그
+- Python 공식 문서: [json — JSON encoder and decoder](https://docs.python.org/3/library/json.html)
+- IETF 표준: [RFC 8259 — The JavaScript Object Notation (JSON) Data Interchange Format](https://www.rfc-editor.org/rfc/rfc8259)
 
 본문 이미지는 위 출처에서 가져왔습니다.

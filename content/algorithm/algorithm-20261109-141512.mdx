@@ -38,6 +38,8 @@ for price in prices:
 배열을 순회하며 `min_price`를 가장 낮은 주가로 유지합니다. 각 날의 주가는 `min_price`와의 차이를 통해 이득을 계산하는 데 활용되며, 최대 이익은 이 차이의 최댓값으로 결정됩니다. 이 방법은 전체 배열을 한 번만 훑기 때문에 매우 빠릅니다.
 
 ```python
+from typing import List
+
 class Solution:
     def maxProfit(self, prices: List[int]) -> int:
         min_price = float('inf')
@@ -58,6 +60,8 @@ class Solution:
 다이나믹 프로그래밍(DP) 접근법을 통해 문제를 해결할 수 있습니다. `dp[i]`를 `i`번째 날까지의 최대 이익이라고 정의합니다. `dp[i]`는 `dp[i-1]`(이전 날까지의 최대 이익)과 `prices[i] - min_price`(오늘 매도 시 이익) 중 최댓값으로 계산됩니다. 이는 문제를 배열을 순회하며 각 날의 최대 이익을 누적하는 방식으로 접근합니다.
 
 ```python
+from typing import List
+
 class Solution:
     def maxProfit(self, prices: List[int]) -> int:
         if not prices:

@@ -18,6 +18,8 @@ tag: "Algorithm"
 재귀를 사용한 풀이 코드는 다음과 같습니다. 이 알고리즘은 각 노드를 한 번씩만 방문하므로 시간 복잡도는 O(n)이고, 재귀 스택의 최대 깊이에 따라 공간 복잡도는 O(h)입니다.
 
 ```python
+from typing import Optional
+
 # Definition for a binary tree node.
 class TreeNode:
     def __init__(self, val=0, left=None, right=None):
@@ -26,7 +28,7 @@ class TreeNode:
         self.right = right
 
 class Solution:
-    def isSameTree(self, p: TreeNode, q: TreeNode) -> bool:
+    def isSameTree(self, p: Optional[TreeNode], q: Optional[TreeNode]) -> bool:
         if not p and not q:
             return True
         if not p or not q:

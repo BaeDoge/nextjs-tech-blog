@@ -33,16 +33,16 @@ TypeError: unhashable type: 'numpy.ndarray'
 
 ## 해결 방법
 
-`numpy.ndarray`를 해시 가능한 `tuple`로 변환하여 사용합니다. `tuple()` 함수를 통해 배열을 튜플로 바꾸면 해시 값이 생성되어 집합이나 딕셔너리 키로 사용할 수 있습니다.
+1차원 NumPy 배열이고 원소가 해시 가능한 Python 스칼라라면 `tuple(arr)`로 변환해 키로 사용할 수 있습니다. 다차원 배열에서는 `tuple(arr)`의 각 원소가 다시 배열이 되어 여전히 해시할 수 없으므로, 중첩 튜플로 변환해야 합니다.
 
 ```python
 import numpy as np
 
-arr = np.array([1, 2, 3])
-# 배열을 튜플로 변환하여 딕셔너리 키로 사용
-my_dict = {tuple(arr): "value"}
-print(my_dict)
-# { (1, 2, 3): 'value' }
+arr = np.array([[1, 2], [3, 4]])
+# 숫자형 다차원 배열을 중첩 튜플로 변환
+key = tuple(tuple(row) for row in arr.tolist())
+my_dict = {key: "value"}
+print(my_dict[key])  # value
 ```
 
 ## 다른 해결 방법
@@ -83,22 +83,26 @@ slice = set(np.unique(energies)) & above
 
 ## 추가 참고사항
 
-`functools.lru_cache`와 같은 캐싱 데코레이터는 함수의 인자가 해시 가능해야 합니다. `numpy.ndarray`를 인자로 받는 함수에 캐싱을 적용할 때는 인자 전달 전에 `tolist()` 등을 통해 변환해야 합니다.
+`functools.lru_cache`는 함수 본문이 실행되기 전에 전달된 인자를 해시합니다. 따라서 캐시가 적용된 함수 내부에서 `ndarray.tolist()`를 호출하는 것은 해결책이 아닙니다. 캐시가 적용된 함수 바깥에 래퍼를 두고, 호출 전에 배열을 불변 튜플로 바꿔 전달해야 합니다.
 
 <Callout type="info" title="캐싱 시 주의">
 
 ```python
 import functools
-import pygmo
 import numpy as np
+import pygmo
 
-# 인자가 numpy.ndarray인 경우, 캐싱 적용 전 리스트로 변환 필요
 @functools.lru_cache(maxsize=None)
+def _calculate_hypervolume_cached(y_points, reference):
+    points = [list(row) for row in y_points]
+    hv = pygmo.hypervolume(points)
+    return hv.compute(list(reference))
+
 def calculate_hypervolume(obj_y, reference):
-    y_points = obj_y.tolist() if isinstance(obj_y, np.ndarray) else obj_y
-    ref = reference.tolist() if isinstance(reference, np.ndarray) else reference
-    hv = pygmo.hypervolume(y_points)
-    return hv.compute(ref)
+    # 캐시 함수 호출 전에 ndarray를 해시 가능한 불변 튜플로 변환
+    y_points = tuple(tuple(row) for row in np.asarray(obj_y).tolist())
+    ref = tuple(np.asarray(reference).tolist())
+    return _calculate_hypervolume_cached(y_points, ref)
 ```
 
 </Callout>

@@ -31,7 +31,24 @@ def removeDuplicates(s: str) -> str:
 
 ## 다른 풀이 방법
 
-두 포인터를 사용해 문자열을 제자리에서 정리하는 방법도 있습니다. 문자 배열로 변환한 후, write 포인터를 앞에서부터 이동시키면서 read 포인터로 전체 문자를 순회하며, write 포인터가 가리키는 직전 문자와 현재 문자가 같으면 write 포인터를 뒤로 돌리고(제거), Otherwise write 포인터를 전진시킵니다. 이 방법도 시간 복잡도는 O(n)이며, 추가 공간을 O(1)로 사용할 수 있지만, Python에서 문자열은 immutable이므로 char array로 변환해야 해서 여전히 O(n) 공간이 필요합니다. 반면 스택 방식은 코드가 간결하고 가독성이 뛰어나므로 일반적으로 선호됩니다. 재귀를 이용한 방법은 최악의 경우 O(n^2) 시간 복잡도를 가지며 긴 문자열에서 비효율적입니다.
+문자열을 문자 리스트로 바꾸고 `write` 포인터를 사용하면 스택과 같은 방식으로 처리할 수 있습니다. `write` 앞에 남아 있는 마지막 문자와 현재 문자가 같으면 마지막 문자를 제거하고, 다르면 현재 문자를 기록합니다.
+
+```python
+def removeDuplicates_two_pointers(s: str) -> str:
+    chars = list(s)
+    write = 0
+
+    for read in range(len(chars)):
+        if write > 0 and chars[write - 1] == chars[read]:
+            write -= 1
+        else:
+            chars[write] = chars[read]
+            write += 1
+
+    return "".join(chars[:write])
+```
+
+시간 복잡도는 O(n), 공간 복잡도는 Python 문자열을 리스트로 변환하는 비용 때문에 O(n)입니다. 리스트를 입력으로 받는 언어라면 배열을 직접 수정해 추가 공간을 줄일 수 있지만, Python 문자열 입력에서는 문자 리스트가 필요합니다.
 
 ## 추가 참고사항
 

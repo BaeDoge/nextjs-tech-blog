@@ -55,7 +55,8 @@ df.loc[mask, "my_col"] = pd.to_numeric(df.loc[mask, "my_col"])
 
 ## pandas 3.0에서 주의할 점
 
-pandas 3.0부터 Copy-on-Write가 기본이자 유일한 동작 방식입니다. 인덱싱 결과를 수정해도 부모 DataFrame이 함께 변경되지 않습니다. 원본을 수정하려면 chained assignment가 아니라 loc[row_indexer, column_indexer] = value 형태로 할당해야 합니다.
+- ``.copy()`는 독립된 DataFrame을 만들기 위한 선택입니다. Copy-on-Write를 사용하는 버전에서는 실제 데이터 복사가 쓰기 시점까지 지연될 수 있으므로, 항상 즉시 전체 메모리를 복제한다고 단정할 수는 없습니다.
+- 이 경고는 실행을 중단시키는 예외는 아니지만, 수정 대상이 원본 DataFrame인지 필터링된 결과인지 의도를 확인해야 하는 신호입니다. Pandas 2.x에서는 뷰/복사본 동작의 모호성으로 경고가 발생할 수 있습니다. Pandas 3.0부터 Copy-on-Write가 기본이며, 필터링 결과에 대한 변경은 원본 DataFrame으로 전파되지 않습니다. 필터링한 결과를 독립적으로 사용하려면 `.copy()`를 명시하고, 원본을 수정하려면 원본 객체에 `df.loc[조건, 열] = 값` 형태로 직접 할당합니다.
 
 pandas 2.x 환경에서도 버전에 따른 차이를 줄이려면 원본 수정은 loc, 독립된 결과 생성은 copy()로 의도를 명확히 구분하는 것이 좋습니다.
 

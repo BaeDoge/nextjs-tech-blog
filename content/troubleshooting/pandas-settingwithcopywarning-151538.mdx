@@ -24,9 +24,16 @@ df["col1"]과 [df["col1"] == 10]은 두 단계의 인덱싱입니다. 중간 결
 
 pandas 2.x에서는 설정과 연산 형태에 따라 SettingWithCopyWarning이 나타날 수 있습니다. pandas 3.0에서는 Copy-on-Write가 기본이기 때문에 chained assignment로 원본 DataFrame을 수정할 수 없으며 ChainedAssignmentError 경고가 발생합니다.
 
-## 해결 방법
+여러 열을 동시에 처리할 때도 `.loc`을 활용한다.
 
-원본 DataFrame을 수정할 때는 조건과 대상 열을 한 번의 loc 할당으로 표현합니다.
+```python
+# Pandas 2.1 이상: DataFrame.map 사용
+cols = ['col1', 'col2', 'col3']
+df.loc[:, cols] = df.loc[:, cols].map(some_function)
+
+# 이전 Pandas 버전과 호환해야 한다면 열별 Series.map 사용
+df.loc[:, cols] = df.loc[:, cols].apply(lambda column: column.map(some_function))
+```
 
 ~~~~python
 mask = df["col1"] == 10
@@ -46,19 +53,40 @@ df.loc[df["col1"] == 10, cols] = 0
 
 조건에 맞는 행을 원본과 분리해 가공하려는 목적이라면 다음처럼 명시적으로 복사합니다.
 
-~~~~python
-df_slice = df.loc[df["col1"] == 10, ["col1"]].copy()
-df_slice["col1"] = 1000
-~~~~
-
-이 코드는 df_slice만 변경하고 원본 df는 유지합니다.
+```python
+# 원본 DataFrame에 새 열을 직접 할당
+yesterday_result.loc[:, 'date'] = yesterday_result['pubDate'].dt.strftime('%Y-%m-%d %H:%M:%S')
+```
 
 ## 추가 참고사항
 
-- loc은 원본 DataFrame을 수정하려는 경우에 사용합니다.
-- copy()는 선택 결과를 별도로 보관하거나 가공하려는 경우에 사용합니다.
-- 경고 메시지를 숨기는 것은 원본 변경 여부를 해결하지 않으므로, 먼저 수정 대상이 원본인지 복사본인지 결정해야 합니다.
+`iterrows()` 루프 내에서 값을 변경할 때는 행 시리즈가 아닌 `.loc`을 통해 원본에 접근해야 한다.
+
+```python
+# 원본 미반영 방법
+for idx, row in sample_df.iterrows():
+    row['score'] = 100
+
+# 올바른 방법
+for idx, row in sample_df.iterrows():
+    sample_df.loc[idx, 'score'] = 100
+```
+
+여러 값을 한꺼번에 변경할 때는 리스트나 튜플을 사용해 명시적으로 할당한다.
+
+```python
+sample_df.loc[idx, ['score', 'grade']] = 100, 'A'
+```
+
+Pandas 2.x에서는 뷰와 복사본의 모호성 때문에 `SettingWithCopyWarning`이 나타날 수 있습니다. Pandas 3.0에서는 Copy-on-Write가 기본 동작이며, chained assignment로 원본을 수정할 수 없습니다. 원본 DataFrame을 바꾸려면 `df.loc[행 조건, 열] = 값`처럼 한 번의 인덱싱으로 할당해야 합니다. 별도의 결과 DataFrame을 수정하려는 목적이라면 필터링 시 `.copy()`를 명시합니다.
 
 ## 출처
 
+- StackOverflow: [Pandas SettingWithCopyWarning](https://stackoverflow.com/questions/26724378/pandas-settingwithcopywarning) — 작성자: ba_ul(질문), Paul H(답변) (CC BY-SA)
 - pandas 공식 문서: [Copy-on-Write (CoW)](https://pandas.pydata.org/docs/user_guide/copy_on_write.html)
+- pandas 공식 문서: [Returning a View versus a Copy](https://pandas.pydata.org/docs/user_guide/indexing.html#returning-a-view-versus-a-copy)
+- Tistory: [Pandas SettingWithCopyWarning 해결방법](https://miidsummer.tistory.com/11) — 작성자: 이것저것 담는 블로그
+- Velog: [[파이썬 판다스] SettingWithCopyWarning: 
+A value is trying to be set on a copy of a slice from a DataFrame.](https://velog.io/@hyojinnnnnan/%ED%8C%8C%EC%9D%B4%EC%8D%AC-%ED%8C%90%EB%8B%A4%EC%8A%A4-SettingWithCopyWarning-A-value-is-trying-to-be-set-on-a-copy-of-a-slice-from-a-DataFrame)
+
+본문 이미지는 위 출처에서 가져왔습니다.

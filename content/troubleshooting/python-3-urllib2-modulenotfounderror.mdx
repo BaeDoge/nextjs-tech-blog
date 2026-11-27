@@ -33,7 +33,10 @@ Python 3는 `urllib2` 모듈을 제거하고 `urllib.request`와 `urllib.error`�
 
 ```python
 from urllib.request import urlopen
-html = urlopen("http://www.google.com/").read()
+
+with urlopen("https://www.google.com/") as response:
+    html = response.read()
+
 print(html)
 ```
 
@@ -47,8 +50,9 @@ print(html)
 ```python
 import urllib.request
 
-response = urllib.request.urlopen("http://www.google.com/")
-html = response.read()
+with urllib.request.urlopen("https://www.google.com/") as response:
+    html = response.read()
+
 print(html)
 ```
 
@@ -60,7 +64,7 @@ Python 2 코드를 Python 3로 변환할 때 `2to3` 도구를 사용하면 impor
 ## 출처
 
 - StackOverflow: [Import error: No module name urllib2](https://stackoverflow.com/questions/2792650/import-error-no-module-name-urllib2) — 작성자: delete(질문), Eli Courtwright(답변) (CC BY-SA)
-- Velog: [VS Code pylint unable to import 문제 해결](https://velog.io/@choi-jiwoo/VS-Code-pylint-unable-to-import-%EB%AC%B8%EC%A0%9C-%ED%95%B4%EA%B2%B0)
-- Tistory: [[Python] import Error : cannot import name module 에러 해결](https://sillutt.tistory.com/entry/Python-import-Error-cannot-import-name-module-%EC%97%90%EB%9F%AC-%ED%95%B4%EA%B2%B0) — 작성자: ⌒＿⌒
+- Python 공식 문서: [urllib.request](https://docs.python.org/3/library/urllib.request.html)
+- Python 공식 문서: [urllib 패키지로 인터넷 리소스 가져오기](https://docs.python.org/3/howto/urllib2.html)
 
 본문 이미지는 위 출처에서 가져왔습니다.

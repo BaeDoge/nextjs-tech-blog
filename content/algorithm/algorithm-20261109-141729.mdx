@@ -24,6 +24,8 @@ $n \times n$ 크기의 격자 `grid`가 주어집니다. 각 셀 `grid[i][j]`에
 ## 풀이
 
 ```python
+from typing import List
+
 class Solution:
     def projectionArea(self, grid: List[List[int]]) -> int:
         n = len(grid)
@@ -48,9 +50,11 @@ class Solution:
 
 ## 다른 풀이 방법
 
-`zip(*grid)`를 사용하면 행렬을 전치시켜 열을 쉽게 순회할 수 있어 코드를 간결하게 작성할 수 있습니다.
+`zip(*grid)`를 사용하면 열을 순회할 수 있어 코드를 간결하게 작성할 수 있습니다. `zip`은 전치된 전체 행렬을 리스트로 만들지 않고 열 튜플을 하나씩 생성하는 iterator를 반환합니다.
 
 ```python
+from typing import List
+
 class Solution:
     def projectionArea(self, grid: List[List[int]]) -> int:
         xy = sum(v > 0 for row in grid for v in row)
@@ -59,7 +63,7 @@ class Solution:
         return xy + yz + zx
 ```
 
-- **비교**: 위 방법은 `zip`을 사용해 열 데이터를 생성하므로 코드 가독성이 높습니다. `zip`은 새로운 튜플 리스트를 생성하므로 공간 복잡도 측면에서 $O(n^2)$의 추가 메모리가 소모될 수 있습니다. 그러나 제약 조건에서 $n \le 50$이므로 실용적인 제약 범위를 초과하지 않습니다.
+- **비교**: `zip(*grid)`는 열을 하나씩 순회하는 iterator를 반환하므로, 이 구현의 추가 공간은 현재 열 튜플과 반복 상태에 해당하는 $O(n)$입니다. 입력 격자 전체를 복사한 $O(n^2)$ 전치 행렬을 만들지는 않습니다.
 
 ## 추가 참고사항
 

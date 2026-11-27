@@ -24,6 +24,8 @@ tag: "Algorithm"
 재귀적 중위 순회를 통해 노드를 오름차순으로 방문한다. 각 노드마다 이전 노드와의 비교를 통해 연속된 동일 값의 횟수를 계산한다. 현재 값의 빈도수가 최대 빈도수와 같으면 결과 리스트에 추가하고, 최대 빈도수를 갱신하면 리스트를 초기화한 후 현재 값을 추가한다.
 
 ```python
+from typing import List, Optional
+
 class Solution:
     def findMode(self, root: Optional[TreeNode]) -> List[int]:
         # 상태 변수 정의
@@ -73,6 +75,8 @@ class Solution:
 공간 복잡도: 해시맵을 사용하므로 $O(N)$이다. Follow-up의 공간 복잡도 제한 조건($O(1)$ 추가 메모리)을 만족하지 못하지만, 구현이 간단하고 직관적인 장점이 있다.
 
 ```python
+from typing import List, Optional
+
 class Solution:
     def findMode(self, root: Optional[TreeNode]) -> List[int]:
         freq = {}

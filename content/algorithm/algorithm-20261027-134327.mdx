@@ -15,13 +15,15 @@ tag: "Algorithm"
 
 ## 풀이
 
-배열을 내림차순으로 정렬한 후, 전체 원소의 합을 구합니다. 정렬된 배열을 앞에서부터 순회하며 원소를 선택하고, 선택된 원소의 합을 누적합니다. 이 과정에서 선택된 원소의 합이 전체 합에서 현재 선택된 원소의 합을 뺀 나머지 합보다 커지면 루프를 종료합니다. 이때까지 선택된 원소들의 리스트가 정답입니다. Python의 `sort` 메서드는 안정 정렬이며 내림차순 정렬 시 시간복잡도는 O(N log N)입니다.
+입력 배열을 변경하지 않으려면 `sorted(nums, reverse=True)`로 내림차순 복사본을 만듭니다. 제자리 정렬을 허용한다면 `nums.sort(reverse=True)`를 사용할 수 있습니다. 정렬된 배열에서 전체 원소의 합을 구합니다. 정렬된 배열을 앞에서부터 순회하며 원소를 선택하고, 선택된 원소의 합을 누적합니다. 이 과정에서 선택된 원소의 합이 전체 합에서 현재 선택된 원소의 합을 뺀 나머지 합보다 커지면 루프를 종료합니다. 이때까지 선택된 원소들의 리스트가 정답입니다. Python의 `sort` 메서드는 안정 정렬이며 내림차순 정렬 시 시간복잡도는 O(N log N)입니다.
 
 ```python
+from typing import List
+
 class Solution:
     def minSubsequence(self, nums: List[int]) -> List[int]:
         # 배열을 내림차순으로 정렬
-        nums.sort(reverse=True)
+        nums = sorted(nums, reverse=True)
         
         # 전체 원소의 합 계산
         total_sum = sum(nums)
@@ -50,6 +52,8 @@ class Solution:
 원소의 값의 범위가 작으므로(`1 <= nums[i] <= 100`), 카운팅 정렬을 활용할 수 있습니다. 원소의 빈도수를 세어 배열에 저장한 후, 값이 큰 순서부터 원소를 선택합니다. 이 경우 정렬 과정이 O(N + K)로 수행되므로, K(원소의 최대값)가 N에 비해 작을 때 효율적일 수 있습니다. 전체 시간복잡도는 O(N + K)이며, K=100이므로 사실상 O(N)으로 간주할 수 있습니다. 공간복잡도는 값의 범위인 O(K)입니다.
 
 ```python
+from typing import List
+
 class Solution:
     def minSubsequence(self, nums: List[int]) -> List[int]:
         # 원소 값의 빈도수 계산 (카운팅 정렬 기반)

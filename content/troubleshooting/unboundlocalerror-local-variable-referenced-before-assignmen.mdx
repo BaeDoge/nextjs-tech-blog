@@ -13,50 +13,50 @@ tag: "Troubleshooting"
 UnboundLocalError: local variable 'T' referenced before assignment
 </Callout>
 
-다음 코드는 첫 번째 호출에서는 조건이 만족하여 정상 실행되지만, 두 번째 호출에서는 조건이 불만족하여 변수 `T`가 생성되지 않아 에러를 발생시킨다. 외부의 `tfile` 객체는 함수 바깥에서 열려 있다.
+다음 예제에는 두 문제가 함께 있다. 파일 객체 `tfile`은 첫 호출에서 끝까지 읽히므로 두 번째 호출에서는 반복할 데이터가 남아 있지 않다. 또한 조건을 만족하는 행이 하나도 없으면 `T`가 할당되지 않은 채 `return T`에 도달한다.
 
 ```python
-tfile = open("/home/path/to/file",'r')
+tfile = open("/home/path/to/file", "r")
 
 def temp_sky(lreq, breq):
     for line in tfile:
         data = line.split()
-        # 조건이 만족하지 않으면 T = data[2]가 실행되지 않음
         if abs(float(data[0]) - lreq) <= 0.1 and abs(float(data[1]) - breq) <= 0.1:
             T = data[2]
     return T
 
 print(temp_sky(60, 60))
-print(temp_sky(10, -10))  # UnboundLocalError 발생
+print(temp_sky(10, -10))  # 파일 반복자가 이미 소진되어 T가 할당되지 않음
 ```
 
 ## 원인
 
-파이썬은 함수 본문에 변수에 값을 할당하는 구문(예: `T = ...`)이 하나라도 있으면, 해당 변수를 **지역 변수**로 취급하여 바이트코드를 생성한다.
+함수 안에서 `T`에 값을 대입하므로 `T`는 해당 함수의 지역 변수다. 그런데 파일 객체는 반복 가능한 데이터가 아니라 현재 읽기 위치를 기억하는 파일 반복자다. 첫 번째 호출에서 파일 끝까지 읽으면 다음 호출에서는 더 이상 행을 반환하지 않는다.
 
-이러한 스코프 결정은 함수가 컴파일(바이트코드 생성)되는 시점에 이루어진다. 따라서 조건문 실패로 인해 `T = data[2]` 구문이 실행되지 않으면, `T`는 아직 값이 할당되지 않은 지역 변수로 인식된 채로 남아 있다.
-
-함수 실행이 `return T`에 도달했을 때, 아직 초기화되지 않은 지역 변수 `T`를 읽으려 하므로 `UnboundLocalError`가 발생한다.
+그 결과 두 번째 호출에서는 `for` 본문이 한 번도 실행되지 않고, 지역 변수 `T`에 값이 할당되지 않은 채 `return T`에 도달하여 `UnboundLocalError`가 발생한다. 파일 반복자를 재사용하는 문제와 조건에 맞는 행이 없을 때 반환값이 정의되지 않는 문제를 각각 해결해야 한다.
 
 ## 해결 방법
 
-조건문 외부에서 변수를 먼저 기본값(예: `None`)으로 초기화하여, 조건이 만족하든 하지 않든 변수 `T`가 항상 존재하도록 한다.
+함수 호출마다 파일을 새로 열어 처음부터 읽고, 결과가 없을 때 반환할 기본값도 명시한다.
 
 ```python
-def temp_sky(lreq, breq):
-    T = None  # 변수를 먼저 초기화하여 할당되지 않을 수 있는 상태 방지
-    for line in tfile:
-        data = line.split()
-        if abs(float(data[0]) - lreq) <= 0.1 and abs(float(data[1]) - breq) <= 0.1:
-            T = data[2]
-    return T
+def temp_sky(lreq, breq, file_path="/home/path/to/file"):
+    result = None
+    with open(file_path, "r", encoding="utf-8") as f:
+        for line in f:
+            data = line.split()
+            if len(data) < 3:
+                continue
+            if abs(float(data[0]) - lreq) <= 0.1 and abs(float(data[1]) - breq) <= 0.1:
+                result = data[2]
+    return result
 ```
 
 ![해결 방법 스크린샷](/blogs/unboundlocalerror-local-variable-referenced-before-assignmen-1.png)
 
 ## 다른 해결 방법
 
-`return` 구문에서 변수를 직접 참조하지 않고, 조건문 실패 시 반환할 값을 명시적으로 처리하는 방법이다.
+결과가 없을 때 `None`을 반환하고, 일치하는 첫 번째 행을 찾으면 바로 반환하는 방식이다. 파일을 호출 내부에서 열기 때문에 여러 번 호출해도 매번 처음부터 읽는다. 단, 원본 코드처럼 마지막으로 일치한 행을 반환해야 한다면 반복을 끝까지 진행하는 첫 번째 해결 코드처럼 `break` 없이 결과를 갱신해야 한다.
 
 <Compare>
 <ComparePanel title="변수 초기화 (기존)" tone="good">
@@ -68,17 +68,20 @@ def temp_sky(lreq, breq):
 </Compare>
 
 ```python
-def temp_sky(lreq, breq):
-    for line in tfile:
-        data = line.split()
-        if abs(float(data[0]) - lreq) <= 0.1 and abs(float(data[1]) - breq) <= 0.1:
-            return data[2]  # 조건 만족 시 즉시 반환
-    return None  # 조건을 만족하지 않으면 None 반환
+def temp_sky(lreq, breq, file_path="/home/path/to/file"):
+    with open(file_path, "r", encoding="utf-8") as f:
+        for line in f:
+            data = line.split()
+            if len(data) < 3:
+                continue
+            if abs(float(data[0]) - lreq) <= 0.1 and abs(float(data[1]) - breq) <= 0.1:
+                return data[2]
+    return None
 ```
 
 ## 추가 참고사항
 
-함수 내에서 변수에 값을 할당하면 자동으로 지역 변수가 되므로, 외부 전역 변수를 수정하려는 의도가 아니라면 `global`이나 `nonlocal`을 사용할 필요가 없다.
+함수 안에서 외부 변수와 같은 이름을 대입하면 그 이름은 해당 함수의 지역 변수로 취급된다. 다만 이 예제의 직접적인 재현 조건에는 파일 반복자의 소진도 관여하므로, 스코프 규칙만 설명해서는 두 번째 호출 문제를 충분히 설명할 수 없다.
 
 실무에서는 전역 상태 의존을 피하고, 함수 인자로 값을 전달하거나 반환값을 활용하는 순수 함수(Pure Function) 구조를 권장한다.
 

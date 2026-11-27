@@ -17,6 +17,9 @@ BFS를 사용하여 `startGene`에서 `endGene`까지의 최단 경로를 탐색
 from collections import deque
 
 def minMutation(startGene: str, endGene: str, bank: list[str]) -> int:
+    if startGene == endGene:
+        return 0
+
     bank_set = set(bank)
     if endGene not in bank_set:
         return -1
@@ -42,7 +45,7 @@ def minMutation(startGene: str, endGene: str, bank: list[str]) -> int:
 
 ## 풀이
 
-위 BFS 코드를 통해 최소 변이 횟수를 계산합니다. `bank_set`은 O(1) 조회를 가능하게 하며, `visited` 집합은 중복 탐색을 방지합니다. 탐색은 `endGene`에 도달하거나 큐가 비워질 때까지 계속됩니다. 시간 복잡도는 O(N·L·4)이며, 여기서 N ≤ 10, L = 8이므로 사실상 상수입니다. 공간 복잡도는 O(N)입니다.
+위 BFS 코드를 통해 최소 변이 횟수를 계산합니다. `bank_set`은 O(1) 조회를 가능하게 하며, `visited` 집합은 중복 탐색을 방지합니다. 탐색은 `endGene`에 도달하거나 큐가 비워질 때까지 계속됩니다. 각 방문 문자열에서 L개 위치마다 최대 3개의 대체 문자를 확인합니다. 문자열 슬라이싱과 결합에는 O(L) 시간이 들기 때문에 시간 복잡도는 O(N·L²·4), 공간 복잡도는 O(N·L)입니다. 이 문제에서는 L=8, N≤10으로 작지만, 문자열 생성 비용까지 포함하는 것이 정확합니다.
 
 ```python
 # 예제 실행
@@ -57,7 +60,8 @@ print(minMutation("AACCGGTT", "AAACGGTA", ["AACCGGTA","AACCGCTA","AAACGGTA"]))  
 
 ## 추가 참고사항
 
-- `endGene`이 `bank`에 없는 경우, 변환이 불가능하므로 -1을 반환합니다.
+- `startGene`과 `endGene`이 같으면 변이 횟수는 0이므로 `bank`를 확인하기 전에 0을 반환해야 합니다.
+- `startGene`과 `endGene`이 다를 때 `endGene`이 `bank`에 없으면 변환이 불가능하므로 -1을 반환합니다.
 - `startGene`과 `endGene`이 동일한 경우, 0을 반환합니다.
 - `bank`에 `startGene`이 포함되지 않은 경우에도 유효하며, BFS는 `bank_set`에만 의존합니다.
 

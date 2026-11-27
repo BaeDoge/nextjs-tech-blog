@@ -20,7 +20,7 @@ tag: "Algorithm"
 알고리즘의 핵심 단계는 다음과 같습니다.
 1. 구간의 끝 좌표를 기준으로 오름차순 정렬합니다.
 2. 첫 번째 구간을 무조건 선택합니다(이 구간이 가장 일찍 끝나므로 최적의 선택입니다).
-3. 두 번째 구간부터 순회하며, 현재 선택된 구간의 끝 좌표보다 시작 좌표가 크거나 같은지 확인합니다.
+3. 두 번째 구간부터 순회하며, 현재 선택된 구간의 끝 좌표보다 시작 좌표가 크거나 같은지 확인합니다. 구간을 선택하면 `prev_end`는 해당 구간의 끝 좌표로 갱신해야 합니다.
    - 크거나 같다면 겹치지 않으므로 선택된 구간으로 업데이트합니다.
    - 작다면 겹치므로, 이 구간은 제거 대상이 됩니다(카운트 증가).
 
@@ -31,6 +31,8 @@ tag: "Algorithm"
 구간의 끝값을 기준으로 정렬한 후, 이전 선택 구간의 끝값과 비교하여 겹치는지 확인합니다. 겹치는 경우 현재 구간의 끝값이 이미 이전 구간보다 작거나 같으므로(오름차순 정렬), 이전 구간을 유지하는 것이 유리합니다. 따라서 `prev_end`는 갱신하지 않고 제거 카운트만 증가시킵니다.
 
 ```python
+from typing import List
+
 class Solution:
     def eraseOverlapIntervals(self, intervals: List[List[int]]) -> int:
         if not intervals:
@@ -56,7 +58,7 @@ class Solution:
                 remove_count += 1
             else:
                 # 겹치지 않으므로 현재 구간을 선택합니다.
-                prev_end = curr_start
+                prev_end = intervals[i][1]
                 
         return remove_count
 ```

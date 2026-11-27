@@ -15,7 +15,11 @@ ImportError: attempted relative import with no known parent package
 </Callout>
 
 ```python
-# myothermodule.py
+# mypackage/mymodule.py
+def as_int(value):
+    return int(value)
+
+# mypackage/myothermodule.py
 from .mymodule import as_int
 ```
 
@@ -48,15 +52,17 @@ from mypackage.mymodule import as_int
 ```
 
 ```python
-# main.py
-from mypackage.myothermodule import add
+# main.py — mypackage 디렉터리의 상위 폴더에서 실행
+from mypackage.myothermodule import as_int
 
 def main():
-    print(add('1', '1'))
+    print(as_int("123"))
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
 ```
+
+프로젝트 루트에서 `python main.py`로 실행합니다. 상대 import는 `mypackage.myothermodule`이라는 패키지 문맥에서 해석됩니다.
 
 ![해결 방법 스크린샷](/blogs/python-import-195527-2.png)
 
@@ -107,7 +113,7 @@ Python 3.3부터는 `__init__.py` 파일이 없어도 패키지로 인식하지�
 ## 출처
 
 - StackOverflow: [Relative imports in Python 3](https://stackoverflow.com/questions/16981921/relative-imports-in-python-3) — 작성자: John Smith Optional(질문), Aya(답변) (CC BY-SA)
-- Velog: [[python]절대경로&상대경로, 상대경로 import 에러 이유와 해결](https://velog.io/@anjaekk/python%EC%A0%88%EB%8C%80%EA%B2%BD%EB%A1%9C%EC%83%81%EB%8C%80%EA%B2%BD%EB%A1%9C-%EC%83%81%EB%8C%80%EA%B2%BD%EB%A1%9C-import-%EC%97%90%EB%9F%AC%EC%9D%B4%EC%9C%A0%EC%99%80-%ED%95%B4%EA%B2%B0)
-- Velog: [[Python] calculator 패키지](https://velog.io/@chaduri7913/Python-calculator-%ED%8C%A8%ED%82%A4%EC%A7%80)
+- Python 공식 문서: [Intra-package References](https://docs.python.org/3/tutorial/modules.html#intra-package-references)
+- Python 공식 문서: [Import System](https://docs.python.org/3/reference/import.html)
 
 본문 이미지는 위 출처에서 가져왔습니다.

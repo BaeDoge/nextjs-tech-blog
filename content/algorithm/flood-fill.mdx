@@ -27,76 +27,70 @@ Flood Fill 문제는 그래프 탐색 문제로 볼 수 있습니다. 각 픽셀
 
 ## 풀이
 
-재귀 호출을 사용하여 깊이 우선 탐색(DFS) 방식으로 구현합니다.
+큐를 사용한 반복형 BFS로 구현합니다. 시작 색상과 새 색상이 같다면 아무것도 변경하지 않고 반환합니다. 새 색상으로 바꾸는 순간 해당 픽셀은 다시 탐색 대상에 포함되지 않으므로 별도의 `visited` 집합이 필요하지 않습니다.
 
 ```python
+from collections import deque
+from typing import List
+
 class Solution:
     def floodFill(self, image: List[List[int]], sr: int, sc: int, color: int) -> List[List[int]]:
-        original_color = image[sr][sc]
-        
-        # 시작 색상이 새 색상과 동일하다면 변경할 필요 없음
-        if original_color == color:
+        original = image[sr][sc]
+        if original == color:
             return image
-        
-        def dfs(r, c):
-            image[r][c] = color
-            
-            # 상하좌우 인접한 픽셀 확인
-            directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]
+
+        rows, cols = len(image), len(image[0])
+        queue = deque([(sr, sc)])
+        image[sr][sc] = color
+        directions = ((1, 0), (-1, 0), (0, 1), (0, -1))
+
+        while queue:
+            r, c = queue.popleft()
             for dr, dc in directions:
                 nr, nc = r + dr, c + dc
-                
-                # 범위 체크 및 색상 체크
-                if (0 <= nr < len(image) and 
-                    0 <= nc < len(image[0]) and 
-                    image[nr][nc] == original_color):
+                if (0 <= nr < rows and 0 <= nc < cols
+                        and image[nr][nc] == original):
+                    image[nr][nc] = color
+                    queue.append((nr, nc))
+
+        return image
+```
+
+시간 복잡도는 O(m·n)이며, 각 픽셀은 최대 한 번 큐에 들어갑니다. 공간 복잡도는 최악의 경우 큐가 O(m·n)개의 좌표를 저장할 수 있으므로 O(m·n)입니다.
+
+## 다른 풀이 방법
+
+재귀 DFS로도 구현할 수 있습니다. 다만 이미지의 크기는 최대 50×50이므로 연결 영역이 매우 크면 재귀 깊이가 Python 기본 재귀 제한을 넘어 `RecursionError`가 발생할 수 있습니다. 아래 방식은 재귀 구조를 이해하기 위한 대안이며, 실제 제출 코드에서는 위의 반복형 BFS를 권장합니다.
+
+```python
+from typing import List
+
+class Solution:
+    def floodFill_dfs(self, image: List[List[int]], sr: int, sc: int, color: int) -> List[List[int]]:
+        original = image[sr][sc]
+        if original == color:
+            return image
+
+        rows, cols = len(image), len(image[0])
+
+        def dfs(r: int, c: int) -> None:
+            image[r][c] = color
+            for dr, dc in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                nr, nc = r + dr, c + dc
+                if (0 <= nr < rows and 0 <= nc < cols
+                        and image[nr][nc] == original):
                     dfs(nr, nc)
-        
+
         dfs(sr, sc)
         return image
 ```
 
-시간복잡도: O(m * n). 최악의 경우 모든 픽셀을 한 번씩 방문합니다.
-공간복잡도: O(m * n). 재귀 호출 스택의 깊이가 이미지 크기에 비례할 수 있습니다.
-
-## 다른 풀이 방법
-
-큐를 이용한 너비 우선 탐색(BFS)을 사용할 수 있습니다.
-
-```python
-from collections import deque
-
-class Solution:
-    def floodFill(self, image: List[List[int]], sr: int, sc: int, color: int) -> List[List[int]]:
-        original_color = image[sr][sc]
-        if original_color == color:
-            return image
-        
-        m, n = len(image), len(image[0])
-        queue = deque([(sr, sc)])
-        image[sr][sc] = color
-        
-        directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]
-        
-        while queue:
-            r, c = queue.popleft()
-            
-            for dr, dc in directions:
-                nr, nc = r + dr, c + dc
-                if (0 <= nr < m and 0 <= nc < n and image[nr][nc] == original_color):
-                    image[nr][nc] = color
-                    queue.append((nr, nc))
-                    
-        return image
-```
-
-시간복잡도: O(m * n)
-공간복잡도: O(m * n). 큐의 크기가 최대 이미지 크기인 m x n을 차지할 수 있습니다.
+DFS와 BFS 모두 O(m·n) 시간과 O(m·n) 최악 보조 공간을 사용합니다. 차이는 DFS가 호출 스택 또는 명시적 스택을 사용하고, BFS는 큐를 사용한다는 점입니다.
 
 ## 추가 참고사항
 
 - 시작 색상이 새 색상과 같은 경우 예외 처리를 하지 않으면 재귀 깊이 제한이나 큐의 불필요한 증가로 인해 성능 저하 또는 무한 루프 가능성이 있습니다.
-- Python의 경우 재귀 깊이 제한이 기본값이 1000이므로, 이미지 크기가 매우 클 경우 `sys.setrecursionlimit`을 조정하거나 BFS를 사용하는 것이 안전합니다.
+- Python의 기본 재귀 제한은 환경에 따라 달라집니다. 최대 50×50 이미지에서는 연결된 영역이 2,500개 픽셀에 이를 수 있으므로 재귀 DFS는 `RecursionError`가 날 수 있습니다. 제한을 무작정 높이기보다 반복형 BFS나 명시적 스택 DFS를 사용하는 것이 안전합니다.
 - 이 문제는 그래프의 연결 요소(Connected Component)를 찾는 문제와 유사한 구조를 가집니다.
 
 ## 출처

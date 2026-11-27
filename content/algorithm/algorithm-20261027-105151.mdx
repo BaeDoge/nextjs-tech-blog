@@ -26,6 +26,8 @@ tag: "Algorithm"
 세 개의 포인터(`prev`, `curr`, `next`)를 사용하여 노드의 연결 방향을 한 번에 뒤집습니다.
 
 ```python
+from typing import Optional
+
 class Solution:
     def reverseList(self, head: Optional[ListNode]) -> Optional[ListNode]:
         prev = None
@@ -70,7 +72,7 @@ class Solution:
 ## 추가 참고사항
 
 이터레이션 방식은 스택 오버플로우 위험이 없고 공간 효율이 좋아 일반적으로 선호됩니다.
-재귀 방식은 코드가 간결하지만, 노드 개수가 매우 많을 경우 호출 스택의 한계로 인해 오류가 발생할 수 있습니다.
+재귀 방식은 코드가 간결하지만, 제약 조건의 최대 노드 수가 5,000개이므로 Python 기본 재귀 제한을 넘어서 `RecursionError`가 발생할 수 있습니다. 실제 제출과 큰 입력에서는 반복문 기반 풀이를 사용하는 것이 안전합니다.
 LeetCode 문제에서는 두 방식 모두 정답으로 인정되나, 실무에서는 이터레이션 방식을 더 권장합니다.
 노드 값의 범위나 개수 제한은 알고리즘 로직에 큰 영향을 주지 않으며, 포인터 조작의 정확성이 핵심입니다.
 

@@ -31,6 +31,8 @@ tag: "Algorithm"
 `arr1`의 길이 `M`, `arr2`의 길이 `N`이라고 할 때, 모든 쌍을 비교하므로 시간 복잡도는 O(M * N)입니다.
 
 ```python
+from typing import List
+
 class Solution:
     def findTheDistanceValue(self, arr1: List[int], arr2: List[int], d: int) -> int:
         count = 0
@@ -64,6 +66,7 @@ class Solution:
 
 ```python
 import bisect
+from typing import List
 
 class Solution:
     def findTheDistanceValue(self, arr1: List[int], arr2: List[int], d: int) -> int:

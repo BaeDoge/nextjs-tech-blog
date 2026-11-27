@@ -18,7 +18,7 @@ tag: "Algorithm"
 ```python
 def exclusiveTime(n: int, logs: list[str]) -> list[int]:
     ans = [0] * n
-    stack = []          # (function_id, start_time)
+    stack = []          # 실행 중인 함수 ID
     prev_time = 0
 
     for entry in logs:
@@ -28,12 +28,12 @@ def exclusiveTime(n: int, logs: list[str]) -> list[int]:
         if typ == 'start':
             if stack:
                 # 이전 함수에 시작 전까지의 시간 추가
-                ans[stack[-1][0]] += ts - prev_time
-            stack.append((fid, ts))
+                ans[stack[-1]] += ts - prev_time
+            stack.append(fid)
             prev_time = ts
         else:  # 'end'
             # 종료 함수 팝
-            cur_id, start = stack.pop()
+            cur_id = stack.pop()
             # 종료 시점의 시간 포함
             ans[cur_id] += ts - prev_time + 1
             prev_time = ts + 1   # 다음 시작을 위해 +1
@@ -42,12 +42,13 @@ def exclusiveTime(n: int, logs: list[str]) -> list[int]:
 ```
 
 시간 복잡도: `O(L)` (L = logs.length)  
-공간 복잡도: `O(n)` (스택에 최대 n개 저장)
+공간 복잡도: `O(L)` (동일한 함수의 재귀 호출도 여러 겹 쌓일 수 있으므로, 스택 깊이는 함수 종류 수 n이 아니라 중첩된 호출 수에 비례할 수 있음)
 
-## 다른 풀이 방법
+## 구현상 주의
 
-- **재귀 시뮬레이션**: 로그를 파싱해 중첩된 호출을 재귀 함수로 모델링하고, 반환 시점에 배타적 시간을 누적한다. 직관적이지만 재귀 깊이 제한으로 인해 비효율적일 수 있다.
-- **두 패스 파싱**: 먼저 시작/종료 이벤트를 시간 순으로 정렬한 후 스택을 활용해 구간을 병합한다. 동일한 시간 복잡도를 가지지만 정렬 오버헤드가 발생한다.
+이 문제에서는 동일한 함수가 재귀 호출될 수 있으므로, 스택에는 함수 ID를 호출 단위로 각각 push해야 합니다. 함수 ID가 같더라도 호출 항목을 합치면 종료 시점과 배타적 시간을 정확히 계산할 수 없습니다.
+
+`prev_time`은 직전 이벤트 이후 아직 어느 함수의 시간에도 반영하지 않은 첫 시각을 가리킵니다. 시작 이벤트에서는 현재 실행 중인 함수에 `ts - prev_time`을 더하고, 종료 이벤트에서는 종료 시각을 포함하기 위해 `ts - prev_time + 1`을 더한 뒤 `prev_time = ts + 1`로 이동합니다.
 
 ## 추가 참고사항
 

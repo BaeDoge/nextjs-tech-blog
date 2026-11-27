@@ -1,7 +1,7 @@
 ---
-title: "[트러블슈팅] Python HTTPS 인증서 검증 실패 해결"
+title: "[트러블슈팅] Python requests 및 pip 인증서 번들 오류"
 publishedAt: "2026-11-17"
-summary: "requests와 pip에서 CERTIFICATE_VERIFY_FAILED가 발생할 때 원인과 CA 인증서를 올바르게 설정하는 방법을 정리한다."
+summary: "requests와 pip에서 CA 인증서 번들을 찾지 못해 발생하는 SSL 인증서 검증 오류를 안전하게 해결하는 방법을 정리한다."
 tag: "Troubleshooting"
 ---
 
@@ -18,37 +18,54 @@ unable to get local issuer certificate
 
 ## 원인
 
-대표적인 원인은 다음과 같습니다.
+HTTPS 연결에서 클라이언트는 서버가 보낸 인증서 체인을 신뢰할 수 있는 CA(인증 기관) 목록과 대조합니다. 이 검증에 실패하면 `CERTIFICATE_VERIFY_FAILED`가 발생합니다.
 
-- CA 인증서 묶음이 오래되었거나 누락되었습니다.
-- 회사 프록시가 HTTPS 인증서를 교체하지만, 해당 프록시의 사내 CA가 신뢰 목록에 없습니다.
-- 서버가 중간 인증서를 누락했거나 인증서가 만료되었습니다.
-- 오래된 운영체제 또는 Python 환경이 현재의 TLS·루트 인증서 체계와 맞지 않습니다.
+`requests`는 기본적으로 `certifi` 패키지가 제공하는 CA 번들을 사용합니다. 반면 `pip`의 인증서 처리 방식은 버전과 Python 버전에 따라 다릅니다. pip 24.2 이상은 Python 3.10 이상에서 시스템 인증서와 `certifi` 인증서를 함께 사용합니다. 그보다 오래된 조합에서는 기본 인증서 저장소가 다를 수 있습니다.
 
-`requests`는 기본적으로 `certifi` 패키지가 제공하는 CA 묶음을 사용합니다. Python 표준 `ssl` 모듈과 `pip`는 환경 및 버전에 따라 기본 인증서 저장소를 다르게 사용할 수 있으므로, 모든 Python HTTPS 연결에 `certifi`만 적용된다고 단정하면 안 됩니다.
+회사 프록시가 HTTPS 트래픽을 검사하는 경우에는 조직의 자체 CA 인증서가 필요할 수 있습니다. 이때 `certifi`만 업데이트해도 조직의 CA가 추가되는 것은 아니므로, 오류 환경과 인증서 체인을 구분해서 확인해야 합니다.
 
-## 해결 방법 1. requests에서 사용하는 CA 번들 확인
+## 해결 방법
+
+먼저 Python과 pip 버전을 확인하고, 인증서가 오래되었거나 누락된 경우 사용하는 도구의 CA 번들을 업데이트합니다.
+
+```bash
+python --version
+python -m pip --version
+python -m pip install --upgrade certifi
+```
+
+`requests`에서 CA 번들 경로를 확인하려면 다음과 같이 실행합니다. `requests`는 기본적으로 이 번들을 사용하므로, 이 확인만으로 회사 내부 CA 문제가 해결되는 것은 아닙니다.
 
 ```python
 import requests
 import certifi
+import requests
 
-print("requests CA bundle:", requests.certs.where())
-print("certifi CA bundle:", certifi.where())
+print("CA bundle:", certifi.where())
+response = requests.get("https://pypi.org", timeout=15)
+print("HTTP status:", response.status_code)
 ```
 
-오래된 CA 묶음이 원인이라면 해당 Python 환경에서 업데이트합니다.
-
-```bash
-python -m pip install --upgrade requests certifi
-```
-
-## 해결 방법 2. 사내 CA 인증서를 명시하기
-
-회사 프록시가 자체 CA로 인증서를 발급하는 환경이라면, 사내 보안·인프라 담당자가 제공한 PEM 형식의 CA 인증서를 사용합니다.
+조직에서 제공한 CA 번들을 사용해야 하는 환경이라면 `verify`에 해당 파일 경로를 지정합니다.
 
 ```python
 import requests
+
+response = requests.get(
+    "https://pypi.org",
+    verify="/path/to/organization-ca-bundle.pem",
+    timeout=15,
+)
+print(response.status_code)
+```
+
+pip에는 `--cert` 옵션으로 CA 번들을 지정할 수 있습니다.
+
+```bash
+python -m pip install selenium --cert /path/to/organization-ca-bundle.pem
+```
+
+프로젝트나 실행 환경에서 반복적으로 사용해야 한다면 `REQUESTS_CA_BUNDLE` 또는 `PIP_CERT` 환경 변수를 설정할 수 있습니다. 인증서 파일은 조직의 관리자나 신뢰할 수 있는 보안 담당자가 제공한 CA 번들을 사용해야 합니다.
 
 response = requests.get(
     "https://internal.example.com",
@@ -58,37 +75,27 @@ response = requests.get(
 response.raise_for_status()
 ```
 
-`requests`에서 모든 요청에 같은 CA 번들을 사용할 때는 `REQUESTS_CA_BUNDLE` 환경 변수를 지정할 수 있습니다.
+Python 3.10 이상과 pip 24.2 이상을 사용할 수 있는 환경이라면 pip는 시스템 인증서 저장소도 기본 검증에 사용합니다. 오래된 pip를 사용 중이라면 호환성을 확인한 뒤 업데이트하고, 조직에서 관리하는 루트 CA 인증서가 운영체제의 신뢰 저장소에 설치되어 있는지 확인합니다.
 
-```bat
-set REQUESTS_CA_BUNDLE=C:\certs\company-ca.pem
+```bash
+python -m pip install --upgrade pip
 ```
 
-## pip 설치에서 같은 오류가 발생한다면
+`verify=False`나 `--trusted-host`로 인증서 검증을 우회하는 방법은 문제를 해결하지 않고 서버 신원을 확인하는 보호 기능을 약화합니다. 중간자 공격에 노출될 수 있으므로 해결책으로 사용하지 말고, 올바른 CA 인증서를 구성해야 합니다.
 
-`pip`는 별도의 인증서 설정을 가질 수 있습니다. PEM 형식의 CA 번들을 `--cert` 옵션 또는 `PIP_CERT` 환경 변수로 지정합니다.
-
-```bat
-python -m pip install --cert C:\certs\company-ca.pem selenium
-```
-
-```bat
-set PIP_CERT=C:\certs\company-ca.pem
-```
-
-인증서 파일은 회사의 공식 보안·인프라 채널에서 받아야 합니다. 서버 인증서를 임의로 내려받아 신뢰 목록에 넣기보다, 발급 기관인 CA 인증서를 정확하게 등록해야 합니다.
-
-## 피해야 할 우회 방법
+![해결 방법 스크린샷](/blogs/ssl-certificate-verify-failed-152526-2.png)
 
 `requests.get(..., verify=False)` 또는 pip의 `--trusted-host`는 인증서 검증을 비활성화하거나 우회합니다. 연결은 성공할 수 있지만 중간자 공격을 막지 못할 수 있으므로, 실제 서비스나 민감한 데이터에는 사용하지 않습니다.
 
-## 추가 점검
+인증서 오류가 발생하면 먼저 실패한 도구가 `requests`인지 `pip`인지 구분하고, 사용 중인 Python·pip 버전과 CA 번들 경로를 확인합니다. 조직 내부 프록시의 자체 CA가 원인이라면 해당 CA를 신뢰할 수 있는 저장소나 별도 CA 번들에 추가해야 합니다. 서버 인증서 자체가 만료되었거나 체인이 잘못된 경우에는 서버 운영자가 인증서 구성을 수정해야 합니다.
 
 - `ssl.get_default_verify_paths()`로 Python 표준 SSL 모듈이 참조하는 기본 CA 경로를 확인합니다.
 - 브라우저에서도 같은 주소에 인증서 경고가 발생하면 서버의 인증서 체인과 만료 여부를 점검합니다.
 - 오래된 OS에서 루트 인증서를 업데이트할 수 없다면 지원되는 OS와 Python 환경으로 이전하는 방안을 검토합니다.
 
-## 출처
+- StackOverflow: [SSL: CERTIFICATE_VERIFY_FAILED certificate verify failed: unable to get local issuer certificate (_ssl.c:1129)')))](https://stackoverflow.com/questions/77442172/ssl-certificate-verify-failed-certificate-verify-failed-unable-to-get-local-is) — 작성자: Jeff A(질문), Milo Buwalda(답변) (CC BY-SA)
+- Requests 공식 문서: [SSL Certificate Verification](https://requests.readthedocs.io/en/stable/user/advanced/#ssl-cert-verification)
+- pip 공식 문서: [HTTPS Certificates](https://pip.pypa.io/en/stable/topics/https-certificates/)
 
 - Requests 공식 문서: [CA Certificates](https://requests.readthedocs.io/en/latest/user/advanced/#ca-certificates)
 - pip 공식 문서: [HTTPS Certificates](https://pip.pypa.io/en/stable/topics/https-certificates/)

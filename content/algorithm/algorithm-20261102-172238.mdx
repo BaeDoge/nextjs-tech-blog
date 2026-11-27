@@ -24,7 +24,7 @@ def arrayPairSum(nums):
 ```
 
 시간 복잡도: `O(n log n)` (정렬에 소요되는 시간)
-공간 복잡도: `O(1)` 또는 `O(n)` (정렬 알고리즘 구현에 따라 달라짐. Python의 Timsort는 `O(n)`)
+공간 복잡도: `nums.sort()`는 입력 리스트를 제자리 정렬하지만, Python의 Timsort는 정렬 과정에서 최악의 경우 O(n) 임시 메모리를 사용할 수 있습니다.
 
 ## 다른 풀이 방법
 
