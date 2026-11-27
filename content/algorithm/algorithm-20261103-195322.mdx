@@ -28,23 +28,22 @@ class Solution:
         if not head or not head.next:
             return
         
-        # 1. 중간 노드와 분리 지점 찾기
-        slow, fast = head, head
-        prev = None
+        # 1. 첫 번째 절반의 끝 찾기
+        slow, fast = head, head.next
         while fast and fast.next:
-            prev = slow
             slow = slow.next
             fast = fast.next.next
         
         # 2. 두 번째 절반을 분리한 뒤 뒤집기
-        prev.next = None
-        second = None
-        curr = slow
-        while curr:
-            nxt = curr.next
-            curr.next = second
-            second = curr
-            curr = nxt
+        second = slow.next
+        slow.next = None
+        prev = None
+        while second:
+            nxt = second.next
+            second.next = prev
+            prev = second
+            second = nxt
+        second = prev
         
         # 3. 두 절반을 번갈아 병합
         first = head
@@ -61,7 +60,7 @@ class Solution:
 
 ## 다른 풀이 방법
 
-모든 노드를 배열에 저장한 뒤 양 끝에서 번갈아 연결할 수도 있습니다. 구현은 간단하지만 노드 참조를 저장하는 O(N) 추가 공간이 필요합니다.
+모든 노드 참조를 배열에 저장한 뒤 양 끝에서 번갈아 연결할 수도 있습니다.
 
 ```python
 def reorderList_with_array(head: ListNode) -> None:
@@ -84,7 +83,7 @@ def reorderList_with_array(head: ListNode) -> None:
         nodes[left].next = None
 ```
 
-시간 복잡도는 O(N), 공간 복잡도는 노드 참조 배열을 저장하는 O(N)입니다. 입력 연결 리스트 자체를 제자리에서 바꾸는 첫 번째 풀이가 추가 공간 측면에서 더 효율적입니다.
+시간 복잡도는 O(N), 공간 복잡도는 노드 참조 배열을 저장하는 O(N)입니다. 첫 번째 방법은 노드 연결을 직접 조정하므로 O(1) 보조 공간을 사용합니다.
 
 ## 추가 참고사항
 
