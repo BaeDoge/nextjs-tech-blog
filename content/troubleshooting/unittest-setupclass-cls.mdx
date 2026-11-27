@@ -10,10 +10,19 @@ tag: "Troubleshooting"
 `unittest.TestCase`를 상속받은 테스트 클래스에서 `setUpClass` 메서드를 정의할 때, 인자 `cls`를 명시적으로 받도록 작성하지만 데코레이터를 붙이지 않으면 에러가 발생합니다. 테스트 실행 시 테스트 케이스가 실행되지 않으며, 다음과 같은 traceback이 출력됩니다.
 
 ```python
-class TestDownload(unittest.TestCase):
+import unittest
 
+class Config:
+    fs = False
+
+config = Config()
+
+class TestDownload(unittest.TestCase):
     def setUpClass(cls):
         config.fs = True
+
+    def test_download(self):
+        self.assertTrue(config.fs)
 ```
 
 ```text
