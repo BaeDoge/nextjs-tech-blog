@@ -25,6 +25,8 @@ tag: "Algorithm"
 두 변수를 사용하여 한 번의 순회로 해결합니다. 초기화 시 `first`와 `second`는 정수형 최댓값으로 설정합니다.
 
 ```python
+from typing import List
+
 class Solution:
     def increasingTriplet(self, nums: List[int]) -> bool:
         first = float('inf')
@@ -50,6 +52,7 @@ class Solution:
 
 ```python
 import bisect
+from typing import List
 
 class Solution:
     def increasingTriplet(self, nums: List[int]) -> bool:
