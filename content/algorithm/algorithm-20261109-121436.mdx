@@ -30,7 +30,7 @@ class TreeNode:
         self.right = right
 
 class Solution:
-    def sortedListToBST(self, head: ListNode) -> TreeNode:
+    def sortedListToBST(self, head: Optional[ListNode]) -> Optional[TreeNode]:
         # calculate length
         size = 0
         cur = head
@@ -40,7 +40,7 @@ class Solution:
         
         self.current = head  # pointer to the current list node
         
-        def build(left: int, right: int) -> TreeNode:
+        def build(left: int, right: int) -> Optional[TreeNode]:
             if left > right:
                 return None
             mid = (left + right) // 2
