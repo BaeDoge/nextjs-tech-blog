@@ -8,7 +8,7 @@ tag: "Troubleshooting"
 ## 현상
 
 `dict`는 존재하지 않는 키에 대해 `KeyError`를 발생시키지만, `get()` 메서드를 통해 기본값을 설정하여 예외 없이 값을 조회할 수 있습니다.
-반면, `list`에서 인덱스 범위를 초과하는 요소를 접근하면 `IndexError`가 발생하며, `list`에는 이와 같은 `get()` 메서드가 내장되어 있지 않습니다.
+반면 `list`는 정수 인덱스로 순서에 따라 요소를 조회하며, 유효하지 않은 인덱스에 접근하면 `IndexError`가 발생합니다. `dict.get()`과 같은 기본값 조회 메서드는 제공하지 않으므로, 필요한 동작은 작은 보조 함수로 구현할 수 있습니다.
 
 ```python
 >>> d = {'a':'b'}
@@ -37,17 +37,21 @@ IndexError: list index out of range
 `list`에서 기본값을 반환하는 안전 접근 메서드를 자체적으로 구현하려면 `try-except`문을 사용하여 `IndexError`를 캐치해야 합니다.
 
 ```python
-def safe_list_get(l, idx, default):
-  try:
-    return l[idx]
-  except IndexError:
-    return default
+def safe_list_get(items, index, default=None):
+    try:
+        return items[index]
+    except IndexError:
+        return default
+
+values = [10, 20, 30]
+print(safe_list_get(values, 1))          # 20
+print(safe_list_get(values, 10, "없음")) # 없음
+print(safe_list_get(values, -1))         # 30
 ```
 
 ## 다른 해결 방법
 
-내장 타입인 `list`에 `get` 메서드를 직접 추가하는 Monkeypatching은 모든 코드에서 영향을 주지 않아 권장되지 않습니다.
-대신, `list` 클래스를 상속받아 `get` 메서드를 추가한 서브클래스를 정의하면, 코드에서 사용하는 특정 `list` 인스턴스에만 이 기능을 적용할 수 있습니다.
+Python의 내장 `list` 타입에는 임의로 메서드를 덧붙일 수 없습니다. `list.get = ...`처럼 내장 타입 자체를 수정하려고 하면 일반적으로 `TypeError`가 발생합니다. 별도 메서드가 필요한 경우 `list`를 상속한 사용자 정의 클래스를 만들거나, 앞서 소개한 독립 함수를 사용하는 방법을 선택합니다.
 
 ```python
 class SafeList(list):
@@ -84,7 +88,7 @@ class SafeList(list):
 ## 출처
 
 - StackOverflow: [Why doesn't list have safe "get" method like dictionary?](https://stackoverflow.com/questions/5125619/why-doesnt-list-have-safe-get-method-like-dictionary) — 작성자: Mikhail M.(질문), Nick Bastin(답변) (CC BY-SA)
-- Tistory: [음성인식, 합성 및 가상비서 만들기](https://yjhtpi.tistory.com/186) — 작성자: AI Agent
-- Tistory: [AFL++ 구조 분석[1]](https://ddyoru.tistory.com/entry/AFL-%EA%B5%AC%EC%A1%B0-%EB%B6%84%EC%84%9D1) — 작성자: Ddyoru
+- Python 공식 문서: [Built-in Types — Sequence Types](https://docs.python.org/3/library/stdtypes.html#sequence-types-list-tuple-range)
+- Python 공식 문서: [Built-in Types — Mapping Types](https://docs.python.org/3/library/stdtypes.html#mapping-types-dict)
 
 본문 이미지는 위 출처에서 가져왔습니다.
