@@ -1,87 +1,91 @@
 ---
-title: "[트러블슈팅] ImportError: cannot import name 'url_quote' from werkzeug.urls"
+title: "[트러블슈팅] Flask와 Werkzeug 버전 불일치로 인한 url_quote ImportError"
 publishedAt: "2026-11-11"
-summary: "Flask와 Werkzeug의 버전 호환성 차이로 werkzeug.urls.url_quote를 import하지 못할 때 의존성을 점검하고 수정하는 방법을 정리한다."
+summary: "Flask가 Werkzeug에서 제거된 url_quote를 import할 때 발생하는 오류를 호환 버전 고정 또는 의존성 업데이트로 해결한다."
 tag: "Troubleshooting"
 ---
 
 ## 현상
 
-Flask 2.2.2 환경에서 테스트 실행 시 `werkzeug.urls` 모듈에서 `url_quote`를 가져오지 못해 에러가 발생합니다.
-에러 메시지는 다음과 같습니다.
+Flask 2.2.2 환경에서 애플리케이션을 실행하거나 테스트를 수집할 때 `werkzeug.urls` 모듈에서 `url_quote`를 가져오지 못해 다음 오류가 발생할 수 있습니다.
 
 <Callout type="warning" title="오류 상황">
 ImportError: cannot import name 'url_quote' from 'werkzeug.urls'
 </Callout>
 
-에러가 발생하는 최소 환경 및 traceback은 다음과 같습니다.
+재현 환경의 한 예시는 다음과 같습니다.
 
 ```text
-# 환경
 Python 3.10.11
 Flask==2.2.2
-Werkzeug==3.0.0 (자동 설치됨)
-
-Traceback (most recent call last):
-  File ".../flask/app.py", line 30, in <module>
-    from werkzeug.urls import url_quote
-ImportError: cannot import name 'url_quote' from 'werkzeug.urls'
+Werkzeug==3.0.0
 ```
 
 ## 원인
 
-Flask 2.2.2는 `werkzeug.urls.url_quote`를 사용하지만, Werkzeug 3.0.0에서 이전에 deprecated된 URL 유틸리티가 제거되었습니다. Flask 2.2.2의 Werkzeug 의존성에는 3.0 미만이라는 상한선이 없어서 최신 Werkzeug가 설치되면 호환되지 않을 수 있습니다. Flask 3.0.0은 반대로 Werkzeug 3.0.0 이상을 요구하므로, Flask와 Werkzeug는 서로 호환되는 버전 조합으로 함께 관리해야 합니다.
+Flask 2.2.2는 `werkzeug.urls.url_quote`를 사용하지만, Werkzeug 3.0.0에서 이전에 deprecated된 URL 유틸리티가 제거되었습니다. Flask 2.2.2의 의존성 조건에는 Werkzeug 3.0 미만이라는 상한이 없으므로, 패키지 설치 과정에서 호환되지 않는 Werkzeug 3.x가 선택될 수 있습니다.
+
+이 문제는 단순히 `url_quote` 함수를 직접 추가해서 해결할 오류가 아니라, Flask와 Werkzeug의 버전 조합을 맞춰야 하는 의존성 호환 문제입니다.
 
 ## 해결 방법
 
-`requirements.txt` 파일에서 호환되는 `Werkzeug` 버전을 고정합니다.
+### Flask 2.2.2를 당장 유지해야 하는 경우
 
-```
-# requirements.txt — 레거시 Flask 2.2.2를 유지할 때의 호환 범위
+레거시 애플리케이션을 즉시 업그레이드할 수 없다면 `Werkzeug`를 3.0 미만으로 제한합니다.
+
+```text
+# requirements.txt
 Flask==2.2.2
-Werkzeug>=2.2.2,<2.3
+Werkzeug>=2.2.2,<3.0
 ```
 
-패키지를 다시 설치하여 버전을 맞춥니다.
+의존성을 다시 설치하고 충돌이 남아 있는지 확인합니다.
 
-<Terminal title="실행 명령">
-python -m python -m pip install -r requirements.txt
-python -m pip check\npython -m pip check
-</Terminal>
+```bash
+python -m pip install -r requirements.txt
+python -m pip check
+```
+
+### Flask를 업그레이드할 수 있는 경우
+
+장기적으로는 Flask와 Werkzeug를 함께 지원되는 버전 계열로 업데이트하는 편이 좋습니다. 다음 명령은 두 패키지를 함께 업그레이드합니다.
+
+```bash
+python -m pip install --upgrade "Flask>=3.1,<4" "Werkzeug>=3.1,<4"
+python -m pip check
+```
+
+업데이트 후에는 애플리케이션 테스트를 실행하고, 검증한 정확한 버전을 `requirements.txt`, constraints 파일 또는 lock 파일에 고정해 배포 환경에서도 같은 조합을 사용하도록 합니다.
 
 ## 다른 해결 방법
 
-`Flask`를 최신 버전으로 업데이트하여 `Werkzeug 3.0.0`과 호환되도록 조치합니다.
+임시로 한 패키지만 내리는 것보다, 프로젝트가 사용하는 Flask 확장(extensions)까지 포함해 전체 의존성 충돌을 확인해야 합니다. 설치된 버전은 다음과 같이 조회할 수 있습니다.
 
-```
-# requirements.txt
-Flask==3.0.0
+```bash
+python -m pip show Flask Werkzeug
+python -m pip check
 ```
 
-예시 범위는 현재 호환되는 주요 버전 계열을 지정한 것입니다. 실제 배포에서는 검증된 정확한 버전을 lock/constraints 파일에 고정하고, 설치 후 `python -m pip check`와 테스트를 실행합니다.
+`url_quote`를 직접 monkeypatch하거나 Flask 내부 파일을 수정하는 방식은 권장하지 않습니다. 이후 업데이트에서 다시 깨질 수 있고, 라이브러리의 지원되지 않는 내부 구현에 의존하게 됩니다.
 
 ## 추가 참고사항
 
+Werkzeug 3.0.0은 이전 버전에서 deprecated된 API를 제거했습니다. Flask도 버전별로 요구하는 Werkzeug 최소 버전이 다르므로, Flask와 Werkzeug를 독립적으로 무작정 최신화하기보다 공식 의존성 조건과 잠금 파일을 함께 확인해야 합니다.
+
 <Steps>
-<Step title="버전 확인">
-현재 설치된 패키지 버전을 확인합니다.
+<Step title="설치된 버전 확인">
+`python -m pip show Flask Werkzeug`로 현재 설치 버전을 확인합니다.
 </Step>
-<Step title="의존성 수정">
-requirements.txt에서 호환 가능한 버전을 지정합니다.
+<Step title="호환 범위 조정">
+레거시 Flask를 유지한다면 Werkzeug 버전을 제한하고, 업그레이드할 수 있다면 두 패키지를 함께 갱신합니다.
 </Step>
-<Step title="재설치 및 테스트">
-패키지를 재설치한 뒤 테스트를 다시 실행합니다.
+<Step title="의존성 검증">
+`python -m pip check`와 애플리케이션 테스트를 실행한 뒤 검증된 버전을 lock 파일에 고정합니다.
 </Step>
 </Steps>
-
-<Callout type="info" title="예방 팁">
-주요 패키지 업데이트 시 하위 호환성 및 의존성 버전을 사전에 확인해야 합니다.
-</Callout>
-
-비슷한 에러로 버전 불일치 문제가 발생할 수 있으므로 패키지 간 버전 정합성을 주기적으로 점검합니다.
 
 ## 출처
 
 - StackOverflow: [Why did Flask start failing with "ImportError: cannot import name 'url_quote' from 'werkzeug.urls'"?](https://stackoverflow.com/questions/77213053/why-did-flask-start-failing-with-importerror-cannot-import-name-url-quote-fr) — 작성자: stevezkw(질문), Scrashdemix(답변) (CC BY-SA)
 - Werkzeug 공식 변경 이력: [Version 3.0.0](https://werkzeug.palletsprojects.com/en/stable/changes/#version-3-0-0)
-- Flask 공식 변경 이력: [Version 3.0.0](https://flask.palletsprojects.com/en/stable/changes/#version-3-0-0)
+- Flask 공식 변경 이력: [Changes](https://flask.palletsprojects.com/en/stable/changes/)
