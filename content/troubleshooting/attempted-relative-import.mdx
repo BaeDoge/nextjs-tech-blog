@@ -59,8 +59,7 @@ $ python -m package.module1
 
 ## 다른 해결 방법
 
-상대 import를 절대 import로 변경하여 패키지의 전체 경로를 명시하면 오류를 해결할 수 있다.
-상대 경로 대신 패키지 이름부터 시작하는 절대 경로를 사용한다.
+절대 import로 바꾸는 방법도 있지만, 이 방법 역시 프로젝트 루트가 Python의 모듈 검색 경로에 있어야 합니다. `python package/module1.py`로 직접 실행하면 `sys.path[0]`이 `package` 디렉터리가 되어 `from package.utils import helper`가 실패할 수 있습니다. 프로젝트 루트에서 `python -m package.module1`로 실행하는 방식을 우선 권장합니다.
 
 ```python
 # 수정 전 (상대 import - 오류 발생)
@@ -70,7 +69,7 @@ from .utils import helper
 from package.utils import helper
 ```
 
-이렇게 하면 스크립트가 직접 실행되더라도 모듈의 위치를 명확하게 지정할 수 있다.
+이 import 문은 프로젝트 루트가 import 경로에 포함된 상태에서 실행해야 합니다. 예를 들어 `python -m package.module1` 또는 패키지를 설치한 환경에서 정상적으로 해석됩니다.
 
 ## 추가 참고사항
 
@@ -78,12 +77,11 @@ from package.utils import helper
 직접 실행 시에는 절대 import를 사용하는 것이 안전하다.
 
 <Callout type="tip" title="예방 팁">
-상대 import와 절대 import를 혼용하지 않도록 한다.
-프로젝트 내에서 일관된 import 방식을 선택하여 유지보수를 용이하게 한다.
+패키지 내부 모듈은 상대 import 또는 패키지 절대 import 중 하나의 규칙을 일관되게 사용하고, 실행 진입점은 프로젝트 루트에서 `python -m package.module1`로 호출합니다. 단순히 상대 import를 절대 import로 바꾸는 것만으로 직접 실행 문제가 항상 해결되는 것은 아닙니다.
 </Callout>
 
 ## 출처
 
 - StackOverflow: [How to resolve the Python error 'attempted relative import'](https://stackoverflow.com/questions/14132789/how-to-resolve-the-python-error-attempted-relative-import) — 작성자: user1881400(질문), BrenBarn(답변) (CC BY-SA)
-- Tistory: [[파이썬][Error] 055. ImportError - attempted relative import with no known parent package](https://about-ittt.tistory.com/382) — 작성자: about_IT
-- Velog: [[Python] ImportError: attempted relative import with no known parent package.](https://velog.io/@2021bong/Python-ImportError-attempted-relative-import-with-no-known-parent-package-8v7kz9in)
+- Python 공식 문서: [The Python Tutorial — Intra-package References](https://docs.python.org/3/tutorial/modules.html#intra-package-references)
+- Python 공식 문서: [The Python Tutorial — Executing modules as scripts](https://docs.python.org/3/tutorial/modules.html#executing-modules-as-scripts)
