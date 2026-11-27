@@ -40,10 +40,24 @@ class Solution:
 
 ## 다른 풀이 방법
 
-공간 복잡도를 최적화하기 위해 별도의 `visited` 배열을 만드는 대신, 이미 방문한 원소의 값을 특정 값(예: `-1`)으로 변경하여 처리할 수 있습니다. 이 경우 공간 복잡도를 $O(1)$로 줄일 수 있으나, 입력 배열 `nums`의 원본 데이터를 수정하게 됩니다.
+입력 배열을 수정해도 된다면 별도의 `visited` 배열 없이 이미 방문한 위치를 표시할 수 있습니다. 이 문제의 값은 0 이상이므로, 방문한 위치의 값을 `-1`로 바꾸어 다시 방문하지 않도록 할 수 있습니다.
 
-- **방문 배열 사용**: 공간 복잡도 $O(n)$, 원본 데이터 보존 가능.
-- **배열 값 수정**: 공간 복잡도 $O(1)$, 원본 데이터 변경됨.
+```python
+def arrayNesting_in_place(nums: list[int]) -> int:
+    best = 0
+    for start in range(len(nums)):
+        length = 0
+        index = start
+        while nums[index] != -1:
+            next_index = nums[index]
+            nums[index] = -1
+            index = next_index
+            length += 1
+        best = max(best, length)
+    return best
+```
+
+시간 복잡도는 각 원소를 최대 한 번씩 방문하므로 O(N), 입력 배열 외의 추가 공간은 O(1)입니다. 대신 원본 배열이 변경되므로 입력 보존이 필요한 환경에서는 사용하면 안 됩니다.
 
 ## 추가 참고사항
 
