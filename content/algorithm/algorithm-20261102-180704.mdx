@@ -27,7 +27,7 @@ tag: "Algorithm"
 from typing import List, Optional
 
 class Solution:
-    def findMode(self, root: Optional[TreeNode]) -> List[int]:
+    def findMode(self, root: Optional['TreeNode']) -> List[int]:
         # 상태 변수 정의
         self.max_count = 0
         self.current_count = 0
@@ -78,7 +78,7 @@ class Solution:
 from typing import List, Optional
 
 class Solution:
-    def findMode(self, root: Optional[TreeNode]) -> List[int]:
+    def findMode(self, root: Optional['TreeNode']) -> List[int]:
         freq = {}
         
         def traverse(node):
