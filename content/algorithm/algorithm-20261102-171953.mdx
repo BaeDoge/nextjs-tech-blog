@@ -19,6 +19,7 @@ tag: "Algorithm"
 
 ```python
 from collections import Counter
+from typing import List
 
 class Solution:
     def findLHS(self, nums: List[int]) -> int:
@@ -37,10 +38,24 @@ class Solution:
 
 ## 다른 풀이 방법
 
-**정렬 후 투 포인터(Two Pointers)** 기법을 사용할 수 있습니다. 배열을 정렬하면 동일한 숫자들이 연속되어 배치되고, 숫자가 증가하는 순서대로 정렬됩니다. 이후 투 포인터를 사용하여 `nums[right] - nums[left]`의 차이가 1이 되는 구간을 찾습니다. 차이가 1보다 작으면 `right`를 증가시키고, 차이가 1보다 크면 `left`를 증가시킵니다. 차이가 1일 경우 현재 구간의 길이를 갱신합니다. 이 방법은 해시맵 사용 시 추가 공간을 필요로 하지 않아 공간복잡도 측면에서 유리할 수 있으나, 정렬 과정에서 O(N log N)의 시간이 소요되어 일반적인 경우 해시맵 방식보다 느릴 수 있습니다.
+정렬 후 투 포인터를 사용할 수도 있습니다. 배열을 정렬하면 같은 값이 연속되므로, 현재 구간의 최댓값과 최솟값의 차이가 1을 초과할 때 왼쪽 포인터를 이동합니다. 차이가 정확히 1인 구간의 길이를 최댓값으로 갱신합니다.
 
-시간복잡도: O(N log N)
-공간복잡도: O(1) 또는 O(N) (정렬 알고리즘 구현에 따라 다름)
+```python
+def findLHS_sorted(nums: list[int]) -> int:
+    nums = sorted(nums)
+    left = 0
+    longest = 0
+
+    for right in range(len(nums)):
+        while nums[right] - nums[left] > 1:
+            left += 1
+        if nums[right] - nums[left] == 1:
+            longest = max(longest, right - left + 1)
+
+    return longest
+```
+
+시간 복잡도는 정렬에 O(N log N), 투 포인터 순회에 O(N)이므로 전체 O(N log N)입니다. `sorted()`가 새 배열을 생성하므로 공간 복잡도는 O(N)입니다.
 
 ## 추가 참고사항
 
