@@ -1,7 +1,7 @@
 ---
-title: "[트러블슈팅] 인자 2개 전달 에러 해결"
+title: "[트러블슈팅] 인스턴스 메서드 self 누락으로 인한 TypeError"
 publishedAt: "2026-11-26"
-summary: "인스턴스 메서드 호출 시 self 누락으로 발생하는 인자 수 불일치 에러를 해결한다."
+summary: "인스턴스 메서드에서 self를 누락해 발생하는 Python 3 TypeError의 원인과 해결 방법을 정리한다."
 tag: "Troubleshooting"
 ---
 
@@ -9,12 +9,13 @@ tag: "Troubleshooting"
 
 클래스를 인스턴스화하여 메서드를 호출할 때, 예상과 달리 인자 수가 과다하다는 에러가 발생한다.
 
-<Callout type="warning" title="오류 상황">
+<Callout type="warning" title="Python 3에서 재현한 오류 메시지">
 
-```python
-TypeError: takes exactly 1 argument (2 given)
+```text
+TypeError: Extractor.extractAll() takes 1 positional argument but 2 were given
 ```
 
+StackOverflow 원문에 실린 `takes exactly 1 argument (2 given)`은 오래된 Python 버전에서 사용된 표현입니다. 동일한 원인을 현재 Python 3 환경에서 재현하면 위와 같은 오류 메시지가 출력됩니다.
 </Callout>
 
 에러를 재현하는 최소 코드는 다음과 같다.
