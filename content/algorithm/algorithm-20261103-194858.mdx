@@ -17,7 +17,7 @@ tag: "Algorithm"
 
 ## 풀이
 
-~~~~python
+```python
 from typing import List
 
 class Solution:
@@ -28,16 +28,16 @@ class Solution:
             s[left], s[right] = s[right], s[left]
             left += 1
             right -= 1
-~~~~
+```
 
 이 함수는 입력 리스트를 직접 변경하며 별도의 반환값을 만들지 않습니다.
 
-~~~~python
+```python
 chars = ["h", "e", "l", "l", "o"]
 Solution().reverseString(chars)
 print(chars)
 # ["o", "l", "l", "e", "h"]
-~~~~
+```
 
 - 시간 복잡도: O(n). 각 문자는 최대 한 번 교환됩니다.
 - 추가 공간 복잡도: O(1). 포인터 두 개 외에 입력 크기에 비례하는 자료구조를 만들지 않습니다.
@@ -46,10 +46,10 @@ print(chars)
 
 Python 리스트의 reverse() 메서드를 사용하면 같은 결과를 더 간단하게 얻을 수 있습니다.
 
-~~~~python
+```python
 def reverse_string(s: list[str]) -> None:
     s.reverse()
-~~~~
+```
 
 슬라이스를 이용해 s[:] = s[::-1]로 작성할 수도 있지만, 역순 슬라이스를 만드는 과정에서 입력 길이에 비례하는 임시 리스트가 만들어집니다. 따라서 추가 공간을 사용하지 않는 풀이가 필요한 문제에서는 두 포인터 방식이나 list.reverse()가 적합합니다.
 
