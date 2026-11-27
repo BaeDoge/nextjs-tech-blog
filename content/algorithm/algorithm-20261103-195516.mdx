@@ -18,6 +18,8 @@ tag: "Algorithm"
 재귀 함수를 사용해 깊이 우선 탐색(DFS)을 수행한다. 현재 노드가 null이면 0을 반환하고, 그렇지 않으면 왼쪽과 오른쪽 서브트리의 깊이를 재귀적으로 계산한다.
 
 ```python
+from typing import Optional
+
 class Solution:
     def maxDepth(self, root: Optional[TreeNode]) -> int:
         if root is None:
@@ -36,6 +38,7 @@ class Solution:
 
 ```python
 import collections
+from typing import Optional
 
 class Solution:
     def maxDepth(self, root: Optional[TreeNode]) -> int:
