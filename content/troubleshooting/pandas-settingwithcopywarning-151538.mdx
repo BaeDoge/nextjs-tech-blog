@@ -83,10 +83,7 @@ df_slice['B'] = 0
 또한, 새로운 열을 생성할 때도 `.loc`을 사용하여 원본 데이터프레임에 직접 할당할 수 있다.
 
 ```python
-# 에러 발생 코드
-yesterday_result['date'] = yesterday_result['pubDate'].dt.strftime('%Y-%m-%d %H:%M:%S')
-
-# .loc 인덱서를 사용하여 경고 해결
+# 원본 DataFrame에 새 열을 직접 할당
 yesterday_result.loc[:, 'date'] = yesterday_result['pubDate'].dt.strftime('%Y-%m-%d %H:%M:%S')
 ```
 
@@ -104,7 +101,7 @@ for idx, row in sample_df.iterrows():
     sample_df.loc[idx, 'score'] = 100
 ```
 
-여러 값을 한꺼번에 변경할 때는 튜플 형태로 할당한다.
+여러 값을 한꺼번에 변경할 때는 리스트나 튜플을 사용해 명시적으로 할당한다.
 
 ```python
 sample_df.loc[idx, ['score', 'grade']] = 100, 'A'
@@ -115,6 +112,8 @@ Pandas 2.x에서는 뷰와 복사본의 모호성 때문에 `SettingWithCopyWarn
 ## 출처
 
 - StackOverflow: [Pandas SettingWithCopyWarning](https://stackoverflow.com/questions/26724378/pandas-settingwithcopywarning) — 작성자: ba_ul(질문), Paul H(답변) (CC BY-SA)
+- pandas 공식 문서: [Copy-on-Write (CoW)](https://pandas.pydata.org/docs/user_guide/copy_on_write.html)
+- pandas 공식 문서: [Returning a View versus a Copy](https://pandas.pydata.org/docs/user_guide/indexing.html#returning-a-view-versus-a-copy)
 - Tistory: [Pandas SettingWithCopyWarning 해결방법](https://miidsummer.tistory.com/11) — 작성자: 이것저것 담는 블로그
 - Velog: [[파이썬 판다스] SettingWithCopyWarning: 
 A value is trying to be set on a copy of a slice from a DataFrame.](https://velog.io/@hyojinnnnnan/%ED%8C%8C%EC%9D%B4%EC%8D%AC-%ED%8C%90%EB%8B%A4%EC%8A%A4-SettingWithCopyWarning-A-value-is-trying-to-be-set-on-a-copy-of-a-slice-from-a-DataFrame)
