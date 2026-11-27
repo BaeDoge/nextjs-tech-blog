@@ -1,129 +1,84 @@
 ---
-title: "[Troubleshooting] Resolving UnicodeDecodeError Encoding Issues"
+title: "[Troubleshooting] UnicodeDecodeError When Reading a CSV File With pandas"
 publishedAt: "2026-11-26"
-summary: "This guide explains the causes of encoding errors when reading files as UTF-8 and provides solutions for specifying the correct encoding or handling errors gracefully."
+summary: "Explains how to match pandas read_csv encoding to the actual file encoding and how to handle undecodable bytes without silently losing important data."
 tag: "Troubleshooting"
 ---
 
 ## Symptom
 
-An encoding error occurs when reading a CSV file or opening a text file.
-The error message indicates that the 'utf-8' codec cannot interpret the bytes at a specific position.
+Reading a CSV file as UTF-8 may raise `UnicodeDecodeError` when the file was saved using a different character encoding.
 
-<Callout type="warning" title="Error Situation">
+```text
 UnicodeDecodeError: 'utf-8' codec can't decode byte 0x96 in position 35: invalid start byte
-</Callout>
+```
 
 ```python
 import pandas as pd
 
-# Occurs when UTF-8 is specified but the file is not encoded in UTF-8
-Past = pd.read_csv("C:/Users/Admin/Desktop/Python/Past.csv", encoding='utf-8')
+df = pd.read_csv("data.csv", encoding="utf-8")
 ```
 
 ![Symptom screenshot](/blogs/unicodedecodeerror-162432-1.png)
 
 ## Cause
 
-The file's actual stored encoding differs from the encoding specified in the code.
-Python 3 strings are Unicode, and raw bytes from the file are converted using the specified codec.
-In Windows environments, the default Korean encoding is often CP1252 or CP949.
-Forcing UTF-8 interpretation on non-UTF-8 bytes results in an invalid start byte error.
+The encoding specified in the code does not match the encoding used to save the file. Python 3 decodes the file bytes using the selected codec; bytes that are invalid under that codec cause `UnicodeDecodeError`.
+
+Do not infer the encoding from the operating system alone. Legacy files created on Korean Windows systems may use CP949, while files produced by Western applications may use CP1252. Check the source application’s export settings or the file’s documented format.
 
 ## Solution
 
-Check the export settings of the file creation program to identify the actual encoding.
-Explicitly specify the file's actual encoding in the `encoding` parameter of pandas.
+Use the encoding that was actually used to create the file. For example, use CP949 only when the file is known to be encoded in CP949.
 
 ```python
 import pandas as pd
 
-# Change to cp1252, the default Korean encoding on Windows
-Past = pd.read_csv("C:/Users/Admin/Desktop/Python/Past.csv", encoding='cp1252')
+df = pd.read_csv("data.csv", encoding="cp949")
 ```
 
-<Steps>
-<Step title="Check File Encoding">
-Verify the file's save format using a text editor or the file creation program.
-</Step>
-<Step title="Modify Encoding Parameter">
-Change `encoding='utf-8'` to the actual file encoding (e.g., `cp1252`, `cp949`).
-</Step>
-<Step title="Run and Verify">
-Execute the code to confirm that the file loads correctly.
-</Step>
-</Steps>
+If the source is known to be CP1252, specify that instead:
+
+```python
+df = pd.read_csv("data.csv", encoding="cp1252")
+```
 
 ## Alternative Solutions
 
-If the original encoding is unknown or some data loss is acceptable, change the error handling behavior.
-Use the `errors` parameter to specify behavior when conversion fails.
-
-<Compare>
-<ComparePanel title="Existing (strict)" tone="bad">
-
-```python
-# Default behavior; raises an exception immediately on error
-df = pd.read_csv("data.csv", encoding="utf-8")
-```
-
-</ComparePanel>
-<ComparePanel title="Proposed (replace)" tone="good">
-
-```python
-# Replaces erroneous bytes with replacement characters and continues processing
-df = pd.read_csv("data.csv", encoding="utf-8", errors="replace")
-```
-
-</ComparePanel>
-</Compare>
+When the encoding is known but a small number of malformed byte sequences must be handled, pandas provides the `encoding_errors` parameter.
 
 ```python
 import pandas as pd
 
-# Keep encoding as utf-8, but use replacement characters on error
 df = pd.read_csv(
     "data.csv",
     encoding="utf-8",
-    errors="replace"
+    encoding_errors="replace",
 )
-print(df.head())
 ```
 
-<Callout type="info" title="Caution">
-`errors="ignore"` completely discards the problematic bytes.
-Be cautious as this is not suitable for data containing names, amounts, or identifiers.
-</Callout>
+`encoding_errors="replace"` inserts replacement characters for bytes that cannot be decoded. `encoding_errors="ignore"` discards undecodable bytes and may silently lose information. Do not use it for names, financial amounts, identifiers, or other important fields unless data loss is explicitly acceptable.
 
 ## Additional Notes
 
-The same encoding rules apply when reading general text files.
-You must explicitly specify the `encoding` parameter when using the `open` function or `pathlib`.
+For ordinary text files, specify the encoding in `open()` or `pathlib` as well.
 
 ```python
 from pathlib import Path
 
 path = Path("data.txt")
-# Read file with cp949 encoding
-with path.open("r", encoding="cp949") as f:
-    text = f.read()
-
-print(text[:100])
+with path.open("r", encoding="cp949") as file:
+    text = file.read()
 ```
 
-Files containing a UTF-8 BOM (Byte Order Mark) should use the `utf-8-sig` encoding.
-Reading with `utf-8` may cause the BOM character to be recognized as part of the text, interfering with data processing.
+Files with a UTF-8 byte-order mark (BOM) can be read with `utf-8-sig`.
 
 ```python
-# Read file with UTF-8 BOM
-with open("data_bom.txt", "r", encoding="utf-8-sig") as f:
-    text = f.read()
+with open("data_bom.csv", "r", encoding="utf-8-sig") as file:
+    text = file.read()
 ```
 
 ## Sources
 
-- StackOverflow: [UnicodeDecodeError: 'utf-8' codec can't decode byte 0x96 in position 35: invalid start byte](https://stackoverflow.com/questions/45529507/unicodedecodeerror-utf-8-codec-cant-decode-byte-0x96-in-position-35-invalid) — Author: user3734568(question), Liam Giannini(answer) (CC BY-SA)
-- Tistory: [파이썬 UTF-8 디코딩 오류 해결｜UnicodeDecodeError 원인과 인코딩 설정](https://neos35.tistory.com/entry/%ED%8C%8C%EC%9D%B4%EC%8D%AC-UTF-8-%EB%94%94%EC%BD%94%EB%94%A9-%EC%98%A4%EB%A5%98-%ED%95%B4%EA%B2%B0%EF%BD%9CUnicodeDecodeError-%EC%9B%90%EC%9D%B8%EA%B3%BC-%EC%9D%B8%EC%BD%94%EB%94%A9-%EC%84%A4%EC%A0%95) — Author: 컴공대생 mr.ko
-- Tistory: [[python] UnicodeDecodeError: 'utf-8' codec can't decode byte 해결 방법](https://thxxyj.tistory.com/28) — Author: 기록하는습관을기르자
-
-Images are taken from the sources above.
+- pandas documentation: [read_csv — encoding and encoding_errors](https://pandas.pydata.org/docs/reference/api/pandas.read_csv.html)
+- StackOverflow: [UnicodeDecodeError: 'utf-8' codec can't decode byte 0x96 in position 35](https://stackoverflow.com/questions/45529507/unicodedecodeerror-utf-8-codec-cant-decode-byte-0x96-in-position-35-invalid) — Author: user3734568(question), Liam Giannini(answer) (CC BY-SA)
