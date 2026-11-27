@@ -1,58 +1,28 @@
 ---
-title: "[트러블슈팅] Pandas SettingWithCopyWarning 해결"
+title: "[트러블슈팅] Pandas chained assignment를 loc으로 수정하기"
 publishedAt: "2026-11-05"
-summary: "데이터프레임 슬라이스 복사본에 값 할당 시 발생하는 경고의 원인과 .loc 인덱싱을 통한 해결 방법을 정리한다."
+summary: "조건에 맞는 DataFrame 셀을 두 번 인덱싱해 수정하는 코드의 문제와 loc을 이용한 대안을 설명한다."
 tag: "Troubleshooting"
 ---
 
 ## 현상
 
-Pandas 환경에서 데이터프레임의 슬라이스된 부분에 값을 할당할 때 다음 경고가 출력된다.
+다음 코드는 col1에서 값이 10인 항목을 찾아 1000으로 바꾸려는 의도입니다.
 
-```python
-df.col1[df.col1 == 10] = 1000
-```
+~~~~python
+import pandas as pd
 
-출력되는 경고 메시지는 다음과 같다.
+df = pd.DataFrame({"col1": [10, 20, 10, 30]})
+df["col1"][df["col1"] == 10] = 1000
+~~~~
 
-```
--c:1: SettingWithCopyWarning: 
-A value is trying to be set on a copy of a slice from a DataFrame
-
-See the the caveats in the documentation: http://pandas.pydata.org/pandas-docs/stable/indexing.html#indexing-view-versus-copy
-```
-
-이 경고는 할당 연산이 의도대로 작동할 수도 있지만, 원본 데이터프레임이 수정되지 않을 잠재적 버그 가능성을 시사한다.
+이 코드는 열을 먼저 선택한 뒤, 선택된 Series에 다시 조건을 적용해 값을 할당합니다. 이러한 chained assignment는 Pandas 버전에 따라 경고가 발생하거나 원본 DataFrame에 변경 사항이 반영되지 않을 수 있습니다.
 
 ## 원인
 
-이 경고는 데이터프레임의 슬라이스(slice)가 원본의 뷰(view)인지 복사본(copy)인지 명확하지 않을 때 발생한다.
-슬라이스가 복사본인 경우, 해당 슬라이스에 값을 변경해도 원본 데이터프레임에는 반영되지 않는다.
-Pandas는 이러한 모호성으로 인한 의도치 않은 동작을 방지하기 위해 경고를 출력한다.
-`.loc` 인덱서를 사용하면 슬라이스의 상태와 관계없이 원본 데이터프레임을 명확하게 지정하여 수정할 수 있다.
+df["col1"]과 [df["col1"] == 10]은 두 단계의 인덱싱입니다. 중간 결과를 수정하는 형태이므로 원본 df까지 변경되는지 명확하게 보장되지 않습니다.
 
-## 해결 방법
-
-슬라이스된 복사본 대신 `.loc` 인덱서를 사용하여 원본 데이터프레임의 특정 위치를 명시적으로 지정해야 한다.
-`.loc[row_indexer, col_indexer] = value` 형식을 사용하면 원본 데이터프레임이 직접 수정된다.
-
-```python
-# 수정 전 (경고 발생)
-df.col2[df.index == 151] = 500
-
-# 수정 후 (경고 해결)
-df.loc[151, 'col2'] = 500
-```
-
-인덱스로 조건을 지정하는 경우에도 `.loc`을 사용한다.
-
-```python
-# 수정 전 (경고 발생)
-df.col1[df.col1 == 10] = 1000
-
-# 수정 후 (경고 해결)
-df.loc[df.col1 == 10, 'col1'] = 1000
-```
+pandas 2.x에서는 설정과 연산 형태에 따라 SettingWithCopyWarning이 나타날 수 있습니다. pandas 3.0에서는 Copy-on-Write가 기본이기 때문에 chained assignment로 원본 DataFrame을 수정할 수 없으며 ChainedAssignmentError 경고가 발생합니다.
 
 여러 열을 동시에 처리할 때도 `.loc`을 활용한다.
 
@@ -65,22 +35,23 @@ df.loc[:, cols] = df.loc[:, cols].map(some_function)
 df.loc[:, cols] = df.loc[:, cols].apply(lambda column: column.map(some_function))
 ```
 
-![해결 방법 스크린샷](/blogs/pandas-settingwithcopywarning-151538-1.png)
+~~~~python
+mask = df["col1"] == 10
+df.loc[mask, "col1"] = 1000
+~~~~
 
-## 다른 해결 방법
+이 방법은 pandas 2.x와 3.x 모두에서 원본 DataFrame을 명확하게 수정합니다.
 
-슬라이스된 데이터프레임이 원본과 무관한 독립적인 복사본임을 명확히 하고 싶다면 `.copy()` 메서드를 사용한다.
-이 경우 경고가 발생하지 않으며, 변경 사항이 원본에 영향을 주지 않음이 명시된다.
+여러 열을 함께 수정할 때도 행과 열을 loc으로 한 번에 지정합니다.
 
-```python
-# 슬라이스를 명시적으로 복사본으로 생성
-df_slice = df[df['A'] > 1].copy()
+~~~~python
+cols = ["col1", "col2", "col3"]
+df.loc[df["col1"] == 10, cols] = 0
+~~~~
 
-# 복사본에 값 할당 시 경고 발생 안 함
-df_slice['B'] = 0
-```
+## 다른 상황: 별도 복사본을 수정하기
 
-또한, 새로운 열을 생성할 때도 `.loc`을 사용하여 원본 데이터프레임에 직접 할당할 수 있다.
+조건에 맞는 행을 원본과 분리해 가공하려는 목적이라면 다음처럼 명시적으로 복사합니다.
 
 ```python
 # 원본 DataFrame에 새 열을 직접 할당

@@ -36,7 +36,7 @@ print("Hello")  # 들여쓰기 누락 → expected an indented block
 
 1. **블록 외부의 불필요한 들여쓰기**: 함수나 조건문 블록 외부에서 코드가 들여쓰기되어 있는 경우입니다.
 2. **들여쓰기 수준의 불일치**: 같은 코드 블록 내에서 들여쓰기 깊이가 일정하지 않은 경우입니다.
-3. **탭과 공백의 혼용**: 눈에 보이지는 않지만, 탭(`Tab`) 문자와 공백(`Space`) 문자를 섞어 사용하여 파이썬 인터프리터가 들여쓰기 깊이를 정확히 계산하지 못하는 경우입니다.
+3. **탭과 공백의 혼용**: 탭과 공백을 섞어 사용해 들여쓰기 수준이 모호해지면 `TabError: inconsistent use of tabs and spaces in indentation`가 발생할 수 있습니다. 이는 `IndentationError: unexpected indent`와 구분해야 하는 별도의 오류입니다.
 
 ```python
 # 원인 1: 블록 외부 들여쓰기
