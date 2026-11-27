@@ -38,7 +38,7 @@ pandas의 `encoding` 파라미터에 파일의 실제 인코딩을 명시적으�
 ```python
 import pandas as pd
 
- # 파일이 실제로 CP1252로 저장된 경우에만 지정
+# 파일이 실제로 CP1252로 저장된 경우에만 지정
 Past = pd.read_csv("C:/Users/Admin/Desktop/Python/Past.csv", encoding='cp1252')
 ```
 
@@ -72,7 +72,7 @@ df = pd.read_csv("data.csv", encoding="utf-8")
 
 ```python
 # 오류 발생 바이트를 대체 문자로 변환하여 계속 진행
-df = pd.read_csv("data.csv", encoding="utf-8", encoding_encoding_encoding_errors="replace")
+df = pd.read_csv("data.csv", encoding="utf-8", encoding_errors="replace")
 ```
 
 </ComparePanel>
