@@ -61,7 +61,7 @@ result = bar_func()
 
 ## 다른 해결 방법
 
-`locals()` 또는 `globals()` 함수를 사용하여 현재 로컬 또는 전역 네임스페이스의 함수를 문자열로 호출할 수 있습니다.
+모듈 최상위에 정의된 함수라면 `globals()`로 전역 네임스페이스에서 이름을 조회할 수 있습니다. 함수 내부의 `locals()`는 최적화된 지역 변수 스코프에서 변경 사항이 실제 지역 변수에 반영된다고 보장되지 않으므로, 동적 디스패치의 일반적인 방법으로 의존하지 않는 편이 좋습니다.
 
 ```python
 def my_function():
@@ -69,8 +69,12 @@ def my_function():
 
 func_name = "my_function"
 
-# 현재 로컬 네임스페이스에서 함수 객체를 가져와 호출
-result = locals()[func_name]()
+# 모듈 전역 네임스페이스에서 함수 객체를 가져와 호출
+func = globals().get(func_name)
+if not callable(func):
+    raise ValueError(f"허용되지 않았거나 존재하지 않는 함수: {func_name}")
+
+result = func()
 ```
 
 <Compare>
@@ -84,18 +88,20 @@ result = locals()[func_name]()
 
 ## 추가 참고사항
 
-동적으로 모듈 자체를 가져와야 하는 경우 `__import__` 함수를 사용할 수 있습니다.
+동적으로 모듈 자체를 가져와야 하는 경우에는 `__import__`보다 `importlib.import_module()`을 사용하는 편이 명확합니다. 외부 입력을 함수명으로 직접 사용하지 말고, 호출 가능한 함수의 허용 목록을 두는 것이 안전합니다.
 
 ```python
-module_name = "foo"
+from importlib import import_module
+
+module = import_module("foo")
+allowed_functions = {"bar": module.bar}
 func_name = "bar"
 
-# 모듈 동적 import
-module = __import__(module_name)
+func = allowed_functions.get(func_name)
+if func is None:
+    raise ValueError("허용되지 않은 함수 이름입니다.")
 
-# 모듈의 함수 동적 호출
-func = getattr(module, func_name)
-func()
+result = func()
 ```
 
 `getattr`는 클래스 인스턴스 바인딩 메서드, 모듈 수준 메서드, 클래스 메서드 등 다양한 객체 타입에 동일하게 적용됩니다.
@@ -104,5 +110,5 @@ func()
 ## 출처
 
 - StackOverflow: [Calling a function of a module by using its name (a string)](https://stackoverflow.com/questions/3061/calling-a-function-of-a-module-by-using-its-name-a-string) — 작성자: ricree(질문), Patrick Johnmeyer(답변) (CC BY-SA)
-- Tistory: [[python] 이름(문자열)을 사용하여 모듈의 함수 호출](https://zooheon.tistory.com/entry/python-%EC%9D%B4%EB%A6%84%EB%AC%B8%EC%9E%90%EC%97%B4%EC%9D%84-%EC%82%AC%EC%9A%A9%ED%95%98%EC%97%AC-%EB%AA%A8%EB%93%88%EC%9D%98-%ED%95%A8%EC%88%98-%ED%98%B8%EC%B6%9C) — 작성자: 잡다한 이야기
-- Tistory: [[Python] if __name__ == "__main__": 의미](https://pinocc.tistory.com/175) — 작성자: 땅뚱 창고
+- Python 공식 문서: [Built-in Functions — getattr, globals, callable](https://docs.python.org/3/library/functions.html)
+- Python 공식 문서: [importlib.import_module](https://docs.python.org/3/library/importlib.html#importlib.import_module)
