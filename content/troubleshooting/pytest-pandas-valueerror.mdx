@@ -58,6 +58,8 @@ assert actual.columns.tolist() == ['bl', 'direction', 'day']
 `pandas` 객체가 제공하는 `.equals()` 메서드를 사용하여 비교할 수 있다.
 
 ```python
+import pandas as pd
+
 actual = b_manager.get_b(complete_set)
 expected = pd.Index(['bl', 'direction', 'day'])
 
@@ -68,6 +70,9 @@ assert actual.columns.equals(expected)
 
 ```python
 import pandas as pd
+
+actual_df = pd.DataFrame({'bl': [1], 'direction': ['BUY'], 'day': [1]})
+expected_df = pd.DataFrame({'bl': [1], 'direction': ['BUY'], 'day': [1]})
 
 pd.testing.assert_frame_equal(actual_df, expected_df)
 ```
