@@ -1,100 +1,109 @@
 ---
-title: "[트러블슈팅] pytest 모듈 import 실패 해결"
+title: "[트러블슈팅] pytest 테스트 모듈 import 경로 충돌"
 publishedAt: "2026-11-17"
-summary: "가상환경의 .pth 설정과 테스트 디렉터리의 __init__.py 파일이 충돌하여 발생하는 pytest import 오류를 해결하는 방법을 정리한다."
+summary: "일반 Python 실행과 pytest 실행에서 import 결과가 달라질 때 인터프리터, sys.path, pytest import mode를 점검하는 방법을 정리한다."
 tag: "Troubleshooting"
 ---
 
 ## 현상
 
-가상환경 내에서 `.pth` 파일을 사용하여 모듈 루트 경로를 등록하면, 일반 `python` 명령어로는 모듈을 정상적으로 import할 수 있다.
+가상환경에서 일반 Python 인터프리터로는 프로젝트 모듈을 import할 수 있지만, `pytest`를 실행하면 테스트 수집 단계에서 `ImportError`가 발생할 수 있습니다.
 
 ```python
 >>> from rc import ns
 ```
 
-하지만 `pytest`를 실행하면 동일한 모듈 import 시 `ImportError`가 발생하며 테스트 수집 단계에서 실패한다.
+반면 `pytest` 실행 시 다음과 같이 테스트 모듈 내부의 import가 실패합니다.
 
 ```text
-ImportError while importing test module '/home/zz/Desktop/GitFolders/rc/tests/test_ns.py'.
-Traceback:
-tests/test_ns.py:2: in <module>
-    from rc import n
+ImportError while importing test module ...
+ModuleNotFoundError: No module named 'rc'
 ```
-
-<Callout type="warning" title="오류 상황">
-pytest 실행 시 `ImportError: cannot import name ...` 발생
-</Callout>
 
 ![현상 스크린샷](/blogs/pytest-import-1.png)
 
 ## 원인
 
-`pytest`는 테스트 디렉터리 내의 `__init__.py` 파일을 발견하면 해당 디렉터리를 Python 패키지로 인식한다.
+이 문제를 모두 `.pth` 파일이나 `tests/__init__.py` 하나의 문제로 단정할 수는 없습니다. 일반 Python 실행과 pytest 실행의 차이는 다음 항목에서 생길 수 있습니다.
 
-이때 테스트 디렉터리를 패키지로 처리하는 과정이 가상환경의 `.pth` 경로 설정과 충돌하거나, 모듈 탐색 순서를 변경시켜 import 실패를 유발한다.
+1. **실행 인터프리터 불일치**: `pytest` 실행 파일이 다른 가상환경의 Python을 가리키는 경우입니다. 일반 `python`과 `pytest`가 서로 다른 환경에서 실행되면 설치된 패키지와 `sys.path`가 달라집니다.
+2. **pytest import mode**: pytest의 기본 `prepend` 모드는 테스트 모듈이 있는 디렉터리 또는 패키지의 상위 경로를 `sys.path` 앞에 추가합니다. 이 과정에서 동일한 이름의 패키지가 프로젝트 루트나 설치된 패키지와 충돌할 수 있습니다.
+3. **패키지 구조와 `__init__.py`**: 테스트 폴더에 `__init__.py`가 있으면 pytest가 패키지 경로를 구성하는 방식이 달라집니다. 이 파일을 추가하거나 삭제하면 import 경로와 모듈 이름이 달라지므로, 무조건 삭제하는 것이 정답은 아닙니다.
+4. **프로젝트 경로 등록 방식**: `.pth`, `PYTHONPATH`, editable install 설정이 서로 다른 프로젝트 경로를 가리키면 의도하지 않은 패키지가 import될 수 있습니다.
 
-일반 `python` 실행은 `.pth` 설정을 우선 적용하지만, `pytest`는 자체적인 모듈 로딩 로직을 가지므로 이 차이가 발생한다.
+`.pth` 파일은 Python 인터프리터가 시작될 때 처리되므로 pytest에서만 작동하는 기능은 아닙니다. 먼저 실제로 어떤 Python과 pytest가 실행되는지 확인해야 합니다.
 
 ## 해결 방법
 
-테스트 디렉터리에 있는 `__init__.py` 파일을 삭제한다.
+### 1. 같은 가상환경의 Python으로 pytest 실행
 
-`pytest`는 테스트 파일을 실행할 때 해당 디렉터리를 패키지로 취급할 필요가 없으며, 오히려 이 파일이 존재하면 모듈 import 경로 충돌을 일으킨다.
+`pytest` 실행 파일이 다른 환경을 가리키는 문제를 피하려면 다음처럼 현재 Python 인터프리터를 통해 실행합니다.
 
 ```bash
-# 테스트 디렉터리 내 __init__.py 제거
-rm tests/__init__.py
+python -c "import sys; print(sys.executable)"
+python -m pytest --version
+python -m pytest
 ```
 
-파일을 삭제한 후 `pytest`를 다시 실행하면 모듈 import 오류 없이 테스트가 정상적으로 수집되고 실행된다.
+### 2. 프로젝트를 editable install로 등록
 
-<Steps>
-<Step title="테스트 디렉터리 확인">
-테스트 코드가 위치한 폴더에 `__init__.py` 파일이 있는지 확인한다.
-</Step>
-<Step title="__init__.py 파일 삭제">
-발견된 `__init__.py` 파일을 삭제한다.
-</Step>
-<Step title="pytest 재실행">
-`pytest` 명령어를 다시 실행하여 오류가 해결되었는지 확인한다.
-</Step>
-</Steps>
+패키지 프로젝트라면 저장소 루트에 올바른 `pyproject.toml` 또는 패키징 설정을 두고 개발 모드로 설치하는 방법을 권장합니다.
+
+```bash
+python -m pip install -e .
+python -m pytest
+```
+
+이 방식은 매번 `.pth` 파일을 직접 편집하거나 테스트 코드에서 임의로 경로를 추가하는 방법보다 재현성이 높습니다.
 
 ![해결 방법 스크린샷](/blogs/pytest-import-2.png)
 
 ## 다른 해결 방법
 
-`.pth` 파일 대신 `setup.py` 또는 `pyproject.toml`을 사용하여 패키지를 개발 모드(`pip install -e .`)로 설치할 수 있다.
+프로젝트 구조와 테스트 간 import 관계에 따라 pytest의 import mode를 바꿀 수 있습니다. `importlib` 모드는 테스트 모듈을 import할 때 `sys.path`를 변경하지 않습니다.
 
-이 방법은 가상환경의 경로 설정을 명시적으로 패키지로 등록하므로, `pytest`의 모듈 탐색 로직과 더 잘 호환된다.
+`pyproject.toml`에 다음과 같이 설정할 수 있습니다.
 
-```bash
-pip install -e .
+```toml
+[tool.pytest.ini_options]
+addopts = ["--import-mode=importlib"]
 ```
 
-또는 `PYTHONPATH` 환경 변수를 명시적으로 설정하여 테스트 실행 시 모듈 경로를 전달할 수 있다.
+또는 일회성으로 실행할 수 있습니다.
 
 ```bash
-PYTHONPATH=. pytest
+python -m pytest --import-mode=importlib
 ```
+
+단, `importlib` 모드에서는 테스트 모듈끼리 서로 직접 import하거나 `tests` 디렉터리의 유틸리티 모듈을 import하는 방식이 제한됩니다. 공통 fixture는 `conftest.py`로 옮기고, 여러 테스트가 사용하는 일반 유틸리티는 애플리케이션 패키지나 별도 지원 패키지에 두는 편이 좋습니다.
+
+`PYTHONPATH`를 지정해야 한다면 테스트 실행 명령에 필요한 프로젝트 경로만 명시합니다. Windows에서는 경로 구분자가 운영체제에 따라 다르므로 셸에 맞게 설정해야 합니다.
+
+```bash
+PYTHONPATH=src python -m pytest
+```
+
+`tests/__init__.py`는 패키지 구조를 만들거나 동일한 이름의 테스트 모듈을 구분하는 데 필요할 수 있습니다. 실제 import 충돌이 이 파일 때문에 발생하는 것이 확인된 경우에만 구조를 바꾸고, 삭제 전후에 `sys.path`와 import되는 모듈의 `__file__` 경로를 비교해야 합니다.
 
 ## 추가 참고사항
 
-`pytest`는 테스트 디렉터리를 패키지로 간주하지 않는 것이 권장된다.
+문제를 재현할 때는 다음 정보를 함께 확인하면 원인을 좁히기 쉽습니다.
 
-테스트 코드는 실제 애플리케이션 패키지와 분리되어 실행되어야 하므로, `__init__.py` 파일이 없어도 테스트 수집에 문제가 없다.
+```python
+import sys
+import rc
 
-만약 테스트 내에서 다른 패키지의 fixture나 유틸리티를 공유해야 한다면, 별도의 `tests/utils` 디렉터리나 `conftest.py`를 활용하는 것이 안전하다.
+print("Python:", sys.executable)
+print("rc module:", rc.__file__)
+print("sys.path:")
+for item in sys.path:
+    print(" ", item)
+```
 
-<Callout type="info" title="참고">
-일반적인 pytest 프로젝트 구조에서는 tests 폴더 하위에 __init__.py 파일을 두지 않는 것이 관례이다.
-</Callout>
+일반 Python과 pytest 실행에서 `sys.executable`, `rc.__file__`, `sys.path`가 어떻게 달라지는지 비교합니다.
 
 ## 출처
 
+- pytest 공식 문서: [pytest import mechanisms and sys.path/PYTHONPATH](https://docs.pytest.org/en/stable/explanation/pythonpath.html)
+- pytest 공식 문서: [Good Integration Practices](https://docs.pytest.org/en/stable/explanation/goodpractices.html)
 - StackOverflow: [pytest cannot import module while python can](https://stackoverflow.com/questions/41748464/pytest-cannot-import-module-while-python-can) — 작성자: Zorglub29(질문), Zorglub29(답변) (CC BY-SA)
-- Velog: [Test Error in requests.py v2.31.0](https://velog.io/@bgb10/Test-Error-in-requests.py-v2.31.0)
-- Tistory: [[Python] pytest를 통한 파이썬 테스트 (feat. fixture)](https://scshim.tistory.com/573) — 작성자: 책 읽는 개발자_테드
-
-본문 이미지는 위 출처에서 가져왔습니다.
