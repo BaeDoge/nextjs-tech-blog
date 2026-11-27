@@ -27,7 +27,7 @@ Past = pd.read_csv("C:/Users/Admin/Desktop/Python/Past.csv", encoding='utf-8')
 
 파일이 실제 저장된 인코딩과 코드에서 지정한 인코딩이 서로 다르기 때문이다.
 Python 3의 문자열은 유니코드이며, 파일의 원시 바이트를 읽을 때 지정한 코덱으로 변환한다.
-Windows 환경에서는 기본 한글 인코딩으로 CP1252나 CP949를 사용하는 경우가 많다.
+Windows에서 사용하는 인코딩은 시스템 언어 설정과 파일을 만든 프로그램에 따라 다릅니다. 한글 Windows 환경의 레거시 파일에서는 CP949가 사용될 수 있고, 서구권 프로그램에서 만든 파일은 CP1252일 수 있습니다. 오류 바이트만으로 인코딩을 단정하지 말고 원본 파일의 내보내기 설정이나 출처를 먼저 확인해야 합니다.
 UTF-8이 아닌 바이트를 강제로 UTF-8으로 해석하면 유효하지 않은 시작 바이트 오류가 발생한다.
 
 ## 해결 방법
@@ -38,7 +38,7 @@ pandas의 `encoding` 파라미터에 파일의 실제 인코딩을 명시적으�
 ```python
 import pandas as pd
 
-# Windows 기본 한글 인코딩인 cp1252로 변경
+ # 파일이 실제로 CP1252로 저장된 경우에만 지정
 Past = pd.read_csv("C:/Users/Admin/Desktop/Python/Past.csv", encoding='cp1252')
 ```
 
@@ -72,7 +72,7 @@ df = pd.read_csv("data.csv", encoding="utf-8")
 
 ```python
 # 오류 발생 바이트를 대체 문자로 변환하여 계속 진행
-df = pd.read_csv("data.csv", encoding="utf-8", errors="replace")
+df = pd.read_csv("data.csv", encoding="utf-8", encoding_errors="replace")
 ```
 
 </ComparePanel>
@@ -91,7 +91,7 @@ print(df.head())
 ```
 
 <Callout type="info" title="주의">
-`errors="ignore"`는 문제가 된 바이트를 완전히 버린다.
+`encoding_errors="ignore"`는 디코딩에 실패한 바이트를 버리므로 데이터 손실이 발생할 수 있다.
 이름, 금액, 식별자가 포함된 데이터에는 적합하지 않으므로 주의해야 한다.
 </Callout>
 
