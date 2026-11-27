@@ -50,7 +50,7 @@ pip install --upgrade certifi
 
 ```python
 import certifi
-import ssl
+import requests
 
 response = requests.get("https://pypi.org", verify=certifi.where())
 print("상태 코드:", response.status_code)
