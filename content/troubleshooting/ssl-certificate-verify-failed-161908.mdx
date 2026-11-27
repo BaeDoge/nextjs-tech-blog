@@ -1,5 +1,5 @@
 ---
-title: "[트러블슈팅] SSL CERTIFICATE_VERIFY_FAILED 해결"
+title: "[트러블슈팅] Windows 7 requests SSL 인증서 검증 오류"
 publishedAt: "2026-11-26"
 summary: "HTTPS 요청 시 인증서 검증 실패 오류의 원인과 코드 수정 방법을 정리합니다."
 tag: "Troubleshooting"
@@ -58,16 +58,14 @@ requests.get('https://google.com', verify=False)
 
 <Steps>
 <Step title="환경 진단">
-`ssl.get_default_verify_paths()`를 호출하여 현재 파이썬이 참조하는 기본 인증서 경로를 확인합니다.
+`ssl.get_default_verify_paths()`를 호출하여 현재 Python이 참조하는 기본 인증서 경로를 확인합니다.
 </Step>
-<Step title="서버 상태 확인">
-브라우저에서 동일한 주소에 접속했을 때 경고가 발생하면, 서버 측에서 중간 인증서를 누락했을 가능성이 있습니다.
+<Step title="서버 인증서 확인">
+브라우저에서도 같은 주소에 인증서 경고가 발생하는지 확인합니다. 브라우저와 Python의 결과가 다르면 Python의 CA bundle 또는 프록시 인증서 설정을 점검합니다.
 </Step>
-<Steps>
-<Step title="pip 설치 시 에러">
-패키지 설치 중 해당 오류가 발생하면 `--trusted-host` 옵션을 추가하거나, `pip` 내부의 `requests` 설정을 수정해야 합니다.
+<Step title="pip 사용 환경 확인">
+패키지 설치 중 발생한 오류라면 `pip --cert /path/to/ca-bundle.pem`처럼 신뢰할 CA 인증서 번들을 지정하는 방법을 우선 고려합니다.
 </Step>
-</Steps>
 </Steps>
 
 <Callout type="info" title="참고 사항">
