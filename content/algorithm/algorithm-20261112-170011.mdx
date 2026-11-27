@@ -73,19 +73,30 @@ def is_valid(s: str) -> bool:
 
 ## 다른 풀이 방법
 
-**재귀 함수**를 사용하여 괄호를 처리하는 방법도 있습니다. 여는 괄호를 만나면 재귀 호출을 통해 내부의 괄호 처리를 수행하고, 닫힌 괄호를 만나면 현재 호출의 유효성을 판단합니다.
+스택에 여는 괄호 자체를 저장하는 대신, 각 여는 괄호에 대응하는 **기대 닫는 괄호**를 저장할 수도 있습니다. 닫는 괄호가 나오면 스택의 맨 위 값과 비교합니다.
 
-- **시간 복잡도:** $O(N)$
-  - 문자열의 각 문자를 한 번씩 방문하므로 $O(N)$입니다.
-- **공간 복잡도:** $O(N)$
-  - 재귀 호출 스택이 문자열의 길이만큼 쌓일 수 있으므로 $O(N)$입니다.
+```python
+def is_valid_expected(s: str) -> bool:
+    pairs = {'(': ')', '{': '}', '[': ']'}
+    stack = []
+
+    for char in s:
+        if char in pairs:
+            stack.append(pairs[char])
+        elif not stack or stack.pop() != char:
+            return False
+
+    return not stack
+```
+
+이 방식도 각 문자를 한 번씩 확인하므로 시간 복잡도는 $O(N)$, 최악의 경우 스택에 여는 괄호가 모두 쌓이므로 공간 복잡도는 $O(N)$입니다. 첫 번째 풀이와 동일한 스택 알고리즘이지만, 스택에 저장하는 값의 의미가 다릅니다.
 
 <Compare>
-<ComparePanel title="스택 풀이" tone="good">
-반복문 기반이라 호출 오버헤드가 없습니다. 긴 문자열 입력 시 호출 스택 제한 오류를 걱정할 필요가 없습니다.
+<ComparePanel title="여는 괄호 저장" tone="good">
+닫는 괄호가 등장하면 스택에서 여는 괄호를 꺼내 매핑과 비교합니다.
 </ComparePanel>
-<ComparePanel title="재귀 풀이" tone="bad">
-재귀 호출이 많아질수록 스택 깊이가 증가하여 호출 제한으로 인해 예외가 발생할 수 있습니다.
+<ComparePanel title="기대 닫는 괄호 저장" tone="good">
+여는 괄호를 만났을 때 기대하는 닫는 괄호를 저장하고, 닫는 괄호와 직접 비교합니다.
 </ComparePanel>
 </Compare>
 
