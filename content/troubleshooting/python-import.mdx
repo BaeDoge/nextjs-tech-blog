@@ -54,8 +54,10 @@ module_name = "myapp.commands.command1"
 try:
     command_module = importlib.import_module(module_name)
     command_module.run()
-except ImportError:
-    print(f"모듈 {module_name}을(를) 찾을 수 없습니다.")
+except ImportError as exc:
+    raise SystemExit(
+        "모듈 또는 의존성을 불러오지 못했습니다: {}".format(exc)
+    )
 ```
 
 ## 다른 해결 방법
