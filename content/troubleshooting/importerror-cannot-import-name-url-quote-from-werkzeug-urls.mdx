@@ -37,15 +37,16 @@ Flask 2.2.2는 `werkzeug.urls.url_quote`를 사용하지만, Werkzeug 3.0.0에�
 `requirements.txt` 파일에서 호환되는 `Werkzeug` 버전을 고정합니다.
 
 ```
-# requirements.txt
+# requirements.txt — 레거시 Flask 2.2.2를 유지할 때의 호환 범위
 Flask==2.2.2
-Werkzeug==2.2.2
+Werkzeug>=2.2.2,<2.3
 ```
 
 패키지를 다시 설치하여 버전을 맞춥니다.
 
 <Terminal title="실행 명령">
-python -m pip install -r requirements.txt\npython -m pip check
+python -m python -m pip install -r requirements.txt
+python -m pip check\npython -m pip check
 </Terminal>
 
 ## 다른 해결 방법
