@@ -80,13 +80,12 @@ def some_function():
 ## 추가 참고사항
 
 순환 import는 모듈 설계 단계에서 이를 예방하는 것이 가장 좋습니다.
-공통으로 사용되는 모델이나 상수를 별도의 별도 모듈로 분리하여 순환을 끊는 전략을 사용할 수 있습니다.
+공통으로 사용되는 모델이나 상수를 별도의 모듈로 분리하여 순환을 끊는 전략을 사용할 수 있습니다.
 모듈을 조직할 때는 항상 모듈이 다른 모듈보다 먼저 정의되어 있는지, 혹은 계층 구조를 따르는지 확인해야 합니다.
 
 ## 출처
 
 - StackOverflow: [ImportError: cannot import name '...' from partially initialized module '...' (most likely due to a circular import)](https://stackoverflow.com/questions/64807163/importerror-cannot-import-name-from-partially-initialized-module-m) — 작성자: 3WZ(질문), John Gordon(답변) (CC BY-SA)
-- Tistory: [[Python] import Error : cannot import name module 에러 해결](https://sillutt.tistory.com/entry/Python-import-Error-cannot-import-name-module-%EC%97%90%EB%9F%AC-%ED%95%B4%EA%B2%B0) — 작성자: ⌒＿⌒
-- Tistory: [[Solution]Python pip - ImportError: cannot import name main](https://figureking.tistory.com/126) — 작성자: T.E. 201
+- Python 공식 문서: [The Python Tutorial — Modules](https://docs.python.org/3/tutorial/modules.html)
 
 본문 이미지는 위 출처에서 가져왔습니다.
