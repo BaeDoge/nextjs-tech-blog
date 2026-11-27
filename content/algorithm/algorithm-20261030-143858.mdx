@@ -30,6 +30,8 @@ tag: "Algorithm"
 최종적으로 `dp[amount]`가 초기화 값보다 작으면 그 값을 반환하고, 그렇지 않으면 -1을 반환합니다.
 
 ```python
+from typing import List
+
 class Solution:
     def coinChange(self, coins: List[int], amount: int) -> int:
         # dp[i]는 금액 i를 만드는 최소 동전 개수
@@ -50,11 +52,32 @@ class Solution:
 
 ## 다른 풀이 방법
 
-Breadth-First Search(BFS)를 사용할 수도 있습니다. 각 노드를 현재 남은 금액으로 보고, 동전을 뺀 다음 금액으로 이동합니다.
+BFS로도 최소 동전 개수를 구할 수 있습니다. 현재까지 사용한 동전 개수를 레벨로 보고, 각 금액에서 동전 하나를 추가해 만들 수 있는 다음 금액을 큐에 넣습니다. 처음 `amount`에 도달한 레벨이 최소 동전 개수입니다.
 
-BFS는 최단 경로를 찾는 알고리즘이므로, 첫 번째로 `amount`에 도달하는 단계가 최소 동전 개수가 됩니다. `visited` 배열을 사용하여 이미 방문한 금액은 다시 방문하지 않도록 최적화합니다.
+```python
+from collections import deque
 
-시간복잡도는 최악의 경우 O(amount * n)으로 동적계획법과 유사하지만, 해답을 빨리 찾으면 조기 종료될 수 있어 평균적으로 더 빠를 수 있습니다. 공간복잡도는 큐와 방문 배열을 사용하므로 O(amount)입니다.
+def coinChange_bfs(coins: list[int], amount: int) -> int:
+    if amount == 0:
+        return 0
+
+    queue = deque([(0, 0)])  # (현재 금액, 사용한 동전 수)
+    visited = {0}
+
+    while queue:
+        current, steps = queue.popleft()
+        for coin in coins:
+            nxt = current + coin
+            if nxt == amount:
+                return steps + 1
+            if nxt < amount and nxt not in visited:
+                visited.add(nxt)
+                queue.append((nxt, steps + 1))
+
+    return -1
+```
+
+각 금액은 한 번만 큐에 들어가며 각 금액에서 모든 동전을 확인하므로 시간 복잡도는 O(amount·n), 공간 복잡도는 O(amount)입니다. DP보다 항상 빠른 것은 아니며, BFS는 목표 금액에 일찍 도달하면 탐색을 조기 종료할 수 있다는 장점이 있습니다.
 
 ## 추가 참고사항
 
