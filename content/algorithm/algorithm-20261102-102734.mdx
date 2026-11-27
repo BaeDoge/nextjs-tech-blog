@@ -52,15 +52,25 @@ def maxScore(s: str) -> int:
 
 ## 다른 풀이 방법
 
-접근 방식은 동일하나 구현 단에서 Prefix Sum(누적 합) 개념을 명시적으로 활용할 수 있습니다.
+Prefix Sum 배열을 사용하면 각 분할 위치에서 왼쪽 부분의 0 개수와 오른쪽 부분의 1 개수를 O(1)에 계산할 수 있습니다. 단, 분할은 양쪽 모두 비어 있지 않아야 하므로 왼쪽 끝 인덱스는 `0`부터 `n-2`까지만 확인합니다.
 
-1. `left_ones[i]`: `s[0]`부터 `s[i]`까지의 '1' 개수를 저장한 배열을 미리 계산합니다.
-2. 전체 '1' 개수 `total_ones`를 구합니다.
-3. 각 분할 위치 `i`에서 왼쪽 '1'의 개수는 `left_ones[i]`, 오른쪽 '1'의 개수는 `total_ones - left_ones[i]`입니다.
-4. 왼쪽 부분의 길이는 `i + 1`이므로, 왼쪽 '0'의 개수는 `(i + 1) - left_ones[i]`로 유도됩니다.
-5. 점수 = `((i + 1) - left_ones[i]) + (total_ones - left_ones[i])` 공식을 사용하여 계산합니다.
+```python
+def maxScore_prefix(s: str) -> int:
+    n = len(s)
+    prefix_ones = [0] * (n + 1)
+    for i, char in enumerate(s):
+        prefix_ones[i + 1] = prefix_ones[i] + (char == '1')
 
-이 방법 역시 시간 복잡도 $O(N)$, 공간 복잡도 $O(N)$을 가집니다. 슬라이딩 윈도우 방식($O(1)$ 공간)보다 메모리를 더 사용하지만, 배열을 한 번 만들어두고 수식으로 계산하는 코드의 가독성이 높을 수 있습니다.
+    total_ones = prefix_ones[n]
+    best = 0
+    for i in range(n - 1):
+        left_zeros = (i + 1) - prefix_ones[i + 1]
+        right_ones = total_ones - prefix_ones[i + 1]
+        best = max(best, left_zeros + right_ones)
+    return best
+```
+
+시간 복잡도는 O(N), 공간 복잡도는 prefix 배열을 저장하는 O(N)입니다. 기본 풀이의 O(1) 공간 방식이 메모리 측면에서 더 효율적입니다.
 
 ## 추가 참고사항
 
