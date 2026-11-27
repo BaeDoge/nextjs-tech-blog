@@ -1,7 +1,7 @@
 ---
-title: "[트러블슈팅] SSL CERTIFICATE_VERIFY_FAILED 해결"
+title: "[트러블슈팅] Python requests 및 pip 인증서 번들 오류"
 publishedAt: "2026-11-17"
-summary: "Python의 SSL 인증서 검증 실패로 인한 연결 오류를 certifi 업데이트 및 pip 시스템 인증서 패키지로 해결하는 방법을 정리한다."
+summary: "requests와 pip에서 CA 인증서 번들을 찾지 못해 발생하는 SSL 인증서 검증 오류를 안전하게 해결하는 방법을 정리한다."
 tag: "Troubleshooting"
 ---
 
@@ -52,8 +52,8 @@ pip install --upgrade certifi
 import certifi
 import ssl
 
-ssl_context = ssl.create_default_context(cafile=certifi.where())
-print("SSL 인증서 경로:", certifi.where())
+response = requests.get("https://pypi.org", verify=certifi.where())
+print("상태 코드:", response.status_code)
 ```
 
 </Step>
@@ -83,9 +83,10 @@ pip install pip-system-certs
 python -m pip install --upgrade pip
 ```
 
-급한 경우 `pip install` 시 `--trusted-host` 옵션을 추가하여 특정 호스트의 인증서 검사를 우회할 수 있다.
-이 방법은 보안 위험이 있으므로 프로덕션 환경에서는 권장되지 않는다.
+조직 내부 프록시가 자체 CA 인증서를 사용하는 경우에는 해당 CA 인증서를 신뢰 저장소에 설치하거나, pip에 `--cert`로 CA 번들 파일을 지정합니다. `--trusted-host`는 TLS 인증서 검증을 우회하므로 기본 해결책으로 사용하지 않습니다.
 
+```bash
+python -m pip install selenium --cert /path/to/ca-bundle.pem
 ```
 pip install selenium --trusted-host pypi.org --trusted-host pypi.python.org --trusted-host files.pythonhosted.org
 ```
@@ -97,9 +98,9 @@ pip install selenium --trusted-host pypi.org --trusted-host pypi.python.org --tr
 `verify=False` 옵션 사용
 보안 위험이 있으며 프로덕션 환경에서 권장되지 않음
 </ComparePanel>
-<ComparePanel title="신뢰 호스트 지정" tone="good">
-`--trusted-host` 옵션 사용
-임시 해결책으로 특정 호스트의 인증서 검증 우회 가능
+<ComparePanel title="CA 번들 지정" tone="good">
+`--cert /path/to/ca-bundle.pem` 사용
+신뢰할 CA 인증서를 명시적으로 지정
 </ComparePanel>
 </Compare>
 
