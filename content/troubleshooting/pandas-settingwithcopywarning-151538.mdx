@@ -57,12 +57,12 @@ df.loc[df.col1 == 10, 'col1'] = 1000
 여러 열을 동시에 처리할 때도 `.loc`을 활용한다.
 
 ```python
-# 수정 전 (경고 발생)
+# Pandas 2.1 이상: DataFrame.map 사용
 cols = ['col1', 'col2', 'col3']
-df[cols] = df[cols].applymap(some_function)
+df.loc[:, cols] = df.loc[:, cols].map(some_function)
 
-# 수정 후 (경고 해결)
-df.loc[:, cols] = df.loc[:, cols].applymap(some_function)
+# 이전 Pandas 버전과 호환해야 한다면 열별 Series.map 사용
+df.loc[:, cols] = df.loc[:, cols].apply(lambda column: column.map(some_function))
 ```
 
 ![해결 방법 스크린샷](/blogs/pandas-settingwithcopywarning-151538-1.png)
@@ -110,7 +110,7 @@ for idx, row in sample_df.iterrows():
 sample_df.loc[idx, ['score', 'grade']] = 100, 'A'
 ```
 
-이 경고는 Pandas의 인덱싱 동작이 뷰와 복사본을 구분하지 않아 발생할 수 있으므로, 항상 `.loc` 또는 `.iloc`을 사용하는 것이 안전하다.
+Pandas 2.x에서는 뷰와 복사본의 모호성 때문에 `SettingWithCopyWarning`이 나타날 수 있습니다. Pandas 3.0에서는 Copy-on-Write가 기본 동작이며, chained assignment로 원본을 수정할 수 없습니다. 원본 DataFrame을 바꾸려면 `df.loc[행 조건, 열] = 값`처럼 한 번의 인덱싱으로 할당해야 합니다. 별도의 결과 DataFrame을 수정하려는 목적이라면 필터링 시 `.copy()`를 명시합니다.
 
 ## 출처
 
