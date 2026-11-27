@@ -18,6 +18,8 @@ BST의 특성을 활용하면, 노드 값을 큰 순서대로 처리할 때 누�
 역중위 순회(우측 -> 현재 -> 좌측)를 구현하여 전역 변수 또는 참조 변수로 누적 합을 관리합니다. 각 노드를 방문할 때 현재까지의 누적 합을 노드 값에 더하고, 업데이트된 노드 값을 새로운 누적 합으로 갱신합니다. 이 과정을 재귀적으로 수행하여 트리의 모든 노드를 변환합니다.
 
 ```python
+from typing import Optional
+
 class Solution:
     def convertBST(self, root: Optional[TreeNode]) -> Optional[TreeNode]:
         self.cumulative_sum = 0
@@ -45,7 +47,31 @@ class Solution:
 
 ## 다른 풀이 방법
 
-재귀 대신 스택을 사용한 반복문 방식이 있습니다. 역중위 순회의 로직을 스택을 이용해 구현하면 재귀 호출로 인한 스택 오버플로우 위험을 줄일 수 있습니다. 스택에 노드를 푸시하고, 오른쪽 자식이 있는 한 계속 오른쪽으로 내려가며 노드를 스택에 저장합니다. 이후 스택에서 노드를 꺼내 처리하고, 왼쪽 자식으로 이동하는 과정을 반복합니다. 이 방법 역시 시간복잡도는 $O(N)$이지만, 공간복잡도는 재귀 방식과 동일하게 $O(H)$를 유지합니다.
+명시적 스택을 사용하면 재귀 호출 없이 역중위 순회를 구현할 수 있습니다.
+
+```python
+from typing import Optional
+
+class Solution:
+    def convertBST_iterative(self, root: Optional[TreeNode]) -> Optional[TreeNode]:
+        stack = []
+        node = root
+        total = 0
+
+        while node or stack:
+            while node:
+                stack.append(node)
+                node = node.right
+
+            node = stack.pop()
+            total += node.val
+            node.val = total
+            node = node.left
+
+        return root
+```
+
+시간 복잡도는 O(N), 공간 복잡도는 스택에 저장되는 노드 수의 최댓값인 O(H)입니다. H는 트리의 높이입니다.
 
 ## 추가 참고사항
 
