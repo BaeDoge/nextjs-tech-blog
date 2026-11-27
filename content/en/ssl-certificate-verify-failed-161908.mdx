@@ -1,83 +1,99 @@
 ---
-title: "[Troubleshooting] Resolving SSL CERTIFICATE_VERIFY_FAILED"
+title: "[Troubleshooting] SSL CERTIFICATE_VERIFY_FAILED in Python requests"
 publishedAt: "2026-11-26"
-summary: "This note explains the causes of SSL certificate verification failures during HTTPS requests and provides code modifications to resolve them."
+summary: "Diagnoses TLS certificate verification failures in requests and pip, and explains how to configure a trusted CA bundle without disabling verification."
 tag: "Troubleshooting"
 ---
 
 ## Symptom
 
-When accessing an HTTPS URL using the `requests` library in Python, a certificate verification failure error occurs.
-Running the following code in a Windows 7 environment results in a `requests.exceptions.SSLError`.
+A request to an HTTPS endpoint may fail with an error similar to:
 
-```python
-import requests
-requests.get('https://google.com')
+```text
+requests.exceptions.SSLError: [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed
 ```
 
-<Callout type="warning" title="Error Situation">
-requests.exceptions.SSLError: HTTPSConnectionPool(host='google.com', port=443):
-Max retries exceeded with url: / (Caused by SSLError(SSLError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed (_ssl.c:833)'),))
-</Callout>
+This generally means the client cannot build a trusted certificate chain for the server. The cause may be in the operating system, Python environment, CA bundle, server configuration, or network proxy.
 
 ![Symptom screenshot](/blogs/ssl-certificate-verify-failed-161908-1.jpg)
 
 ## Cause
 
-Python fails to verify the SSL certificate sent by the server because it cannot find it in the list of trusted root certificates.
-This can occur if the local environment's certificate file path is missing or when using a proxy environment with internally signed SSL certificates.
-You can identify the specific cause by examining the text following `certificate verify failed` in the error message.
+Common causes include:
 
-## Solution
+1. The CA bundle used by `requests` is missing or outdated.
+2. An HTTPS-inspecting corporate proxy re-signs certificates, but its organization-managed CA is not trusted by the Python environment.
+3. The server omits an intermediate certificate or has an expired or misconfigured certificate.
+4. An old operating system or Python build does not have an up-to-date trust store or TLS support.
 
-You can resolve this by specifying the certificate file path directly in the `verify` parameter of the `requests` library.
-This method forces the use of a specific CA certificate file instead of the system's default certificate list.
+`requests` normally uses the CA bundle provided by `certifi`. A browser and Python may therefore behave differently if they use different certificate stores.
+
+## Solution: Check and update the CA bundle
+
+Check the certificate bundle paths used by `requests` and `certifi`.
+
+```python
+import certifi
+import requests
+
+print("requests CA bundle:", requests.certs.where())
+print("certifi CA bundle:", certifi.where())
+```
+
+Update the packages in the same Python environment that runs the application.
+
+```bash
+python -m pip install --upgrade requests certifi
+```
+
+If your organization requires a private CA, obtain the CA bundle from your IT or security team and pass its path to `verify`.
 
 ```python
 import requests
 
-# Specify certificate file path
-requests.get('https://google.com', verify='/path/to/certfile')
+response = requests.get(
+    "https://internal.example.com",
+    verify="/path/to/organization-ca-bundle.pem",
+    timeout=15,
+)
+response.raise_for_status()
 ```
+
+You can also configure a persistent CA bundle path with `REQUESTS_CA_BUNDLE`.
+
+```bash
+# Linux/macOS
+export REQUESTS_CA_BUNDLE=/path/to/organization-ca-bundle.pem
+
+# Windows CMD
+set REQUESTS_CA_BUNDLE=C:\certs\company-ca.pem
+```
+
+## pip Installation Errors
+
+pip has its own certificate configuration. To use an organization-managed CA bundle for an installation, specify `--cert`.
+
+```bash
+python -m pip install --cert C:\certs\company-ca.pem package-name
+```
+
+Alternatively, set the `PIP_CERT` environment variable to the trusted CA bundle path. Do not download an arbitrary server certificate and treat it as a trusted CA.
+
+## Methods to Avoid
+
+`requests.get(..., verify=False)` disables server certificate verification. pip’s `--trusted-host` option bypasses normal host verification for the specified host. These options may make a connection succeed, but they remove important protection against man-in-the-middle attacks. Do not use them as a routine fix. Configure the correct CA certificate or have the server administrator repair the certificate chain.
+
+## Additional Checks
+
+- Call `ssl.get_default_verify_paths()` to inspect the default CA paths used by Python’s SSL module.
+- If a browser also reports a certificate warning for the same endpoint, check the server certificate chain and expiration date.
+- If an unsupported operating system cannot receive root-certificate updates, consider migrating to a supported OS and Python version.
+- If the server certificate is expired or its chain is incomplete, the server operator must correct the server configuration.
 
 ![Solution screenshot](/blogs/ssl-certificate-verify-failed-161908-2.png)
 
-## Alternative Solutions
-
-You can bypass the error by completely skipping the security verification step.
-This method is recommended as a temporary measure in development environments, but be cautious as it may introduce security vulnerabilities in production services.
-
-```python
-import requests
-
-# Disable SSL verification
-requests.get('https://google.com', verify=False)
-```
-
-## Additional Notes
-
-<Steps>
-<Step title="Environment Diagnosis">
-Call `ssl.get_default_verify_paths()` to check the default certificate paths currently referenced by Python.
-</Step>
-<Step title="Check Server Status">
-If a warning appears when accessing the same address in a browser, the server may be missing intermediate certificates.
-</Step>
-<Steps>
-<Step title="Error During pip Installation">
-If this error occurs during package installation, add the `--trusted-host` option or modify the `requests` settings within `pip`.
-</Step>
-</Steps>
-</Steps>
-
-<Callout type="info" title="Reference">
-The number following `_ssl.c` at the end of the error message varies depending on the Python build version and can be ignored.
-</Callout>
-
 ## Sources
 
-- StackOverflow: [Why do HTTPS requests produce SSL CERTIFICATE_VERIFY_FAILED error?](https://stackoverflow.com/questions/51768496/why-do-https-requests-produce-ssl-certificate-verify-failed-error) — Author: rayashi(question), Chagai Wild(answer) (CC BY-SA)
-- Tistory: [[정보] SSL: CERTIFICATE_VERIFY_FAILED / ssl.SSLCertVerificationError 원인과 해결법 총정리 (파이썬 인증서 오류)](https://earscoming.tistory.com/entry/%EC%A0%95%EB%B3%B4-SSL-CERTIFICATEVERIFYFAILED-sslSSLCertVerificationError-%EC%9B%90%EC%9D%B8%EA%B3%BC-%ED%95%B4%EA%B2%B0%EB%B2%95-%EC%B4%9D%EC%A0%95%EB%A6%AC-%ED%8C%8C%EC%9D%B4%EC%8D%AC-%EC%9D%B8%EC%A6%9D%EC%84%9C-%EC%98%A4%EB%A5%98) — Author: 더 코딩 _ The Coding
-- Tistory: [[Error] "SSL: CERTIFICATE_VERIFY_FAILED" - pip 사용시 인증서 에러 조치](https://didalsgur.tistory.com/entry/pip-%EC%82%AC%EC%9A%A9%EC%8B%9C-%EC%9D%B8%EC%A6%9D%EC%84%9C-%EC%97%90%EB%9F%ACSSL-Error-%EC%A1%B0%EC%B9%98-SSL-CERTIFICATEVERIFYFAILED) — Author: 기록은 지식이 되고, 배움의 기회를 만든다.
-
-Images are taken from the sources above.
+- Requests documentation: [SSL Certificate Verification](https://requests.readthedocs.io/en/stable/user/advanced/#ssl-cert-verification)
+- pip documentation: [HTTPS Certificates](https://pip.pypa.io/en/stable/topics/https-certificates/)
+- Python documentation: [ssl — TLS/SSL wrapper](https://docs.python.org/3/library/ssl.html)
