@@ -23,68 +23,57 @@ DFS를 재귀적으로 구현하면 코드가 간결하며, 스택 오버플로�
 
 ## 풀이
 
-해시맵을 사용하여 방문한 노드와 그 복사본을 매핑하고, DFS를 통해 그래프를 순회하며 복사를 수행합니다.
-기저 사례로 null 노드를 처리하며, 이미 해시맵에 있는 노드는 해당 복사본을 반환합니다.
-새로운 노드를 생성한 후 해시맵에 저장하고, 이웃 노드들을 재귀적으로 호출하여 복사된 이웃 리스트를 연결합니다.
+Python에서는 원본 노드 객체를 딕셔너리 키로 사용해 복사본을 저장합니다. 이미 복사한 노드를 다시 만나면 새 노드를 만들지 않고 기존 복사본을 사용하므로, 사이클이나 자기 자신으로 향하는 간선이 있어도 중복 생성하지 않습니다.
 
-```java
-import java.util.*;
+```python
+from collections import deque
 
-class Node {
-    public int val;
-    public List<Node> neighbors;
-    public Node() {
-        val = 0;
-        neighbors = new ArrayList<Node>();
-    }
-    public Node(int _val) {
-        val = _val;
-        neighbors = new ArrayList<Node>();
-    }
-    public Node(int _val, ArrayList<Node> _neighbors) {
-        val = _val;
-        neighbors = _neighbors;
-    }
-}
+class Solution:
+    def cloneGraph(self, node: 'Node') -> 'Node':
+        if node is None:
+            return None
 
-class Solution {
-    // 해시맵: 원본 노드 -> 복사 노드 매핑
-    private Map<Node, Node> visitedMap = new HashMap<>();
+        clones = {node: Node(node.val)}
+        queue = deque([node])
 
-    public Node cloneGraph(Node node) {
-        if (node == null) {
-            return null;
-        }
+        while queue:
+            current = queue.popleft()
+            for neighbor in current.neighbors:
+                if neighbor not in clones:
+                    clones[neighbor] = Node(neighbor.val)
+                    queue.append(neighbor)
+                clones[current].neighbors.append(clones[neighbor])
 
-        // 이미 방문한 노드라면 복사본 반환
-        if (visitedMap.containsKey(node)) {
-            return visitedMap.get(node);
-        }
-
-        // 새로운 노드 생성 및 매핑 저장
-        Node cloneNode = new Node(node.val);
-        visitedMap.put(node, cloneNode);
-
-        // 이웃 노드들 순회 및 복사
-        for (Node neighbor : node.neighbors) {
-            cloneNode.neighbors.add(cloneGraph(neighbor));
-        }
-
-        return cloneNode;
-    }
-}
+        return clones[node]
 ```
 
-시간복잡도: O(N + E). 모든 노드(N)와 간선(E)을 정확히 한 번씩 방문합니다.
-공간복잡도: O(N). 해시맵에 N개의 노드 참조를 저장하며, 재귀 호출 스택 깊이는 최대 N입니다.
+시간 복잡도는 O(N+E)입니다. 각 노드와 간선을 한 번씩 처리합니다. 공간 복잡도는 복사 노드 맵과 큐에 저장하는 참조를 포함해 O(N)입니다.
 
 ## 다른 풀이 방법
 
-너비 우선 탐색(BFS)을 사용하여 풀이할 수 있습니다.
-큐를 사용하여 시작 노드를 넣고, 방문한 노드를 해시맵에 저장하며 진행합니다.
-BFS는 재귀 호출의 스택 오버플로우 위험이 없으며, 레벨 순서대로 그래프를 복제합니다.
-단, 인접 리스트를 채우는 과정에서 두 번의 순회 또는 별도의 큐 관리가 필요하여 코드가 DFS보다 다소 복잡해질 수 있습니다.
-시간복잡도와 공간복잡도는 DFS와 동일하게 O(N + E) 및 O(N)입니다.
+재귀 DFS를 사용할 수도 있습니다. 다만 노드 수가 많거나 그래프가 길게 연결된 경우 재귀 깊이가 Python 한도를 넘을 수 있으므로, 반복형 BFS/DFS를 사용하는 편이 안전합니다.
+
+```python
+class Solution:
+    def cloneGraph_dfs(self, node: 'Node') -> 'Node':
+        if node is None:
+            return None
+
+        clones = {}
+
+        def dfs(current):
+            if current in clones:
+                return clones[current]
+            copy = Node(current.val)
+            clones[current] = copy
+            for neighbor in current.neighbors:
+                copy.neighbors.append(dfs(neighbor))
+            return copy
+
+        return dfs(node)
+```
+
+DFS와 BFS 모두 O(N+E) 시간 및 O(N) 공간을 사용합니다.
 
 ## 추가 참고사항
 
