@@ -27,6 +27,8 @@ tag: "Algorithm"
 해시 집합을 사용하여 중복 여부를 확인하는 Python 코드는 다음과 같다.
 
 ```python
+from typing import List
+
 class Solution:
     def containsDuplicate(self, nums: List[int]) -> bool:
         seen = set()
@@ -49,6 +51,8 @@ class Solution:
 인접한 두 요소가 동일하다면 중복이 존재함을 알 수 있다.
 
 ```python
+from typing import List
+
 class Solution:
     def containsDuplicate(self, nums: List[int]) -> bool:
         nums.sort()
