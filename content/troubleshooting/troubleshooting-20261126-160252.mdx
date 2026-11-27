@@ -14,17 +14,17 @@ class X(list):
     __hash__ = tuple.__hash__
 
 x1 = X()
-s = {x1}  # TypeError: unhashable type: 'X'
+s = {x1}  # TypeError: descriptor '__hash__' requires a 'tuple' object but received a 'X'
 ```
 
 ## 원인
 
-`list`는 가변 자료형이므로 기본적으로 `__hash__ = None`으로 설정되어 있다. `tuple`은 불변 객체라 해시 가능하지만, 리스트를 튜플로 변환해 해시 값을 계산하는 메서드를 리스트 서브클래스에 추가하더라도 원본 리스트의 가변성은 사라지지 않는다.
+`list`는 가변 자료형이며 값 기반 동등성을 제공하므로 기본적으로 해시할 수 없다. 위 예제의 `tuple.__hash__`는 실제 튜플 객체를 대상으로 하는 디스크립터이므로, `X` 인스턴스에 그대로 적용하면 `unhashable type`이 아니라 `descriptor '__hash__' requires a 'tuple' object` 오류가 발생한다. 이처럼 메서드를 단순히 연결한다고 객체가 튜플로 변환되는 것은 아니다.
 
-예를 들어 리스트 내용을 바꾼 뒤 해시 값을 다시 계산하면 이전과 달라질 수 있다. 이미 `set`이나 `dict`에 저장된 키의 해시 값이 바뀌면 내부 저장 위치와 조회 결과가 일치하지 않을 수 있다. 따라서 값 기반 동등성(`__eq__`)을 유지하는 가변 객체에는 일반적으로 `__hash__`를 구현하지 않는 것이 안전하다.
+`def __hash__(self): return hash(tuple(self))`처럼 직접 구현하면 해시 계산 자체는 가능하지만, 리스트가 변경되면 해시 값도 달라질 수 있다. 이미 `set`이나 `dict`에 저장된 키의 해시 값이 바뀌면 조회가 실패하는 등 컬렉션의 불변식이 깨진다. 따라서 값 기반 동등성(`__eq__`)을 유지하는 가변 객체에는 일반적으로 `__hash__`를 구현하지 않는 것이 안전하다.
 
 <Callout type="warning" title="오류 상황">
-TypeError: unhashable type: 'X'
+TypeError: descriptor '__hash__' requires a 'tuple' object but received a 'X'
 </Callout>
 
 ## 해결 방법
@@ -41,6 +41,21 @@ lookup = {key: "처리 완료"}
 # 원본 리스트를 바꿔도 기존 튜플 키는 변하지 않는다.
 items.append(4)
 print(key)  # (1, 2, 3)
+```
+
+## 잘못된 사용자 정의 해시 예시
+
+다음처럼 현재 리스트의 내용을 이용해 해시 값을 계산하도록 만들면 처음에는 집합에 넣을 수 있지만, 이후 리스트를 수정하면 해시 값이 바뀌어 조회할 수 없게 될 수 있다.
+
+```python
+class MutableKey(list):
+    def __hash__(self):
+        return hash(tuple(self))
+
+key = MutableKey([1, 2, 3])
+seen = {key}
+key.append(4)
+print(key in seen)  # False
 ```
 
 ## 다른 해결 방법
@@ -72,5 +87,4 @@ df.drop_duplicates(['Like_Tuple'])
 ## 출처
 
 - StackOverflow: [What makes a user-defined class unhashable?](https://stackoverflow.com/questions/10254594/what-makes-a-user-defined-class-unhashable) — 작성자: max(질문), jdi(답변) (CC BY-SA)
-- Tistory: [TypeError: 'tuple' object does not support item assignment / TypeError: unhashable type: 'list' 원인, 해결법](https://jimmy-ai.tistory.com/227) — 작성자: 지미뉴트론 개발일기
-- Tistory: [[Pandas] 데이터프레임 중복 확인 및 제거 :: duplicated, drop_duplicates (unhashable type error 해결) (drop duplicates)](https://sy-log.tistory.com/entry/Pandas-%EB%8D%B0%EC%9D%B4%ED%84%B0%ED%94%84%EB%A0%88%EC%9E%84-%EC%A4%91%EB%B3%B5-%ED%99%95%EC%9D%B8-%EB%B0%8F-%EC%A0%9C%EA%B1%B0-duplicated-dropduplicates-unhashable-type-error-%ED%95%B4%EA%B2%B0) — 작성자: 서윤로그
+- Python documentation: [Data model — `__hash__`](https://docs.python.org/3/reference/datamodel.html#object.__hash__)
