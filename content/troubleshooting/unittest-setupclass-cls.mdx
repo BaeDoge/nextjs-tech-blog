@@ -50,12 +50,19 @@ TypeError: setUpClass() missing 1 required positional argument: 'cls'
 ```python
 import unittest
 
-class TestDownload(unittest.TestCase):
+class Config:
+    fs = False
 
+config = Config()
+
+class TestDownload(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        # 클래스 레벨 설정 로직
+        # 클래스 단위 초기화
         config.fs = True
+
+    def test_download(self):
+        self.assertTrue(config.fs)
 ```
 
 <Steps>
