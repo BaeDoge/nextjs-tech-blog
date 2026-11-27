@@ -15,13 +15,15 @@ tag: "Algorithm"
 
 ## 풀이
 
-배열을 내림차순으로 정렬한 후, 전체 원소의 합을 구합니다. 정렬된 배열을 앞에서부터 순회하며 원소를 선택하고, 선택된 원소의 합을 누적합니다. 이 과정에서 선택된 원소의 합이 전체 합에서 현재 선택된 원소의 합을 뺀 나머지 합보다 커지면 루프를 종료합니다. 이때까지 선택된 원소들의 리스트가 정답입니다. Python의 `sort` 메서드는 안정 정렬이며 내림차순 정렬 시 시간복잡도는 O(N log N)입니다.
+입력 배열을 변경하지 않으려면 `sorted(nums, reverse=True)`로 내림차순 복사본을 만듭니다. 제자리 정렬을 허용한다면 `nums.sort(reverse=True)`를 사용할 수 있습니다. 정렬된 배열에서 전체 원소의 합을 구합니다. 정렬된 배열을 앞에서부터 순회하며 원소를 선택하고, 선택된 원소의 합을 누적합니다. 이 과정에서 선택된 원소의 합이 전체 합에서 현재 선택된 원소의 합을 뺀 나머지 합보다 커지면 루프를 종료합니다. 이때까지 선택된 원소들의 리스트가 정답입니다. Python의 `sort` 메서드는 안정 정렬이며 내림차순 정렬 시 시간복잡도는 O(N log N)입니다.
 
 ```python
+from typing import List
+
 class Solution:
     def minSubsequence(self, nums: List[int]) -> List[int]:
         # 배열을 내림차순으로 정렬
-        nums.sort(reverse=True)
+        nums = sorted(nums, reverse=True)
         
         # 전체 원소의 합 계산
         total_sum = sum(nums)
