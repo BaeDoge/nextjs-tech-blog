@@ -1,90 +1,77 @@
 ---
-title: "[Troubleshooting] Unhashable Type Error for Custom Classes"
+title: "[Troubleshooting] Why a Mutable list Subclass Should Not Be Used as a Hash Key"
 publishedAt: "2026-11-26"
-summary: "This note explains how to make a list subclass hashable by implementing the `__hash__` method."
+summary: "Explains why mutable list subclasses remain unsafe as set elements or dictionary keys even when a custom __hash__ method is added, and recommends immutable keys."
 tag: "Troubleshooting"
 ---
 
 ## Symptom
 
-Attempting to add a custom class inheriting from `list` to a `set` or use it as a key in a `dict` raises a `TypeError: unhashable type`.
-According to the documentation, defining `__hash__` and `__eq__` methods makes a class hashable, but simply assigning `tuple.__hash__` does not work.
+A custom class inheriting from `list` is unhashable by default. Attempting to add an instance to a set or use it as a dictionary key raises `TypeError`.
 
 ```python
-class X(list):
-    __hash__ = tuple.__hash__
+class Items(list):
+    pass
 
-x1 = X()
-s = {x1}  # TypeError: unhashable type: 'X'
+items = Items([1, 2, 3])
+{items}  # TypeError: unhashable type: 'Items'
 ```
 
 ## Cause
 
-The `list` class is a mutable data type, so `__hash__` is set to `None` by default, making it unhashable.
-Simply copying `tuple.__hash__` to the `__hash__` attribute does not change the logic of the hashing algorithm.
-The reason `tuple` is hashable is because it guarantees immutability. If an inherited class maintains mutability, it can compromise the stability of the hash value.
-Therefore, you must explicitly define a `__hash__` method to specify how the class generates its hash value.
+Lists are mutable and define value-based equality. Python therefore sets `__hash__ = None` on `list` and, by default, on subclasses that inherit its equality behavior. A dictionary key or set element must have a hash value that remains stable while it is stored in the collection.
 
-<Callout type="warning" title="Error Situation">
-TypeError: unhashable type: 'X'
-</Callout>
+Simply assigning `tuple.__hash__` to a list subclass does not make the object immutable. Even a custom method such as `return hash(tuple(self))` is unsafe if the list can later be modified: its hash may change while it is already stored in a set or dictionary.
 
-## Solution
+## Recommended Solution
 
-Define the `__hash__` method directly to return a hash value based on the instance's content.
-For mutable objects (such as lists), the standard approach is to convert them to an immutable object (tuple) and then calculate the hash value.
+Do not make a mutable list subclass hashable for use as a key. Create an immutable snapshot, such as a tuple, at the point where the key is needed.
 
 ```python
-class X2(list):
-    def __hash__(self):
-        return hash(tuple(self))
+items = [1, 2, 3]
+key = tuple(items)
 
-x2 = X2([1, 2, 3])
-s = {x2}  # Success: {<__main__.X2 object at ...>}
+lookup = {key: "value"}
+print(lookup[(1, 2, 3)])  # value
+```
+
+For nested lists, convert each nested sequence as well.
+
+```python
+nested = [[1, 2], [3, 4]]
+key = tuple(tuple(row) for row in nested)
+lookup = {key: "value"}
 ```
 
 ## Alternative Solutions
 
-You can also generate a hash value based on criteria other than the list's content (e.g., length, specific strings, etc.).
-However, in this case, you must also redefine the `__eq__` method to clarify the comparison logic in case of hash collisions.
-The example below generates a hash value based on the length of the list.
+If a domain object genuinely needs to be hashable, prefer an immutable data model whose equality and hash fields cannot change after construction. A frozen dataclass is one option when all fields used in equality are themselves hashable.
 
 ```python
-class X3(list):
-    def __hash__(self):
-        return hash("foobar" * len(self))
-    
-    def __eq__(self, other):
-        if not isinstance(other, X3):
-            return NotImplemented
-        return list(self) == list(other)
+from dataclasses import dataclass
+
+@dataclass(frozen=True)
+class Point:
+    x: int
+    y: int
+
+points = {Point(1, 2)}
 ```
 
-<Compare>
-<ComparePanel title="Incorrect Approach" tone="bad">
-__hash__ = tuple.__hash__
-(Simple assignment does not change hashing logic)
-</ComparePanel>
-<ComparePanel title="Correct Approach" tone="good">
-def __hash__(self): return hash(tuple(self))
-(Explicit method definition implements hashing logic)
-</ComparePanel>
-</Compare>
+Do not define a content-based hash on a mutable list subclass merely to silence the exception. If a pandas column contains lists and `drop_duplicates()` reports an unhashable value, create a separate immutable representation for the comparison or deduplication key.
+
+```python
+# Create a separate tuple key without changing the original list column
+df["Like_Tuple"] = df["Like"].map(tuple)
+df = df.drop_duplicates(["Like_Tuple"])
+```
 
 ## Additional Notes
 
-Since the hash value of a mutable object can change, hashable objects should not be modified after creation.
-Mutable data types like `list` or `dict` cannot be used as keys in `set` or `dict`. To do so, you must convert them to `tuple` or implement custom hashing logic.
-If you encounter an `unhashable type` error when using `drop_duplicates` in `pandas`, check if the target column contains list data and converting it to `tuple` can be a solution.
-
-```python
-# pandas example: Convert list column to tuple to remove duplicates
-df['Like_Tuple'] = df['Like'].apply(tuple)
-df.drop_duplicates(['Like_Tuple'])
-```
+Hash and equality behavior must remain stable for the entire time an object is stored in a set or dictionary. Use immutable tuples or immutable domain objects as keys; do not mutate an object after using it as a hash key.
 
 ## Sources
 
+- Python documentation: [Data model — __hash__](https://docs.python.org/3/reference/datamodel.html#object.__hash__)
+- Python documentation: [Built-in types — set and dictionary](https://docs.python.org/3/library/stdtypes.html)
 - StackOverflow: [What makes a user-defined class unhashable?](https://stackoverflow.com/questions/10254594/what-makes-a-user-defined-class-unhashable) — Author: max(question), jdi(answer) (CC BY-SA)
-- Tistory: [TypeError: 'tuple' object does not support item assignment / TypeError: unhashable type: 'list' 원인, 해결법](https://jimmy-ai.tistory.com/227) — Author: 지미뉴트론 개발일기
-- Tistory: [[Pandas] 데이터프레임 중복 확인 및 제거 :: duplicated, drop_duplicates (unhashable type error 해결) (drop duplicates)](https://sy-log.tistory.com/entry/Pandas-%EB%8D%B0%EC%9D%B4%ED%84%B0%ED%94%84%EB%A0%88%EC%9E%84-%EC%A4%91%EB%B3%B5-%ED%99%95%EC%9D%B8-%EB%B0%8F-%EC%A0%9C%EA%B1%B0-duplicated-dropduplicates-unhashable-type-error-%ED%95%B4%EA%B2%B0) — Author: 서윤로그
