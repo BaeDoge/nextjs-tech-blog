@@ -23,7 +23,7 @@ Django 2.0부터 `ForeignKey` 및 `OneToOneField` 필드는 관계 설정 시 `o
 
 ## 해결 방법
 
-외래 키 필드에 `on_delete` 인자를 추가하여 삭제 시 행동을 정의해야 합니다. 일반적인 경우 데이터의 무결성을 위해 `CASCADE`를 사용하는 것이 권장됩니다.
+외래 키 필드에 `on_delete` 인자를 추가하여 참조 대상이 삭제될 때의 동작을 명시해야 합니다. `CASCADE`는 참조 대상이 삭제되면 관련 객체도 함께 삭제하므로, 모든 경우에 권장되는 값은 아닙니다. 데이터 보존 정책에 따라 `PROTECT`, `RESTRICT`, `SET_NULL`, `SET_DEFAULT`, `DO_NOTHING` 등 적절한 동작을 선택해야 합니다.
 
 수정 전 코드:
 
@@ -59,12 +59,14 @@ class Article(models.Model):
     )
 ```
 
-이 경우 부모 레코드를 삭제할 때 Django는 자식 레코드에 어떠한 조치도 취하지 않으며, 이는 데이터베이스의 외래 키 제약 조건에 따라 오류가 발생할 수 있으므로 주의가 필요합니다.
+이 경우 Django의 삭제 Collector는 자식 객체를 자동으로 삭제하거나 변경하지 않습니다. 다만 실제 데이터베이스에 외래 키 제약이 설정되어 있다면 부모 행 삭제가 DB 오류로 거부될 수 있습니다. `SET_NULL`을 선택하려면 해당 필드에 `null=True`가 필요하고, `SET_DEFAULT`에는 기본값이 필요합니다.
 
 ## 추가 참고사항
 
-`on_delete` 인자는 `ForeignKey`뿐만 아니라 `OneToOneField`에서도 동일하게 필수입니다. 사용 가능한 값은 `CASCADE`, `PROTECT`, `SET_NULL`, `SET_DEFAULT`, `RESTRICT`, `DO_NOTHING` 등이 있으며, Django 공식 문서에서 각 동작의 상세한 차이점을 확인할 수 있습니다. `ManyToManyField`의 경우 `through` 모델을 사용하지 않는 한 `on_delete` 인자를 직접 받지 않으며, 관련 모델들의 삭제 동작은 개별 외래 키 필드에서 정의됩니다.
+`on_delete` 인자는 `ForeignKey`뿐만 아니라 `OneToOneField`에서도 동일하게 필수입니다. Django 2.0부터 `ForeignKey`와 `OneToOneField`에 `on_delete`를 명시해야 합니다. 사용 가능한 값은 `CASCADE`, `PROTECT`, `SET_NULL`, `SET_DEFAULT`, `RESTRICT`, `DO_NOTHING` 등이 있으며, 각 값의 의미와 필수 조건을 공식 문서에서 확인한 뒤 데이터 보존 정책에 맞게 선택해야 합니다. `ManyToManyField`의 경우 `through` 모델을 사용하지 않는 한 `on_delete` 인자를 직접 받지 않으며, 관련 모델들의 삭제 동작은 개별 외래 키 필드에서 정의됩니다.
 
 ## 출처
 
 - StackOverflow: [Getting TypeError: __init__() missing 1 required positional argument: 'on_delete' when trying to add parent table after child table with entries](https://stackoverflow.com/questions/44026548/getting-typeerror-init-missing-1-required-positional-argument-on-delete) — 작성자: Christian LSANGOLA(질문), cezar(답변) (CC BY-SA)
+- Django 공식 문서: [Django 2.0 release notes](https://docs.djangoproject.com/en/2.0/releases/2.0/)
+- Django 공식 문서: [ForeignKey.on_delete](https://docs.djangoproject.com/en/stable/ref/models/fields/#django.db.models.ForeignKey.on_delete)
