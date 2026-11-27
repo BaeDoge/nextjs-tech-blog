@@ -27,6 +27,8 @@ tag: "Algorithm"
 `isSameTree` 함수로 두 트리의 동등성을 확인하고, `isSubtree` 함수로 `root`의 각 노드에서 부분트리 검사를 수행합니다.
 
 ```python
+from typing import Optional
+
 # Definition for a binary tree node.
 # class TreeNode:
 #     def __init__(self, val=0, left=None, right=None):
@@ -63,21 +65,49 @@ class Solution:
 ```
 
 시간복잡도: 최악의 경우 `root` 트리의 모든 노드에 대해 `isSameTree`를 호출하므로 $O(N \times M)$입니다. 여기서 $N$은 `root`의 노드 수, $M$은 `subRoot`의 노드 수입니다.
-공간복잡도: 재귀 호출 스택의 깊이에 비례하므로 $O(N + M)$입니다.
+공간 복잡도: 재귀 풀이에서는 두 트리의 재귀 깊이에 비례하는 O(H_root + H_sub)이며, 최악의 경우 O(N + M)입니다. Python에서는 큰 편향 트리에서 기본 재귀 제한을 넘을 수 있으므로 반복형 풀이도 고려합니다.
 
 ## 다른 풀이 방법
 
-**시리얼라이즈(Serialization) 및 문자열 매칭**
+반복형 DFS를 사용하면 재귀 호출 제한을 피할 수 있습니다. 트리를 순회하는 스택과 두 트리의 동일성을 검사하는 스택을 각각 사용합니다.
 
-트리를 전위 순회 등을 통해 문자열로 변환한 후, `subRoot`의 문자열이 `root`의 문자열 부분문자열인지 확인하는 방법입니다.
+```python
+from typing import Optional
 
-1. `root`와 `subRoot`를 각각 고유한 문자열로 직렬화합니다. 이때 null 노드도 명시적으로 표현하여 구조적 구별이 가능해야 합니다.
-2. `subRoot`의 직렬화 결과가 `root`의 직렬화 결과 안에 포함되는지 확인합니다.
+class Solution:
+    def isSameTree_iterative(self, a: Optional[TreeNode], b: Optional[TreeNode]) -> bool:
+        stack = [(a, b)]
+        while stack:
+            x, y = stack.pop()
+            if x is None or y is None:
+                if x is not y:
+                    return False
+                continue
+            if x.val != y.val:
+                return False
+            stack.append((x.left, y.left))
+            stack.append((x.right, y.right))
+        return True
 
-이 방법은 해시 함수를 사용하여 직렬화 문자열의 해시값을 비교하는 방식으로 최적화할 수 있습니다. 해시 충돌을 고려해야 하므로, 해시값이 일치할 때 실제 트리를 비교하는 검증 단계를 추가하는 것이 안전합니다.
+    def isSubtree_iterative(self, root: Optional[TreeNode], subRoot: Optional[TreeNode]) -> bool:
+        if subRoot is None:
+            return True
+        if root is None:
+            return False
 
-시간복잡도: 직렬화 과정이 $O(N + M)$이며, 문자열 매칭 또는 해시 탐색에 $O(N + M)$이 소요되므로 전체적으로 $O(N + M)$로 기대됩니다.
-공간복잡도: 직렬화된 문자열 또는 해시값을 저장하는 데 $O(N + M)$의 공간이 필요합니다.
+        stack = [root]
+        while stack:
+            node = stack.pop()
+            if node.val == subRoot.val and self.isSameTree_iterative(node, subRoot):
+                return True
+            if node.left:
+                stack.append(node.left)
+            if node.right:
+                stack.append(node.right)
+        return False
+```
+
+최악 시간 복잡도는 동일하게 O(N·M)이며, 호출 스택 대신 명시적 스택을 사용합니다. 보조 공간은 트리 높이와 비교 대상 트리의 탐색 스택 크기에 비례해 O(N+M)입니다.
 
 ## 추가 참고사항
 
