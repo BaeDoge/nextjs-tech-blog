@@ -1,7 +1,7 @@
 ---
-title: "[트러블슈팅] UnicodeDecodeError 인코딩 오류 해결"
+title: "[트러블슈팅] pandas read_csv UTF-8 디코딩 오류"
 publishedAt: "2026-11-26"
-summary: "UTF-8이 아닌 파일을 UTF-8로 읽을 때 발생하는 인코딩 오류의 원인과 해결 방법을 정리한다."
+summary: "CSV 파일의 실제 인코딩과 pandas read_csv의 encoding 설정이 맞지 않을 때 발생하는 UnicodeDecodeError를 해결한다."
 tag: "Troubleshooting"
 ---
 
@@ -72,7 +72,7 @@ df = pd.read_csv("data.csv", encoding="utf-8")
 
 ```python
 # 오류 발생 바이트를 대체 문자로 변환하여 계속 진행
-df = pd.read_csv("data.csv", encoding="utf-8", encoding_errors="replace")
+df = pd.read_csv("data.csv", encoding="utf-8", encoding_encoding_encoding_errors="replace")
 ```
 
 </ComparePanel>
@@ -85,7 +85,7 @@ import pandas as pd
 df = pd.read_csv(
     "data.csv",
     encoding="utf-8",
-    errors="replace"
+    encoding_errors="replace"
 )
 print(df.head())
 ```
