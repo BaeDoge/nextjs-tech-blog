@@ -74,7 +74,7 @@ class Solution:
             smallest = heapq.heappop(heap)
             heapq.heappush(heap, smallest * -1)
             
-        return sum(nums)
+        return sum(heap)
 ```
 
 ## 추가 참고사항
