@@ -11,7 +11,7 @@ tag: "Algorithm"
 
 ## 접근 방법
 
-BFS 전략을 사용해 큐에 현재 레벨 노드를 저장하고, 레벨별로 순환하면서 값을 수집한다. 매 레벨에서 큐의 현재 길이를 기록한 뒤, 해당 길이만큼 노드를 꺼내어 값을 리스트에 추가하고 자식 노드를 다음 레벨 큐에 삽입한다. 이렇게 하면 각 레VEL을 한 번에 처리할 수 있다.
+BFS 전략을 사용해 큐에 현재 레벨 노드를 저장하고, 레벨별로 순환하면서 값을 수집한다. 매 레벨에서 큐의 현재 길이를 기록한 뒤, 해당 길이만큼 노드를 꺼내어 값을 리스트에 추가하고 자식 노드를 다음 레벨 큐에 삽입한다. 이렇게 하면 각 레벨을 한 번에 처리할 수 있다.
 
 ## 풀이
 
@@ -51,7 +51,28 @@ def levelOrder(root: Optional[TreeNode]) -> List[List[int]]:
 
 ## 다른 풀이 방법
 
-DFS를 이용해 각 노드에 레벨 정보를 저장하고 재귀적으로 순회하면 같은 결과를 얻는다. 이 방법은 스택 공간 사용량이 레 tree 깊이만큼 증가하므로 최악의 경우 O(n) 공간 복잡도를 갖는다. BFS와 DFS의 시간 복잡도는 모두 O(n)이지만, BFS는 큐 연산이 간단해 구현이 더 직관적이다.
+재귀 DFS를 사용해도 같은 레벨 순서의 결과를 만들 수 있습니다. 재귀 함수에 현재 깊이를 전달하고, 처음 방문한 깊이라면 결과 배열에 새 리스트를 추가합니다. 이후 현재 노드의 값을 해당 깊이의 리스트에 추가하고 왼쪽, 오른쪽 자식을 순서대로 방문합니다.
+
+```python
+from typing import List, Optional
+
+def levelOrder_dfs(root: Optional[TreeNode]) -> List[List[int]]:
+    result = []
+
+    def dfs(node: Optional[TreeNode], depth: int) -> None:
+        if node is None:
+            return
+        if depth == len(result):
+            result.append([])
+        result[depth].append(node.val)
+        dfs(node.left, depth + 1)
+        dfs(node.right, depth + 1)
+
+    dfs(root, 0)
+    return result
+```
+
+시간 복잡도는 O(n)입니다. 결과 리스트를 제외한 재귀 호출 스택의 추가 공간은 O(h)이며, h는 트리 높이입니다. 트리가 한쪽으로 치우치면 재귀 깊이가 O(n)이 될 수 있으므로, 매우 깊은 트리에서는 큐를 사용하는 BFS가 Python의 재귀 제한에 더 안전합니다.
 
 ## 추가 참고사항
 
