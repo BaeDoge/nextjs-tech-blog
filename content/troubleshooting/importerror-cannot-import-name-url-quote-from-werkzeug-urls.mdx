@@ -1,7 +1,7 @@
 ---
 title: "[트러블슈팅] ImportError: cannot import name 'url_quote' from werkzeug.urls"
 publishedAt: "2026-11-11"
-summary: "Flask 2.2.2와 Werkzeug 3.0.0 간의 호환성 문제로 인해 발생하는 url_quote import 오류를 해결하는 방법을 설명합니다."
+summary: "Flask와 Werkzeug의 버전 호환성 차이로 werkzeug.urls.url_quote를 import하지 못할 때 의존성을 점검하고 수정하는 방법을 정리한다."
 tag: "Troubleshooting"
 ---
 
@@ -30,7 +30,7 @@ ImportError: cannot import name 'url_quote' from 'werkzeug.urls'
 
 ## 원인
 
-Flask 2.2.2는 `werkzeug.urls.url_quote`를 참조하지만, Werkzeug 3.0.0에서 해당 함수가 제거되었습니다. Flask 2.2.2의 의존성 사양이 `Werkzeug>=2.2.0`으로 상한선을 지정하지 않아, 패키지 관리자가 최신 Werkzeug 3.0.0을 자동으로 설치할 수 있었고, 이로 인해 ImportError가 발생합니다.
+Flask 2.2.2는 `werkzeug.urls.url_quote`를 사용하지만, Werkzeug 3.0.0에서 이전에 deprecated된 URL 유틸리티가 제거되었습니다. Flask 2.2.2의 Werkzeug 의존성에는 3.0 미만이라는 상한선이 없어서 최신 Werkzeug가 설치되면 호환되지 않을 수 있습니다. Flask 3.0.0은 반대로 Werkzeug 3.0.0 이상을 요구하므로, Flask와 Werkzeug는 서로 호환되는 버전 조합으로 함께 관리해야 합니다.
 
 ## 해결 방법
 
@@ -45,7 +45,7 @@ Werkzeug==2.2.2
 패키지를 다시 설치하여 버전을 맞춥니다.
 
 <Terminal title="실행 명령">
-pip install -r requirements.txt
+python -m pip install -r requirements.txt\npython -m pip check
 </Terminal>
 
 ## 다른 해결 방법
@@ -57,7 +57,7 @@ pip install -r requirements.txt
 Flask==3.0.0
 ```
 
-업데이트 후 패키지를 재설치하여 의존성을 맞춤입니다.
+예시 범위는 현재 호환되는 주요 버전 계열을 지정한 것입니다. 실제 배포에서는 검증된 정확한 버전을 lock/constraints 파일에 고정하고, 설치 후 `python -m pip check`와 테스트를 실행합니다.
 
 ## 추가 참고사항
 
@@ -82,5 +82,5 @@ requirements.txt에서 호환 가능한 버전을 지정합니다.
 ## 출처
 
 - StackOverflow: [Why did Flask start failing with "ImportError: cannot import name 'url_quote' from 'werkzeug.urls'"?](https://stackoverflow.com/questions/77213053/why-did-flask-start-failing-with-importerror-cannot-import-name-url-quote-fr) — 작성자: stevezkw(질문), Scrashdemix(답변) (CC BY-SA)
-- Tistory: [cannot import name 'url_quote' from 'werkzeug.urls'](https://second-brain-storage.tistory.com/5) — 작성자: MY Second Brain
-- Tistory: [【Python】 파이썬 주요 트러블슈팅 [61-80]](https://nate9389.tistory.com/2366) — 작성자: 정빈이의 공부방
+- Werkzeug 공식 변경 이력: [Version 3.0.0](https://werkzeug.palletsprojects.com/en/stable/changes/#version-3-0-0)
+- Flask 공식 변경 이력: [Version 3.0.0](https://flask.palletsprojects.com/en/stable/changes/#version-3-0-0)
