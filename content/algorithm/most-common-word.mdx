@@ -40,7 +40,7 @@ from collections import Counter
 class Solution:
     def mostCommonWord(self, paragraph: str, banned: list[str]) -> str:
         # banned 배열을 빠른 조회를 위한 집합으로 변환
-        banned_set = set(banned)
+        banned_set = {word.lower() for word in banned}
         
         # 소문자로 변환하고, 영문 알파벳이 아닌 문자를 공백으로 대체
         # re.sub(r'[^a-z]', ' ', paragraph.lower())와 동일
@@ -49,21 +49,19 @@ class Solution:
         # 단어 빈도 계산
         word_counts = Counter(words)
         
-        # most_common(1)은 가장 빈도가 높은 (단어, 빈도) 튜플을 반환
-        # banned 목록에 없는 단어를 찾기 위해 필터링
-        for word, count in word_counts.most_common():
-            if word not in banned_set:
-                return word
-                
-        return ""
+        # 금지된 단어가 아닌 항목 중 최대 빈도의 단어 선택
+        return max(
+            (word for word in word_counts if word not in banned_set),
+            key=word_counts.get,
+        )
 ```
 
-- **시간 복잡도**: $O(N + M)$, 여기서 $N$은 `paragraph`의 길이, $M$은 `banned`의 길이입니다. 문자열 처리와 해시맵 삽입/조회가 선형 시간에 수행됩니다.
+- **시간 복잡도**: $O(N + M + U)$, 여기서 $N$은 `paragraph` 길이, $M$은 `banned` 길이, $U$는 서로 다른 단어 수입니다. 단어 토큰화와 빈도 계산은 선형이며, 금지되지 않은 단어 중 최댓값을 한 번 순회해 찾습니다.
 - **공간 복잡도**: $O(N + M)$, 단어들을 저장하기 위한 해시맵과 집합의 크기에 비례합니다.
 
 ## 다른 풀이 방법
 
-정규식 대신 문자열의 각 문자를 직접 순회하며 단어를 구성하는 방법도 있습니다.
+정규식 대신 문자열의 각 문자를 직접 순회하며 단어를 구성하는 방법도 있습니다. 이 방식 역시 해시맵을 사용해 빈도를 누적하고, 마지막에 금지되지 않은 단어 중 최대 빈도를 선형 탐색하면 됩니다.
 
 1. `paragraph`를 소문자로 변환합니다.
 2. 문자를 하나씩 읽으며 알파벳인 경우 현재 단어에 추가합니다.
