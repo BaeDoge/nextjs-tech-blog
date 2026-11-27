@@ -1,65 +1,23 @@
 ---
-title: "[Troubleshooting] Resolving Closure Variable Assignment Errors"
+title: "[Troubleshooting] UnboundLocalError When Reassigning a Closure Variable"
 publishedAt: "2026-11-26"
-summary: "Explains how to use the `nonlocal` keyword in Python 3 to reassign variables within a closure."
+summary: "Explains why augmented assignment inside a nested function creates a local variable and how to update an enclosing variable with nonlocal."
 tag: "Troubleshooting"
 ---
 
 ## Symptom
 
-In Python 3, attempting to increment or decrement a variable from an outer function inside a closure using the increment/decrement operator (`+=`) results in an `UnboundLocalError`.
+In Python 3, attempting to increment or decrement a variable from an enclosing function inside a nested function can raise `UnboundLocalError`.
 
-<Callout type="warning" title="Error Situation">
-
-```python
+```text
 UnboundLocalError: local variable 'counter' referenced before assignment
 ```
 
-</Callout>
-
-The minimal code to reproduce the error is as follows:
-
-```python
-def foo():
-    counter = 1
-    def bar():
-        counter += 1  # Attempt to reassign
-        print("bar", counter)
-    return bar
-
-bar = foo()
-bar()
-```
-
-## Cause
-
-Python treats a variable as a local variable if there is an assignment statement for that variable within the function.
-
-Inside the closure, `counter += 1` behaves identically to `counter = counter + 1`.
-
-At the point where the right-hand side `counter` is referenced, the local variable has not yet been initialized, causing the error.
-
-## Solution
-
-In Python 3, you can use the `nonlocal` keyword to make a variable from an outer scope reassignable.
-
-<Steps>
-<Step title="Add nonlocal keyword">
-Explicitly specify the `nonlocal` keyword before the variable you intend to modify inside the closure function.
-</Step>
-<Step title="Allow variable reassignment">
-You can now change the value of the outer variable within the closure.
-</Step>
-</Steps>
-
-The modified code is as follows:
-
 ```python
 def foo():
     counter = 1
 
     def bar():
-        nonlocal counter  # Allow reference and reassignment of outer variable
         counter += 1
         print("bar", counter)
 
@@ -69,64 +27,71 @@ bar = foo()
 bar()
 ```
 
-## Alternative Solutions
+## Cause
 
-Python 2 does not support the `nonlocal` keyword, so a different approach is required.
+Python treats a name as local to a function when that function assigns to it, unless the name is declared `global` or `nonlocal`. Augmented assignment such as `counter += 1` also assigns to the name and behaves conceptually like `counter = counter + 1`.
 
-<Compare>
-<ComparePanel title="Python 2 Compatibility (Using Mutable Objects)" tone="good">
-Use mutable objects (lists, dictionaries, etc.) to maintain the reference while changing only the internal value.
-</ComparePanel>
-<ComparePanel title="Class-based Approach" tone="good">
-Manage state using instance methods of a class instead of closures.
-</ComparePanel>
-</Compare>
+The nested function therefore tries to read its own local `counter` before that local variable has been initialized.
 
-Here is a Python 2-compatible solution using a list:
+## Solution
+
+In Python 3, declare the enclosing variable with `nonlocal` before reassigning it.
 
 ```python
 def foo():
-    counter = [1]  # Wrap in a list to use a mutable object
+    counter = 1
 
     def bar():
-        counter[0] += 1  # Reference remains the same, only the value changes
+        nonlocal counter
+        counter += 1
+        print("bar", counter)
+
+    return bar
+
+bar = foo()
+bar()  # bar 2
+```
+
+## Alternative Solutions
+
+When supporting legacy Python 2 code, where `nonlocal` is not available, a mutable container can hold the state. Python 2 is end-of-life and should not be chosen for new projects.
+
+```python
+def foo():
+    counter = [1]
+
+    def bar():
+        counter[0] += 1
         print("bar", counter[0])
 
     return bar
 
 bar = foo()
-bar()
+bar()  # bar 2
 ```
 
-Here is a class-based solution example:
+A class can also make the state explicit.
 
 ```python
-class Foo:
-    def __init__(self, counter=1):
-        self.counter = counter
+class Counter:
+    def __init__(self, value=1):
+        self.value = value
 
-    def __call__(self):
-        self.counter += 1
-        print("bar", self.counter)
+    def increment(self):
+        self.value += 1
+        return self.value
 
-bar = Foo()
-bar()
+counter = Counter()
+print(counter.increment())  # 2
 ```
 
 ## Additional Notes
 
-When using mutable objects, be careful not to reassign the variable name itself (e.g., `counter = [...]`), as this can break the closure.
-
-If such state maintenance is required, consider using class instances or generators.
-
-<Checklist>
-<ul>
-<li>In Python 3 environments, prioritize using the `nonlocal` keyword.</li>
-<li>In Python 2 environments, utilize mutable objects such as lists or dictionaries.</li>
-<li>Always handle variable reassignment within closures via `nonlocal` or mutable objects.</li>
-</ul>
-</Checklist>
+- Use `nonlocal` when you need to reassign a variable in an enclosing function scope.
+- Use `global` only when the name belongs to the module-level scope.
+- A mutable container can avoid rebinding the outer name, but it should not be used as a substitute for clear state design in new code.
 
 ## Sources
 
+- Python documentation: [The `nonlocal` statement](https://docs.python.org/3/reference/simple_stmts.html#the-nonlocal-statement)
 - StackOverflow: [Why can't Python increment variable in closure?](https://stackoverflow.com/questions/21959985/why-cant-python-increment-variable-in-closure) — Author: Neil(question), kindall(answer) (CC BY-SA)
