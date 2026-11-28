@@ -11,7 +11,7 @@ tag: "Algorithm"
 - `i`와 `j`는 서로 달라야 합니다 (`i != j`).
 - `arr[i]`의 값이 `arr[j]`의 값의 2배여야 합니다 (`arr[i] == 2 * arr[j]`).
 
-배열의 길이는 2 이상 500 이하이며, 각 원소의 값은 -103에서 103 사이의 정수입니다. 조건을 만족하는 쌍이 존재하면 `true`, 그렇지 않으면 `false`를 반환합니다.
+배열의 길이는 2 이상 500 이하이며, 각 원소의 값은 -10^3에서 10^3 사이의 정수입니다. 조건을 만족하는 쌍이 존재하면 `true`, 그렇지 않으면 `false`를 반환합니다.
 
 ## 접근 방법
 
@@ -28,6 +28,8 @@ tag: "Algorithm"
 조건을 만족하는 쌍이 발견되면 즉시 `true`를 반환하고, 모든 쌍을 확인한 후에도 조건을 만족하는 쌍이 없으면 `false`를 반환합니다.
 
 ```python
+from typing import List
+
 class Solution:
     def checkIfExist(self, arr: List[int]) -> bool:
         n = len(arr)
@@ -50,6 +52,8 @@ class Solution:
 이 방법은 배열을 한 번만 순회하므로 시간 복잡도가 $O(N)$으로 개선되지만, 해시셋 저장으로 인해 공간 복잡도가 $O(N)$이 됩니다.
 
 ```python
+from typing import List
+
 class Solution:
     def checkIfExist(self, arr: List[int]) -> bool:
         seen = set()

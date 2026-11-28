@@ -18,7 +18,6 @@ BST의 정렬된 구조적 성질을 활용하여 탐색 범위를 좁힙니다.
 재귀적 DFS를 구현하여 조건에 따라 불필요한 분기를 차단하는 방식으로 해결합니다.
 
 ```python
-from collections import deque
 from typing import Optional
 
 # Definition for a binary tree node.
@@ -28,7 +27,7 @@ from typing import Optional
 #         self.left = left
 #         self.right = right
 class Solution:
-    def rangeSumBST(self, root: Optional[TreeNode], low: int, high: int) -> int:
+    def rangeSumBST(self, root: Optional['TreeNode'], low: int, high: int) -> int:
         if not root:
             return 0
         
@@ -50,8 +49,13 @@ class Solution:
 BFS(너비 우선 탐색)를 사용하여 큐를 기반으로 순회할 수 있습니다. 루트 노드를 큐에 넣고 반복문을 수행하며, 각 노드의 값을 확인하여 합산하거나 자식을 큐에 추가합니다. 재귀 호출 스택 대신 큐를 사용하므로 재귀 깊이 제한에 영향을 받지 않습니다. 큐의 최악 공간은 O(W)이며, W는 트리의 최대 너비입니다. 가지치기가 적용되므로 방문하는 노드는 범위에 따라 달라질 수 있습니다.
 
 ```python
+from collections import deque
+from typing import Optional
+
+# TreeNode is provided by the LeetCode judge.
+
 class Solution:
-    def rangeSumBST(self, root: Optional[TreeNode], low: int, high: int) -> int:
+    def rangeSumBST(self, root: Optional['TreeNode'], low: int, high: int) -> int:
         if not root:
             return 0
         

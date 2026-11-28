@@ -32,6 +32,8 @@ tag: "Algorithm"
 ```python
 from typing import Optional
 
+# TreeNode is supplied by the LeetCode judge.
+
 # Definition for a binary tree node.
 # class TreeNode:
 #     def __init__(self, val=0, left=None, right=None):
@@ -40,7 +42,7 @@ from typing import Optional
 #         self.right = right
 
 class Solution:
-    def searchBST(self, root: Optional[TreeNode], val: int) -> Optional[TreeNode]:
+    def searchBST(self, root: Optional['TreeNode'], val: int) -> Optional['TreeNode']:
         if root is None:
             return None
         
@@ -67,8 +69,12 @@ class Solution:
   - 반복 종료 후 `curr` 반환
 
 ```python
+from typing import Optional
+
+# TreeNode is supplied by the LeetCode judge.
+
 class Solution:
-    def searchBST(self, root: Optional[TreeNode], val: int) -> Optional[TreeNode]:
+    def searchBST(self, root: Optional['TreeNode'], val: int) -> Optional['TreeNode']:
         curr = root
         while curr is not None and curr.val != val:
             if val < curr.val:

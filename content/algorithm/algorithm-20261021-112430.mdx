@@ -24,37 +24,30 @@ tag: "Algorithm"
 
 두 포인터를 사용하여 대칭을 검증하는 헬퍼 함수를 작성하고, 불일치가 발생했을 때 두 가지 경우(왼쪽 삭제, 오른쪽 삭제)를 재귀 또는 반복적으로 확인합니다.
 
-```java
-class Solution {
-    public boolean validPalindrome(String s) {
-        int left = 0;
-        int right = s.length() - 1;
-        
-        while (left < right) {
-            if (s.charAt(left) != s.charAt(right)) {
-                // 왼쪽 문자 삭제 또는 오른쪽 문자 삭제 후 팰린드롬 확인
-                return isPalindrome(s, left + 1, right) || isPalindrome(s, left, right - 1);
-            }
-            left++;
-            right--;
-        }
-        return true;
-    }
-    
-    private boolean isPalindrome(String s, int left, int right) {
-        while (left < right) {
-            if (s.charAt(left) != s.charAt(right)) {
-                return false;
-            }
-            left++;
-            right--;
-        }
-        return true;
-    }
-}
+```python
+class Solution:
+    def validPalindrome(self, s: str) -> bool:
+        def is_palindrome(left: int, right: int) -> bool:
+            while left < right:
+                if s[left] != s[right]:
+                    return False
+                left += 1
+                right -= 1
+            return True
+
+        left, right = 0, len(s) - 1
+        while left < right:
+            if s[left] != s[right]:
+                return (
+                    is_palindrome(left + 1, right)
+                    or is_palindrome(left, right - 1)
+                )
+            left += 1
+            right -= 1
+        return True
 ```
 
-시간복잡도: O(N). 각 문자는 최대 두 번 비교됩니다.
+시간복잡도: O(N). 처음 두 포인터 탐색은 선형이고, 첫 불일치 이후 최대 두 번의 선형 팰린드롬 검사를 수행합니다. 상수 번의 선형 탐색이므로 전체는 O(N)입니다.
 공간복잡도: O(1). 추가적인 공간 사용을 하지 않습니다.
 
 ## 다른 풀이 방법
@@ -71,7 +64,7 @@ class Solution {
 불일치가 발생했을 때, 왼쪽을 삭제할지 오른쪽을 삭제할지 결정하기 위해 두 가지 시나리오를 모두 확인해야 합니다.
 이는 한 번의 삭제만으로 해결 가능한지 여부를 판단하는 데 필수적인 단계입니다.
 문자열 조작 문제에서 대칭성을 확인할 때는 양쪽 끝에서부터 접근하는 것이 일반적인 패턴입니다.
-Java의 `String.charAt()` 메서드는 O(1) 시간 복잡도를 가지므로, 반복문 내에서 안전하게 사용할 수 있습니다.
+Python 문자열은 인덱스로 문자를 비교할 수 있습니다. 두 포인터와 보조 팰린드롬 검사 함수만 사용하므로 추가 자료구조 없이 해결할 수 있습니다.
 
 ## 출처
 
